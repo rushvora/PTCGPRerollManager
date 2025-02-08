@@ -39,7 +39,10 @@ The bot sentences are in french but there's a comment in the code for each one w
 
 # Install
 
-- Install Node.js 
+- First, create your discord application (the bot), there's plenty of youtube videos explaining how to do [such as this one](https://www.youtube.com/watch?v=Oy5HGvrxM4o&t=134s)
+Be sure to enable all Privileged Gateway Intents in its settings
+
+- Be sure to install Node.js 
 - Ensure that your Windows Execution Policy is set to RemoteSigned or Unsigned
 - Open VisualStudioCode > Terminal and run :
 ```
@@ -48,11 +51,23 @@ npm nstall discord.js
 npm install octokit
 npm update
 ```
-- You're good to go, to make it start, run
+- You're almost good to go, to make it start, run
 ```
 node .
 ```
 and press Ctrl+C to stop it. You can upload it on a server easily, I personnaly use discloud and it should work great once set up
+
+Place the repo in your project folder then it's time to edit config.json
+
+- *token* is you Discord App token
+- *guildID* is your Server ID
+- *channelID_IDSync* Sync is the channel were all the datas about the actives rerollers will be sent
+- *channelID_GPVerificationForum* **needs to be a forum channel** (check about discord community servers to enable forums) and it's where all the valid packs will be sent for verifications
+- *channelID_Webhook* is the channel were your group have their webhook linked to
+
+After that [create a new fine-grained token](https://github.com/settings/tokens) for your GitHub account, and make sure to only check to read/write your Gists
+Then, [create a GitGist](https://gist.github.com/) and get it's ID (the numbers in the URL)
+Now you're ready to fill out the last two variables in config.js
 
 # TODO :
 
