@@ -1,0 +1,5 @@
+discloud*
+node_modules/*
+configVALID.js
+configDEBUG.js
+backup_*
