@@ -81,7 +81,7 @@ In Arturo's bot the url should be placed in Friend ID and look like this : "http
 
 # TODO :
 
-Use the new 2 star filter webhook to send create forum post in another or the same forum channel as for gp
+Use the new 2 star filter webhook to create forum post in another or the same forum channel as for gp
 
 Use discord heartbeat to 
 - check players rerolling or not, maybe color active rerollers usernames based on if they are sending heartbeat or not
