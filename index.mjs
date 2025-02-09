@@ -62,6 +62,7 @@ const __dirname = import.meta.dirname;
 const pathActiveRerollers = __dirname+'/users/ActiveIDs_Group_1.txt';
 const pathProfilesUsernameID = __dirname+'/users/ProfilesUsernameID.txt';
 const pathProfilesInstances = __dirname+'/users/ProfilesInstances.txt';
+const GitGistName = "PTCGP_IDs.txt"
 
 const rest = new REST().setToken(token);
 const splitNewLine = /\r?\n|\r|\n/g
@@ -82,7 +83,7 @@ async function updateGist( newContent ){
         gist_id: 'gitGistID',
         description: '',
         files:{
-            'FrenchiesIDs.txt':{
+            GitGistName:{
                 content: newContent
             }
         },
