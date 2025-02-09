@@ -34,7 +34,7 @@ Exemple : _/GenerateUsernames TOBI bae cute halp dang pwease noice UwU my that s
 
 Will generate things like : "UwUstoopidTOBI", "pweasehalpTOBI", etc...
 
-It helps tracking usernamers easily and brings joy to ppl in your group clearing their friendlist and seeing GP with funny names
+It helps tracking usernamers easily and brings joy to ppl in your group clearing their friendlist and seeing GP with funny names. With the arrival of the new Heartbeat system, it might become obsolete for presence check but it'll still be a small fun feature anyway
 
 ## Others :
 
