@@ -1,6 +1,6 @@
 # Thobi's Pocket Reroll Manager
 
-Bot written in javascript ES6 made to work with [Arturo PTCG Bot](https://github.com/Arturo-1212/PTCGPB) for the [PTCGP French Rerollers](https://discord.gg/pn6XSn42m6) community
+This repo is a Discord Bot written in javascript ES6 made to work with [Arturo PTCG Bot](https://github.com/Arturo-1212/PTCGPB) for the [PTCGP French Rerollers](https://discord.gg/pn6XSn42m6) community
 
 # Features
 
@@ -27,7 +27,7 @@ Moreover, peoples of your group can type **/Dead** or **/Verified** to change th
 
 In order to know who's rerolling and who's not, the bot let you generate a list of usernames based on a suffix and keywords
 
-ExEMPLE : _/GenerateUsernames TOBI bae cute halp dang pwease noice UwU my that stoopid_
+Exemple : _/GenerateUsernames TOBI bae cute halp dang pwease noice UwU my that stoopid_
 
 Will generate things like : "UwUstoopidTOBI", "pweasehalpTOBI", etc...
 
@@ -55,18 +55,22 @@ npm update
 ```
 node .
 ```
-and press Ctrl+C to stop it. You can upload it on a server easily, I personnaly use discloud and it should work great once set up
+And press Ctrl+C to stop it. 
 
-Place the repo in your project folder then it's time to edit config.json
+You can upload it on a server easily, I personnaly use discloud and it should work great once set up
+
+Now place the repo in your project folder and edit config.json
 
 - *token* is you Discord App token
 - *guildID* is your Server ID
-- *channelID_IDSync* Sync is the channel were all the datas about the actives rerollers will be sent
-- *channelID_GPVerificationForum* **needs to be a forum channel** (check about discord community servers to enable forums) and it's where all the valid packs will be sent for verifications
-- *channelID_Webhook* is the channel were your group have their webhook linked to
+- *channelID_IDSync* is the channel ID where all the datas about the actives rerollers will be sent
+- *channelID_GPVerificationForum* is the channel ID **(needs to be a forum channel**, check about discord community servers to enable forums) and it's where all the valid packs will be sent for verifications
+- *channelID_Webhook* is the channel ID were your group have their webhook linked to
 
 After that [create a new fine-grained token](https://github.com/settings/tokens) for your GitHub account, and make sure to only check to read/write your Gists
+
 Then, [create a GitGist](https://gist.github.com/) and get it's ID (the numbers in the URL)
+
 Now you're ready to fill out the last two variables in config.js
 
 # TODO :
