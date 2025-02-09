@@ -5,6 +5,7 @@ This repo is a Discord Bot written in javascript ES6 made to work with [Arturo P
 # Features
 
 ## Automated IDs from Discord commands 
+<img align="right" width="361" height="261" src="https://i.imgur.com/tdXYCPO.png">
 
 Using **/SetPlayerID**, player are able to link their ID with their discord account
 
@@ -13,15 +14,17 @@ As i'm using GitGist, the refresh time can be up to a maximum of 5 minutes
 
 With **/SetAverageInstances**, players can also specify how many instances they are usually running and **it will show the total amount of instances** that should be running actually based on all active rerollers that wrote /Add and are in the pull 
 
-## Better GP management :
 
-![Auto Thread](https://i.imgur.com/rIDDtIH.jpeg)
+
+## Better GP management :
 
 Instead of using only the webhook channel which is a nightmare to navigate, the bots generate automatically a thread in a forum channel with : 
 - The Name and the Pack amount as title
 - A **quote to all rerollers** that **were active** at the time of the GP pull
 - The image and a link to the source (the webhook)
 Moreover, peoples of your group can type **/Dead** or **/Verified** to change the icon from ⌛ to 💀 or ✅
+
+![Auto Thread](https://i.imgur.com/rIDDtIH.jpeg)
 
 ## Usernames generator :
 
