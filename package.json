@@ -1,8 +1,8 @@
 {
   "name": "pocketrerollmanager",
   "version": "1.0.0",
-  "description": "This repo is a Discord Bot written in javascript ES6 made to work with [Arturo PTCG Bot](https://github.com/Arturo-1212/PTCGPB) for the [PTCGP French Rerollers](https://discord.gg/pn6XSn42m6) community",
-  "main": "backup_configCOMMIT.js",
+  "main": "index.mjs",
+  "type": "module",
   "dependencies": {
     "before-after-hook": "^3.0.2",
     "bottleneck": "^2.19.5",
@@ -36,5 +36,6 @@
   "bugs": {
     "url": "https://github.com/TheThobi/PTCGPRerollManager/issues"
   },
-  "homepage": "https://github.com/TheThobi/PTCGPRerollManager#readme"
+  "homepage": "https://github.com/TheThobi/PTCGPRerollManager#readme",
+  "description": ""
 }
