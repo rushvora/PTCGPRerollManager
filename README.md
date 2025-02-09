@@ -21,7 +21,8 @@ With **/SetAverageInstances**, players can also specify how many instances they 
 Instead of using only the webhook channel which is a nightmare to navigate, the bots generate automatically a thread in a forum channel with : 
 - The Name and the Pack amount as title
 - A **quote to all rerollers** that **were active** at the time of the GP pull
-- The image and a link to the source (the webhook)
+- The image and a link to the source (the webhook post)
+
 Moreover, peoples of your group can type **/Dead** or **/Verified** to change the icon from ⌛ to 💀 or ✅
 
 ![Auto Thread](https://i.imgur.com/rIDDtIH.jpeg)
