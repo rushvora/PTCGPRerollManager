@@ -1,4 +1,4 @@
-# Thobi's Pocket Reroll Manager
+# Thobi's Pocket Reroll Manager - Discord Bot
 
 This repo is a Discord Bot written in javascript ES6 made to work with [Arturo PTCG Bot](https://github.com/Arturo-1212/PTCGPB) for the [PTCGP French Rerollers](https://discord.gg/pn6XSn42m6) community
 
@@ -78,6 +78,11 @@ Now you're ready to fill out the last two variables in config.js
 
 # TODO :
 
-Use discord heartbeat to check players rerolling or not, color usernames based on if they are sending heartbeat or not, how many total since X time pack & instances runnning
+Use discord heartbeat to 
+- check players rerolling or not, maybe color active rerollers usernames based on if they are sending heartbeat or not
+- Calculte total instances amount on heartbeat if possible instead of /setaverageinstances
+- Show total packs since X time
 
-Filter out all the potentiel banwords from the user generated list and remove then, at this time it only filters special characters  
+Filter out all the potentiel banwords from the user generated list and remove then, at this time it only filters special characters
+
+Any idea of yours ? feel free to ping me on discord @thobi
