@@ -10,6 +10,7 @@ This repo is a Discord Bot written in javascript ES6 made to work with [Arturo P
 Using **/SetPlayerID**, player are able to link their ID with their discord account
 
 Once that's done, they can leave the pull by simply typing **/Add** or **/Remove** and it will **update a GitGist** that all players are linked with
+
 As i'm using GitGist, the refresh time can be up to a maximum of 5 minutes
 
 With **/SetAverageInstances**, players can also specify how many instances they are usually running and **it will show the total amount of instances** that should be running actually based on all active rerollers that wrote /Add and are in the pull 
