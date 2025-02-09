@@ -45,7 +45,8 @@ The bot sentences are in french but there's a comment in the code for each one w
 # Install
 
 - First, create your discord application (the bot), there's plenty of youtube videos explaining how to do [such as this one](https://www.youtube.com/watch?v=Oy5HGvrxM4o&t=134s)
-Be sure to enable all Privileged Gateway Intents in its settings
+
+Be sure to enable all Privileged Gateway Intents in the app settings
 
 - Be sure to install Node.js 
 - Ensure that your Windows Execution Policy is set to RemoteSigned or Unsigned
@@ -79,6 +80,8 @@ Then, [create a GitGist](https://gist.github.com/) and get it's ID (the numbers 
 In Arturo's bot the url should be placed in Friend ID and look like this : "https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw"
 
 # TODO :
+
+Use the new 2 star filter webhook to send create forum post in another or the same forum channel as for gp
 
 Use discord heartbeat to 
 - check players rerolling or not, maybe color active rerollers usernames based on if they are sending heartbeat or not
