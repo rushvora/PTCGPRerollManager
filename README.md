@@ -81,6 +81,8 @@ In Arturo's bot the url should be placed in Friend ID and look like this : "http
 
 # TODO :
 
+Use a more coherent system to stock data like xml instead of simple txt files
+
 Use the new 2 star filter webhook to create forum post in another or the same forum channel as for gp
 
 Use discord heartbeat to 
