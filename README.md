@@ -51,7 +51,7 @@ Be sure to enable all Privileged Gateway Intents in its settings
 - Open VisualStudioCode > Terminal and run :
 ```
 npm init -y
-npm nstall discord.js
+npm install discord.js
 npm install octokit
 npm update
 ```
