@@ -40,6 +40,7 @@ Color means something for the username :
 
 You can also use /addgpfound and /removegpfound to fix false positive godpacks
 <br /> 
+<br /> 
 
 ## Better GP management :
 
