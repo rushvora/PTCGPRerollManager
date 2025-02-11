@@ -17,15 +17,32 @@
 
 // Imports
 
+import { Octokit } from '@octokit/core';
+
 import {
     token,
     guildID,
     channelID_IDSync,
     channelID_GPVerificationForum,
     channelID_Webhook,
+    channelID_Heartbeat,
     gitToken,
     gitGistID,
 } from './config.js';
+
+import {
+    attrib_PocketID,
+    attrib_Active,
+    attrib_AverageInstances,
+    attrib_HBInstances,
+    attrib_RealInstances,
+    attrib_SessionTime,
+    attrib_TotalPacksOpened, 
+    attrib_SessionPacksOpened,
+    attrib_GodPackFound,
+    attrib_LastActiveTime,
+    attrib_LastHeartbeatTime,
+} from './xmlConfig.js';
 
 import {
     Client,
@@ -35,12 +52,23 @@ import {
     REST,
     ThreadAutoArchiveDuration,
     Routes,
-    PermissionFlagsBits,
+    PermissionsBitField,
+    time,
 } from 'discord.js';
 
-import { Octokit } from '@octokit/core';
-import fs from 'fs';
-import path from 'path';
+import {
+    doesUserProfileExists,
+    setUserAttribValue,
+    getUserAttribValue,
+    getActiveUsers,
+    getUsernameFromUsers, 
+    getUsernameFromUser, 
+    getIDFromUsers, 
+    getIDFromUser, 
+    getAttribValueFromUsers,
+    getAttribValueFromUser,
+    cleanString,
+} from './xmlManager.js';
 
 // Global Var
 
@@ -53,19 +81,8 @@ const client = new Client({
 	]
 });
 
-const __dirname = import.meta.dirname;
-
-// It wrote _Group1 because we might found usefull to create multiple Groups dynamically using the setAverageInstances that users would input
-// This way we could know how many instances there is running at the same time based on the fact that they're active or not and maybe then developp
-// a way to split instances when the number of instances exceed a specific number that would make the friend list full too fast.
-// That would allow for bigger groups without needing to have only 24/24 ppl
-const pathActiveRerollers = __dirname+'/users/ActiveIDs_Group_1.txt';
-const pathProfilesUsernameID = __dirname+'/users/ProfilesUsernameID.txt';
-const pathProfilesInstances = __dirname+'/users/ProfilesInstances.txt';
-const GitGistName = "PTCGP_IDs.txt"
-
 const rest = new REST().setToken(token);
-const splitNewLine = /\r?\n|\r|\n/g
+const GitGistName = "FrenchiesIDs.txt"
 
 const text_verifiedLogo = "✅";
 const text_deadLogo = "💀";
@@ -79,11 +96,13 @@ const octokit = new Octokit({
 
 async function updateGist( newContent ){
 
+    console.log("================ Update GistGit ================")
+
     await octokit.request(`PATCH /gists/${gitGistID}`,{
         gist_id: 'gitGistID',
         description: '',
         files:{
-            GitGistName:{
+            [GitGistName]:{
                 content: newContent
             }
         },
@@ -93,38 +112,23 @@ async function updateGist( newContent ){
     })
 }
 
+// async function updateGist( newContent ){
+//     console.log("================ Update GistGit ================")
+// }
+
 // Functions
 
-function checkFileExistsOrCreate(filePath) {
-    if (!fs.existsSync(filePath)) {
-        const dir = path.dirname(filePath);
-        
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-
-        fs.writeFileSync(filePath, '');
-    }
+function sumIntArray( arrayNumbers ) {
+    return arrayNumbers.reduce((accumulator, currentValue) => parseInt(accumulator) + parseInt(currentValue), 0);
 }
 
-function getActiveUsers(){
-    checkFileExistsOrCreate(pathActiveRerollers)
-    return fs.readFileSync(pathActiveRerollers,
-        { encoding: 'utf8' });
+function sumFloatArray( arrayNumbers ) {
+    return arrayNumbers.reduce((accumulator, currentValue) => parseFloat(accumulator) + parseFloat(currentValue), 0);
 }
 
-function getProfilesUsernameID(){
-    checkFileExistsOrCreate(pathProfilesUsernameID)
-    return fs.readFileSync(pathProfilesUsernameID,
-        { encoding: 'utf8' });
+function roundToOneDecimal(num) {
+    return parseFloat(num.toFixed(1));
 }
-
-function getProfilesInstances(){
-    checkFileExistsOrCreate(pathProfilesInstances)
-    return fs.readFileSync(pathProfilesInstances,
-        { encoding: 'utf8' });
-}
-
 
 function isNumbers( input ){
     var isNumber = true;
@@ -136,41 +140,6 @@ function isNumbers( input ){
     return isNumber;
 }
 
-function checkValueInArray( arrayIn, nameToCheck ){
-    var inArray = 0 
-    for (var i = 0; i < arrayIn.length; i++)
-        {
-            var singleName = arrayIn[i];
-            if(singleName.includes(nameToCheck))
-            {
-                inArray = 1;
-            }
-                
-        }
-    return inArray;
-}
-
-function getUserAttributesCombined( listActiveUsers, attribute )
-{
-    var outputIDs = "";
-    
-    var usernamesIDs = attribute;
-        
-    var arrayUsernameID = usernamesIDs.split(splitNewLine);
-    for (var i = 0; i < arrayUsernameID.length; i++)
-    {
-        var singleUsername = arrayUsernameID[i].split(` `)[0];
-        var singleID = arrayUsernameID[i].split(` `)[1];
-
-        if(listActiveUsers.includes(singleUsername))
-        {
-            outputIDs += `${singleID}\n`;
-        }
-    }
-
-    return outputIDs;
-}
-
 function splitMulti(str, tokens){
     var tempChar = tokens[0]; // We can use the first token as a temporary join character
     for(var i = 1; i < tokens.length; i++){
@@ -180,46 +149,206 @@ function splitMulti(str, tokens){
     return str;
 }
 
-function cleanString( inputString ){
-    // Remove blank lines
-    inputString = inputString.replaceAll(/^\s*\n/gm, "");
-    // Remove start & end whitespaces
-    inputString = inputString.replaceAll(/^\s+|\s+$/g, "");
-    return inputString;
+async function bulkDeleteMessages(channel, numberOfMessages) {
+    try {
+        let messagesToDelete = [];
+        let totalDeleted = 0;
+
+        // Fetch messages in batches of 100
+        while (totalDeleted < numberOfMessages) {
+            const messages = await channel.messages.fetch({ limit: 100 });
+            const messagesToDelete = messages.filter(msg => !msg.pinned);
+
+            if (messagesToDelete.length === 0) {
+                break;
+            }
+
+            await channel.bulkDelete(messagesToDelete);
+            totalDeleted += messagesToDelete.length;
+        }
+    } catch (error) {
+        console.error('Error deleting messages:', error);
+    }
 }
 
-function sendUpdatedListOfIds( allActiveUsersnames, interaction ){
+function colorText( text, color ){
+    
+    if(color == "gray")
+        return `[2;30m${text}[0m`
 
-    // Get active codes list
-    var outputContent = getUserAttributesCombined(allActiveUsersnames, getProfilesUsernameID());
-    var activeCodeList = `*Contenu de IDs.txt :*\n\`\`\`\n${outputContent}\n\`\`\``; // ENG : Content of ids.txt :
+    if(color == "red")
+        return `[2;31m${text}[0m`
 
-    // Get active username list
-    const text_ListofActiveUsers = "# Liste des rerollers actifs :\n-# Du plus ancien au plus récent"; // ENG : ## List of active rerollers :\n-# From oldest to newest
-    var activeUsersList = text_ListofActiveUsers + `\n${allActiveUsersnames.replaceAll(splitNewLine,` <- `)}\n`;
+    if(color == "green")
+        return `[2;32m${text}[0m`
+
+    if(color == "yellow")
+        return `[2;33m${text}[0m`
+
+    if(color == "blue")
+        return `[2;34m${text}[0m`
+
+    if(color == "pink")
+        return `[2;35m${text}[0m`
+
+    if(color == "cyan")
+        return `[2;36m${text}[0m`
+}
+
+function addBar(str, targetLength) {
+    const currentLength = str.length;
+    // Calculate the number of spaces needed to reach the target length
+    const spacesNeeded = targetLength - currentLength - 1; // -1 for the bar
+    // Create a string of spaces
+    const spaces = ' '.repeat(spacesNeeded);
+    // Return the string with the spaces and the bar added
+    return str + spaces + colorText('|', "gray");
+}
+
+async function usersInfos( users, members ){
+
+    var usersInfos = []
+
+    for (const user of users) {
+
+        var usersOutput = `\`\`\`ansi\n`;
+        var userOutput = "";
+
+        const id = getIDFromUser(user);
+        const username = getUsernameFromUser(user);
+        var visibleUsername = username;
+
+        // Activity check
+        members.forEach( member =>{
+            if(username === member.user.username) {
+                visibleUsername = member.displayName;
+            }
+        });
+
+        const lastActiveTime = new Date(getAttribValueFromUser(user, attrib_LastActiveTime));
+        const lastHBTime = new Date(getAttribValueFromUser(user, attrib_LastHeartbeatTime));
+        const currentTime = new Date();
+        const diffActiveTime = (currentTime - lastActiveTime) / 60000;
+        const diffHBTime = (currentTime - lastHBTime) / 60000;
+
+        var activeState = 0; // 0=missing - 1=waiting - 2=valid
+
+        if(diffActiveTime < 31) { // If player added less than 31mn ago (might still not have received HB)
+            if(diffHBTime < 31){ // If less than 31mn since last HB
+                userOutput += colorText(visibleUsername, "green");
+                activeState = 2;
+            }
+            else{
+                userOutput += colorText(visibleUsername, "yellow") + " - wait for HB";
+                activeState = 1;
+            }
+        }
+        else{ // If player added more than 31mn ago (HB have been received)
+            if(diffHBTime < 31){ // If less than 31mn since last HB
+                userOutput += colorText(visibleUsername, "green");
+                activeState = 2;
+            }
+            else{
+                userOutput += colorText(visibleUsername, "red") + " - no HB";
+            }
+        }
+
+        userOutput = addBar(userOutput, 40);
+
+        // Instances
+        var instances = "0";
+        if( activeState == 2 ){
+            instances = getAttribValueFromUser(user, attrib_HBInstances, 0);
+        }
+        else{
+            instances = getAttribValueFromUser(user, attrib_AverageInstances, 0);
+        }
+        userOutput += colorText(` ${instances} instances\n`, "gray");
+        await setUserAttribValue( id, username, attrib_RealInstances, instances );
+
+        // Pack stats
+        const totalPack = parseInt(getAttribValueFromUser(user, attrib_TotalPacksOpened));
+        const sessionPack = parseInt(getAttribValueFromUser(user, attrib_SessionPacksOpened));
+        const totalGodPack = parseInt(getAttribValueFromUser(user, attrib_GodPackFound));
+        const avgGodPack = totalGodPack >= 1 ? (totalPack+sessionPack)/totalGodPack : (totalPack+sessionPack);
+
+        const text_GPAvg = colorText("GP Avg:", "gray");
+        const text_Packs = colorText("Packs:", "gray");
+        const text_GP = colorText("GP:", "gray");
+        const text_TotalPack = colorText(totalPack + sessionPack, "blue");
+        const text_TotalGodPack = colorText(totalGodPack, "blue");
+        const text_GPRatio = totalGodPack >= 1 ? '1/' : '0/';
+        const text_AvgGodPack = colorText(`${text_GPRatio}${avgGodPack}`, `blue`);
+
+        userOutput += `    ${text_GPAvg} ${text_AvgGodPack} packs  ${text_Packs} ${text_TotalPack}  ${text_GP} ${text_TotalGodPack}\n`
+        
+        // Session stats
+        const sessionTime = roundToOneDecimal(parseFloat(getAttribValueFromUser(user, attrib_SessionTime)));
+        const sessionPacks = parseFloat(getAttribValueFromUser(user, attrib_SessionPacksOpened));
+
+        const text_Session = colorText("Session:", "gray");
+        const text_sessionTime = colorText("running for " + sessionTime + " mn", "gray");
+        const text_sessionPacks = colorText("with " + sessionPacks + " packs", "gray");
+        const text_avgPackSec = colorText(roundToOneDecimal(sessionPacks/sessionTime), "blue");
+
+        userOutput += `    ${text_Session} ${text_avgPackSec} packs/mn  ${text_sessionTime} ${text_sessionPacks}`
+
+        usersOutput += userOutput + `\n\`\`\``;
+        usersInfos.push(usersOutput);
+    };
 
     
-    // Get instances amount
-    var profilesInstances = getUserAttributesCombined(allActiveUsersnames, getProfilesInstances());
-    var instancesAmount = 0;
+    return usersInfos;
+}
 
-    profilesInstances.split("\n").forEach((instance) => {
-        var instanceNumber = parseInt(instance);
-        if(Number.isInteger(instanceNumber)){
-            instancesAmount = instancesAmount + instanceNumber;
-        }
+async function sendUpdatedListOfIds( guild, update_server ){
+
+    const IDSyncChannel = guild.channels.cache.get(channelID_IDSync);
+    await bulkDeleteMessages(IDSyncChannel, 20);
+
+    // CACHE MEMBERS
+    const m = await guild.members.fetch()
+
+    var activeUsers = await getActiveUsers();
+    var activeUsersInfos = await usersInfos(activeUsers, m);
+
+    // Send users data message by message otherwise it gets over the 2k words limit
+    IDSyncChannel.send({content:`# Liste des rerollers actifs :\n`}) // ENG : ## List of active rerollers
+    activeUsersInfos.forEach( activeUserInfos =>{
+        IDSyncChannel.send({content:activeUserInfos});
     });
-    const activeInstancesList = `## Instances en cours : ${instancesAmount}\n`; // ENG : ## Running instances
 
-    // Output All
-    interaction.guild.channels.cache.get(channelID_IDSync).send({ content:`${activeUsersList}${activeInstancesList}${activeCodeList}`});
-    updateGist(outputContent);
+    // Update Users
+    activeUsers = await getActiveUsers();
+    const activePocketIDs = getAttribValueFromUsers(activeUsers, attrib_PocketID, "").join('\n');
+    const activeInstances = getAttribValueFromUsers(activeUsers, attrib_RealInstances, [0]);
+    const instancesAmount = sumIntArray(activeInstances);
+
+    const globalsessionTime = getAttribValueFromUsers(activeUsers, attrib_SessionTime, [0]);
+    const globalsessionPacks = getAttribValueFromUsers(activeUsers, attrib_SessionPacksOpened, [0]);
+    const accumulatedSessionTime = sumFloatArray(globalsessionTime);
+    const accumulatedsessionPacks = sumFloatArray(globalsessionPacks);
+    const accumulatedPackSec = roundToOneDecimal((accumulatedsessionPacks/accumulatedSessionTime) * globalsessionPacks.length);
+
+    const text_activeInstances = `## ${instancesAmount} Instances à environ ${accumulatedPackSec} packs/mn\n\n`; // ENG : ## Running instances
+    const text_activePocketIDs = `*Contenu de IDs.txt :*\n\`\`\`\n${activePocketIDs}\n\`\`\``; // ENG : Content of ids.txt :
+
+    // Send instances and IDs
+    IDSyncChannel.send({ content:`${text_activeInstances}${text_activePocketIDs}`});
+    if(update_server){
+        updateGist(activePocketIDs);
+    }
 }
 
 // Events
 
 client.once(Events.ClientReady, async c => {
     console.log(`Logged in as ${c.user.tag}`);
+
+    const guild = client.guilds.cache.get(guildID);
+
+    const interval = 960000; // in ms = 16mn
+    setInterval(() => sendUpdatedListOfIds(guild, false), interval);
 
     // // Clear all guild commands (Warning : also clearupdateGist channels restrictions set on discord)
     // const guild = await client.guilds.fetch(guildID);
@@ -255,7 +384,6 @@ client.once(Events.ClientReady, async c => {
                 .setName("user")
                 .setDescription("ADMIN ONLY : seulement utile pour renseigner quelqu'un d'autre que soit") // ENG : Only usefull so add someone else than yourself
                 .setRequired(false)
-                // .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
         );
 
     const removeSCB = new SlashCommandBuilder()
@@ -264,9 +392,8 @@ client.once(Events.ClientReady, async c => {
         .addUserOption(option =>
             option
                 .setName("user")
-                .setDescription("ADMIN ONLY : seulement utile pour renseigner quelqu'un d'autre que soit") // ENG : Only usefull so remove someone else than yourself
+                .setDescription("ADMIN ONLY : seulement utile pour renseigner quelqu'un d'autre que soit") // ENG : ADMIN ONLY : Only usefull so remove someone else than yourself
                 .setRequired(false)
-                // .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
         );
 
     const refreshSCB = new SlashCommandBuilder()
@@ -296,6 +423,26 @@ client.once(Events.ClientReady, async c => {
                 .setRequired(false)
         );
 
+    const addGPFoundSCB = new SlashCommandBuilder()
+        .setName(`addgpfound`)
+        .setDescription(`Ajoute un GP trouvé à un utilisateur pour les stats`) // ENG : Add a GP Found to an user for the stats
+        .addUserOption(option =>
+            option
+                .setName("user")
+                .setDescription("ADMIN ONLY : seulement utile pour corriger des erreurs") // ENG : Only usefull to fix bugs
+                .setRequired(false)
+        );
+        
+    const removeGPFoundSCB = new SlashCommandBuilder()
+    .setName(`removegpfound`)
+    .setDescription(`Retire un GP trouvé à un utilisateur pour les stats`) // ENG : Remove a GP Found to an user for the stats
+    .addUserOption(option =>
+        option
+            .setName("user")
+            .setDescription("ADMIN ONLY : seulement utile pour corriger des erreurs") // ENG : Only usefull to fix bugs
+            .setRequired(false)
+    );
+
     const playeridCommand = playeridSCB.toJSON();
     client.application.commands.create(playeridCommand, guildID);
 
@@ -310,15 +457,21 @@ client.once(Events.ClientReady, async c => {
 
     const refreshCommand = refreshSCB.toJSON();
     client.application.commands.create(refreshCommand, guildID);
-
+    
     const verifiedCommand = verifiedSCB.toJSON();
     client.application.commands.create(verifiedCommand, guildID);
-
+    
     const deadCommand = deadSCB.toJSON();
     client.application.commands.create(deadCommand, guildID);
-
+    
     const generateusernamesCommand = generateusernamesSCB.toJSON();
     client.application.commands.create(generateusernamesCommand, guildID);
+
+    const addGPFoundCommand = addGPFoundSCB.toJSON();
+    client.application.commands.create(addGPFoundCommand, guildID);
+
+    const removeGPFoundCommand = removeGPFoundSCB.toJSON();
+    client.application.commands.create(removeGPFoundCommand, guildID);
 });
 
 client.on(Events.InteractionCreate, async interaction => {
@@ -344,29 +497,15 @@ client.on(Events.InteractionCreate, async interaction => {
             interaction.reply(text_incorrectID + ` **<@${interactionUserID}>**, ` + text_incorrectReason);
         }
         else{
-            const usernamesIDs = getProfilesUsernameID()
+            const userPocketID = await getUserAttribValue( client, interactionUserID, attrib_PocketID);
                 
-            if(usernamesIDs.includes(`${interactionUserName}`)){
+            if( userPocketID != undefined ){
 
-                var arrayUsernameID = usernamesIDs.split(splitNewLine);
-
-                for (var i = 0; i < arrayUsernameID.length; i++)
-                {
-                    var singleUsername = arrayUsernameID[i].split(` `)[0];
-                    var singleID = arrayUsernameID[i].split(" ")[1];
-
-                    if(interactionUserName == singleUsername)
-                    {
-                        var fileContent = usernamesIDs.replace(singleID, `${id}`)
-                        fs.writeFileSync(pathProfilesUsernameID, fileContent);
-                        interaction.reply(`Code **${singleID}** ` + text_replace + ` **${id}** ` + text_for + ` **<@${interactionUserID}>**`);
-                    }
-                }
+                await setUserAttribValue( interactionUserID, interactionUserName, attrib_PocketID, cleanString(id));
+                interaction.reply(`Code **${userPocketID}** ` + text_replace + ` **${id}** ` + text_for + ` **<@${interactionUserID}>**`);
             }
             else{
-                var fileContent = usernamesIDs + "\n" + `${interactionUserName} ${id}`
-                fileContent = cleanString(fileContent);
-                fs.writeFileSync(pathProfilesUsernameID, fileContent);
+                await setUserAttribValue( interactionUserID, interactionUserName, attrib_PocketID, cleanString(id));
                 interaction.reply(`Code **${id}** ` + text_set + ` **<@${interactionUserID}>**`);
             }
         }
@@ -376,37 +515,38 @@ client.on(Events.InteractionCreate, async interaction => {
     if(interaction.commandName === `add`){
 
         const text_addID = "Ajout de l'ID de"; // ENG : Add the ID of user
-        const text_toRerollers = "aux rerollers actifs"; // ENG : to the active rerollers pool
+        const text_toRerollers = `aux rerollers actifs, voir <#${channelID_IDSync}>`; // ENG : to the active rerollers pool
         const text_alreadyIn = "est déjà présent dans la liste des rerollers actifs"; // ENG : is already in the active rerollers pool
-
+        const text_missingPerm = "n\'a pas les permissions nécessaires pour changer l\'état de"; // ENG : do not have the permission de edit the user
+        const text_missingFriendCode = "Le Player ID est nécéssaire avant de vouloir s'add"; // ENG : The Player ID is needed before you can add yourself 
         const user = interaction.options.getUser(`user`);
         if( user != null){
+            if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return interaction.reply({ content: `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, ephemeral: true });
+            }
             interactionUserName = user.username;
             interactionUserID = user.id;
         }
 
-        // Reading the current players file
-        var allActiveUsersnames = getActiveUsers()
-        
-        var arrayActiveUsernames = allActiveUsersnames.split(splitNewLine);
-        var isPlayerActive = 0;
+        if(await doesUserProfileExists(interactionUserID, interactionUserName)){
+            if( await getUserAttribValue(client, interactionUserID, attrib_PocketID) == undefined){
+                return interaction.reply(text_missingFriendCode);
+            }
+        }
+        else{
+            return interaction.reply(text_missingFriendCode);
+        }
 
-        // Check if player is active
-        isPlayerActive = checkValueInArray(arrayActiveUsernames, interactionUserName)
+        var isPlayerActive = await getUserAttribValue( client, interactionUserID, attrib_Active) === "true";
         
         // Skip if player already active
         if(isPlayerActive == 0){
 
-            // Add user to active list
-            allActiveUsersnames += `\n${interactionUserName}`;
-            allActiveUsersnames = cleanString(allActiveUsersnames);
-
-            fs.writeFileSync(pathActiveRerollers, allActiveUsersnames);
-            
+            await setUserAttribValue( interactionUserID, interactionUserName, attrib_Active, true);
+            await setUserAttribValue( interactionUserID, interactionUserName, attrib_LastActiveTime, new Date().toString());
             interaction.reply(text_addID + ` **<@${interactionUserID}>** ` + text_toRerollers);
-
             // Send the list of IDs to an URL and who is Active is the Channel Sync
-            sendUpdatedListOfIds(allActiveUsersnames, interaction);
+            sendUpdatedListOfIds(guild, true);
         }
         else{
             interaction.reply(`**<@${interactionUserID}>** ` + text_alreadyIn);
@@ -417,37 +557,33 @@ client.on(Events.InteractionCreate, async interaction => {
     if(interaction.commandName === `remove`){
         
         const text_removeID = "Retrait de l'ID de"; // ENG : Add the ID of user
-        const text_toRerollers = "des rerollers actifs"; // ENG : to the active rerollers pool
+        const text_toRerollers = `des rerollers actifs, voir <#${channelID_IDSync}>`; // ENG : to the active rerollers pool
         const text_alreadyOut = "est déjà absent de la liste des rerollers actifs"; // ENG : is already out of the active rerollers pool
-
+        const text_missingPerm = "n\'a pas les permissions nécessaires pour changer l\'état de"; // ENG : do not have the permission de edit the user
+        const text_missingFriendCode = "Le Player ID est nécéssaire avant de vouloir se remove"; // ENG : The Player ID is needed before you can remove yourself
+        
         const user = interaction.options.getUser(`user`);
         if( user != null){
+            if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return interaction.reply({ content: `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, ephemeral: true });
+            }
             interactionUserName = user.username;
             interactionUserID = user.id;
         }
-            
-        // Reading the active players file
-        var allActiveUsersnames = getActiveUsers()
-        
-        var arrayActiveUsernames = allActiveUsersnames.split(splitNewLine);
-        var isPlayerActive = 0;
 
-        // Check if player is active
-        isPlayerActive = checkValueInArray(arrayActiveUsernames, interactionUserName);
+        if( await getUserAttribValue(client, interactionUserID, attrib_PocketID) == undefined){
+            return interaction.reply(text_missingFriendCode);
+        }
+        
+        var isPlayerActive = await getUserAttribValue( client, interactionUserID, attrib_Active) === "true";
 
         // Skip if player not active
         if(isPlayerActive == 1){
 
-            // Remove user from active list
-            allActiveUsersnames = allActiveUsersnames.replaceAll(interactionUserName,"");
-            allActiveUsersnames = cleanString(allActiveUsersnames);
-
-            fs.writeFileSync(pathActiveRerollers, allActiveUsersnames);
-
+            await setUserAttribValue( interactionUserID, interactionUserName, attrib_Active, false);
             interaction.reply(text_removeID + ` **<@${interactionUserID}>** ` + text_toRerollers);
-
             // Send the list of IDs to an URL and who is Active is the Channel Sync
-            sendUpdatedListOfIds(allActiveUsersnames, interaction);
+            sendUpdatedListOfIds(guild, true);
         }
         else{
             interaction.reply(`**<@${interactionUserID}>** ` + text_alreadyOut);
@@ -457,12 +593,11 @@ client.on(Events.InteractionCreate, async interaction => {
     // REFRESH COMMAND
     if(interaction.commandName === `refresh`){
         
-        const text_listRefreshed = "Liste rafraichie"; // ENG : List refreshed
+        const text_listRefreshed = `Liste rafraichie, voir <#${channelID_IDSync}>`; // ENG : List refreshed, see 
 
         // Reading the current players file
-        allActiveUsersnames = getActiveUsers()
         interaction.reply(text_listRefreshed);
-        sendUpdatedListOfIds(allActiveUsersnames, interaction);
+        sendUpdatedListOfIds(guild, true);
     }
 
     // VERIFIED COMMAND
@@ -549,34 +684,70 @@ client.on(Events.InteractionCreate, async interaction => {
             interaction.reply(text_incorrectAmount);
         }
         else{
-            var profilesInstances = getProfilesInstances()
-
-            if(profilesInstances.includes(`${interactionUserName}`)){
-
-                var arrayUsernameID = profilesInstances.split(splitNewLine);
-
-                for (var i = 0; i < arrayUsernameID.length; i++)
-                {
-                    var singleUsername = arrayUsernameID[i].split(` `)[0];
-                    var singleAmount = arrayUsernameID[i].split(" ")[1];
-
-                    if(interactionUserName == singleUsername)
-                    {
-                        fileContent = profilesInstances.replace(singleAmount, `${amount}`)
-                        fileContent = cleanString(fileContent);
-                        fs.writeFileSync(pathProfilesInstances, fileContent);
-                        interaction.reply(text_instancesSetTo + ` **${amount}** ` + text_for + ` **<@${interactionUserID}>**`);
-                    }
-                }
-            }
-            else{
-                fileContent = profilesInstances + "\n" + `${interactionUserName} ${amount}`
-                fileContent = cleanString(fileContent);
-                fs.writeFileSync(pathProfilesInstances, fileContent);
-                interaction.reply(text_instancesSetTo + ` **${amount}** ` + text_for + ` **<@${interactionUserID}>**`);
-            }
+            await setUserAttribValue( interactionUserID, interactionUserName, attrib_AverageInstances, amount);
+            interaction.reply(text_instancesSetTo + ` **${amount}** ` + text_for + ` **<@${interactionUserID}>**`);
         }
-    }            
+    }
+
+    // ADD GP FOUND COMMAND
+    if(interaction.commandName === `addgpfound`){
+        
+        const text_addGP = "Ajout d\'un GP pour"; // ENG : Add a GP for
+        const text_missingPerm = "n\'a pas les permissions nécessaires pour changer l\'état de"; // ENG : do not have the permission de edit the user
+        
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+            return interaction.reply({ content: `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, ephemeral: true });
+        }
+
+        const user = interaction.options.getUser(`user`);
+        if( user != null){
+            interactionUserName = user.username;
+            interactionUserID = user.id;
+        }
+
+        var GPCount = parseInt(await getUserAttribValue( client, interactionUserID, attrib_GodPackFound));
+        await setUserAttribValue( interactionUserID, interactionUserName, attrib_GodPackFound, GPCount+1);
+        interaction.reply(`${text_addGP} **<@${interactionUserID}>**`).then(tempMessage => {
+            setTimeout(() => {
+                tempMessage.delete()
+            }, 5000);
+        });
+    }
+
+    // REMOVE GP FOUND COMMAND
+    if(interaction.commandName === `removegpfound`){
+
+        const text_removeGP = "Retrait d\'un GP pour"; // ENG : Remove a GP for
+        const text_minimumGP = "Nombre de GP déjà au minimum pour"; // ENG : GP Count already at the minimum value for
+        const text_missingPerm = "n\'a pas les permissions nécessaires pour changer l\'état de"; // ENG : do not have the permission de edit the user
+
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+            return interaction.reply({ content: `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, ephemeral: true });
+        }
+
+        const user = interaction.options.getUser(`user`);
+        if( user != null){
+            interactionUserName = user.username;
+            interactionUserID = user.id;
+        }
+
+        var GPCount = parseInt(await getUserAttribValue( client, interactionUserID, attrib_GodPackFound));
+        if (GPCount > 0){
+            await setUserAttribValue( interactionUserID, interactionUserName, attrib_GodPackFound, GPCount-1);
+            interaction.reply(`${text_removeGP} **<@${interactionUserID}>**`).then(tempMessage => {
+                setTimeout(() => {
+                    tempMessage.delete()
+                }, 5000);
+            });
+        }
+        else{
+            interaction.reply(`${text_minimumGP} **<@${interactionUserID}>**`).then(tempMessage => {
+                setTimeout(() => {
+                    tempMessage.delete()
+                }, 5000);
+            });
+        }
+    }        
 });
 
 client.on("messageCreate", async (message) => {
@@ -595,29 +766,35 @@ client.on("messageCreate", async (message) => {
             
             var arrayGodpackMessage = splitMulti(message.content, ['<@','>','!','found','(',')']);
             var ownerID = arrayGodpackMessage[1];
+            var ownerUsername = (await guild.members.fetch(cleanString(ownerID))).user.username;
             var accountName = arrayGodpackMessage[3];
             var packAmount = arrayGodpackMessage[7];
+                        
+            const godPackFound = await getUserAttribValue( client, ownerID, attrib_GodPackFound );
+            if( godPackFound == undefined ) {
+                await setUserAttribValue( ownerID, ownerUsername, attrib_GodPackFound, 1);
+            } else {
+                await setUserAttribValue( ownerID, ownerUsername, attrib_GodPackFound, parseInt(godPackFound) + 1);
+            }
             
             var imageUrl = message.attachments.first().url;
         
-            var allActiveUsersnames = getActiveUsers();
-            var arrayActiveUsernames = allActiveUsersnames.split(splitNewLine);
+            var activeUsersID = getIDFromUsers(await getActiveUsers());
             var tagActiveUsernames = "";
 
             // CACHE MEMBERS
-            const m = await guild.members.fetch()
-            let members = m.map(u => u.user.id)
+            // const m = await guild.members.fetch()
+            // let members = m.map(u => u.user.id)
 
-            arrayActiveUsernames.forEach((username) =>{
+            activeUsersID.forEach((id) =>{
 
-                    var id = "";
-                    m.forEach((member) =>{
+                    // var id = "";
+                    // m.forEach((member) =>{
 
-                        if(member.user.username == username){
-                            id = member.user.id;
-                        }
-                    });
-
+                    //     if(member.user.username == username){
+                    //         id = member.user.id;
+                    //     }
+                    // });
                     tagActiveUsernames += `<@${id}>`
             });
 
@@ -641,6 +818,41 @@ client.on("messageCreate", async (message) => {
                     await thread.setLocked(true);
                 })
             });
+        }
+    }
+
+    if (message.channel.id === channelID_Heartbeat)
+    {
+        var heartbeatDatas = message.content.split("\n");
+        const userID = heartbeatDatas[0];
+        
+        var userUsername = (await guild.members.fetch(cleanString(userID))).user.username;
+
+        if(await doesUserProfileExists(userID, userUsername)){
+
+            const instances = heartbeatDatas[1].replaceAll("Online: ","").replaceAll("Main","").replaceAll(",","").split(" ");
+            const timeAndPacks = heartbeatDatas[3].replaceAll("Time: ","").replaceAll("Packs: ","").replaceAll("m","").split(" ");
+            const time = timeAndPacks[0];
+            const packs = timeAndPacks[1];
+
+            // const lastHeartbeatTime = new Date(await getUserAttribValue( client, userID, attrib_LastHeartbeatTime ));
+            // const currentTime = new Date();
+            // const diffActiveTime = (currentTime - lastHeartbeatTime) / 60000;
+
+            // console.log("lastActiveTime " + lastActiveTime);
+            // console.log("currentTime " + currentTime);
+            // console.log("diffActiveTime " + lastHeartbeatTime);
+
+            await setUserAttribValue( userID, userUsername, attrib_HBInstances, instances.length);
+            await setUserAttribValue( userID, userUsername, attrib_SessionTime, time);
+            if(time === "0" ){
+                const totalPacks = await getUserAttribValue( client, userID, attrib_TotalPacksOpened );
+                const sessionPacks = await getUserAttribValue( client, userID, attrib_SessionPacksOpened );
+                await setUserAttribValue( userID, userUsername, attrib_TotalPacksOpened, parseInt(totalPacks) + parseInt(sessionPacks));
+            }
+            await setUserAttribValue( userID, userUsername, attrib_SessionPacksOpened, packs);
+
+            await setUserAttribValue( userID, userUsername, attrib_LastHeartbeatTime, new Date().toString());
         }
     }
 });

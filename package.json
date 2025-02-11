@@ -21,7 +21,8 @@
     "undici-types": "^6.20.0",
     "universal-github-app-jwt": "^2.2.0",
     "universal-user-agent": "^7.0.2",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "xml2js": "^0.6.2"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

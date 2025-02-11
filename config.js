@@ -3,8 +3,9 @@ const guildID = "XXXXXXXXXXXXXXXXXXX";
 const channelID_IDSync = "XXXXXXXXXXXXXXXXXXX";
 const channelID_GPVerificationForum = "XXXXXXXXXXXXXXXXXXX";
 const channelID_Webhook = "XXXXXXXXXXXXXXXXXXX"; 
+const channelID_Heartbeat = "XXXXXXXXXXXXXXXXXXX"; 
 
 const gitToken = "github_pat_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
 const gitGistID = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
 
-export { token, guildID, channelID_IDSync, channelID_GPVerificationForum, channelID_Webhook, gitToken, gitGistID }
+export { token, guildID, channelID_IDSync, channelID_GPVerificationForum, channelID_Webhook, channelID_Heartbeat, gitToken, gitGistID }
