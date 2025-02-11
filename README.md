@@ -7,7 +7,7 @@ This repo is a Discord Bot written in javascript ES6 made to work with [Arturo P
 # Features
 
 ## Automated IDs from Discord commands 
-<img align="right" width="415" height="463" src="https://i.imgur.com/BamGht5.png">
+<img align="right" width="311" height="347" src="https://i.imgur.com/BamGht5.png">
 
 Using **/SetPlayerID**, player are able to link their ID with their discord account
 
@@ -15,15 +15,31 @@ Once that's done, they can leave the pull by simply typing **/Add** or **/Remove
 
 As i'm using GitGist, the refresh time can be up to a maximum of 5 minutes
 
-With **/SetAverageInstances**, players can also specify how many instances they are usually running and **it will show the total amount of instances** that should be running actually based on all active rerollers that wrote /Add and are in the pull 
+With **/SetAverageInstances**, players can also specify how many instances they are usually running and if the heartbeat is not received it will use the one waiting for the real number of instances
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
 
 ## Heartbeats implementation
 
 <img align="right" width="375" height="507" src="https://i.imgur.com/goZDtl9.png">
 
-Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets
+You can ask your group to use heartbeat so everyone will know who's rerolling and who's not based on the webhook
 
-Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets
+It will auto update in a specific channel every 16 minutes (default value) and shows a lot of informations such as :
+- Amount of Packs / minute for the session
+- Total Amount of Packs
+- Total Amount of Godpacks
+- The GodPack average luck (which is a fun luck test)
+
+Color means something for the username :
+- Green : Heartbeat have been received in the last 30mn and the user is rerolling
+- Yellow : Heartbeat have not been received in the last 30mn but he started < 30mn
+- Red : Heartbeat have not been received in the last 30mn and he's been active for > 30mn
+<br />
+<br /> 
 
 ## Better GP management :
 
@@ -35,6 +51,7 @@ Instead of using only the webhook channel which is a nightmare to navigate, the 
 Moreover, peoples of your group can type **/Dead** or **/Verified** to change the icon from ⌛ to 💀 or ✅
 
 ![Auto Thread](https://i.imgur.com/iO4WDha.png)
+<br /> 
 
 ## Usernames generator :
 
@@ -90,6 +107,8 @@ In Arturo's bot the url should be placed in Friend ID and look like this : "http
 # TODO :
 
 Use the new 2 star filter webhook to create forum post in another or the same forum channel as for gp
+
+Support heartbeat for users with multiple PCs farming for the same account
 
 Filter out all the potentiel banwords from the user generated list and remove then, at this time it only filters special characters
 
