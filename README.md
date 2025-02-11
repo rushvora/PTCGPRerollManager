@@ -15,7 +15,7 @@ Once that's done, they can leave the pull by simply typing **/Add** or **/Remove
 
 As i'm using GitGist, the refresh time can be up to a maximum of 5 minutes
 
-With **/SetAverageInstances**, players can also specify how many instances they are usually running and if the heartbeat is not received it will use the one waiting for the real number of instances
+With **/SetAverageInstances**, players can also specify how many instances they are usually running and if the heartbeat is not received it will use this one waiting for the real number of instances
 <br /> 
 <br /> 
 <br /> 
@@ -28,7 +28,7 @@ With **/SetAverageInstances**, players can also specify how many instances they 
 You can ask your group to use heartbeat so everyone will know who's rerolling and who's not based on the webhook
 
 It will auto update in a specific channel every 16 minutes (default value) and shows a lot of informations such as :
-- Amount of Packs / minute for the session
+- Amount of Packs per minute for the session
 - Total Amount of Packs
 - Total Amount of Godpacks
 - The GodPack average luck (which is a fun luck test)
@@ -37,7 +37,8 @@ Color means something for the username :
 - Green : Heartbeat have been received in the last 30mn and the user is rerolling
 - Yellow : Heartbeat have not been received in the last 30mn and active for < 30mn
 - Red : Heartbeat have not been received in the last 30mn and active for > 30mn
-<br />
+
+You can also use /addgpfound and /removegpfound to fix false positive godpacks
 <br /> 
 
 ## Better GP management :
