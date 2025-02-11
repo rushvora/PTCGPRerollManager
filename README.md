@@ -104,6 +104,9 @@ Now place the repo in your project folder and edit config.json
 - *channelID_IDSync* is the channel ID where all the datas about the actives rerollers will be sent
 - *channelID_GPVerificationForum* is the channel ID **(needs to be a forum channel**, check about discord community servers to enable forums) and it's where all the valid packs will be sent for verifications
 - *channelID_Webhook* is the channel ID were your group have their webhook linked to
+- *channelID_Heartbeat* is the channel ID were your group have their hearbeat webhook linked to
+
+**For the heartbeat to work**, you need to tell your group to input their **Discord ID in the left field** in Arturo's bot
 
 After that [create a new fine-grained token](https://github.com/settings/tokens) for your GitHub account, and make sure to only check to read/write your Gists
 
