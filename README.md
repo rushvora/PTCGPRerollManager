@@ -118,11 +118,11 @@ In Arturo's bot the url should be placed in Friend ID and look like this : "http
 
 # TODO :
 
-Use the new 2 star filter webhook to create forum post in another or the same forum channel as for gp
+- Use the new 2 star filter webhook to create forum post in another or the same forum channel as for gp
 
-Support heartbeat for users with multiple PCs farming for the same account
+- Support heartbeat for users with multiple PCs farming for the same account
 
-Filter out all the potentiel banwords from the user generated list and remove then, at this time it only filters special characters
+- Filter out all the potentiel banwords from the user generated list and remove then, at this time it only filters special characters
 
-Any idea of yours ? feel free to ping me on discord @thobi
+- Any idea of yours ? feel free to [join the discord](https://discord.gg/pn6XSn42m6) and create a new forum post in "Bot-Suggestions"
 
