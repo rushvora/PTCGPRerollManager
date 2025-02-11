@@ -111,6 +111,11 @@ In Arturo's bot the url should be placed in Friend ID and look like this : "http
 <br /> 
 <br /> 
 
+# Known Issues :
+
+- If you have the error telling you **"Cannot find module"**, you might have dropped the repo in your project too fast, go to file Package.jon and replace ```index.js,``` with ```index.mjs,``` and add ```type:module,``` right after if you're missing it too.
+<br /> 
+
 # TODO :
 
 Use the new 2 star filter webhook to create forum post in another or the same forum channel as for gp
@@ -120,3 +125,4 @@ Support heartbeat for users with multiple PCs farming for the same account
 Filter out all the potentiel banwords from the user generated list and remove then, at this time it only filters special characters
 
 Any idea of yours ? feel free to ping me on discord @thobi
+
