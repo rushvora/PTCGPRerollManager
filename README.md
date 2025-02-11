@@ -84,6 +84,7 @@ Be sure to enable all Privileged Gateway Intents in the app settings
 npm init -y
 npm install discord.js
 npm install octokit
+npm install xml2js
 npm update
 ```
 - You're almost good to go, to make it start, run
