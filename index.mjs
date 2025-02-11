@@ -130,6 +130,14 @@ function roundToOneDecimal(num) {
     return parseFloat(num.toFixed(1));
 }
 
+function countDigits(str) {
+    return (str.match(/\d/g) || []).length;
+}
+
+function extractNumbers(str) {
+    return (str.match(/\d+/g) || []).map(Number);
+}
+
 function isNumbers( input ){
     var isNumber = true;
     for (let i = 0; i < input.length; i++) {
@@ -198,7 +206,7 @@ function colorText( text, color ){
 function addBar(str, targetLength) {
     const currentLength = str.length;
     // Calculate the number of spaces needed to reach the target length
-    const spacesNeeded = targetLength - currentLength - 1; // -1 for the bar
+    const spacesNeeded = Math.max(targetLength - currentLength - 1,0);
     // Create a string of spaces
     const spaces = ' '.repeat(spacesNeeded);
     // Return the string with the spaces and the bar added
@@ -239,7 +247,7 @@ async function usersInfos( users, members ){
                 activeState = 2;
             }
             else{
-                userOutput += colorText(visibleUsername, "yellow") + " - wait for HB";
+                userOutput += colorText(visibleUsername, "yellow") + " - started";
                 activeState = 1;
             }
         }
@@ -249,7 +257,7 @@ async function usersInfos( users, members ){
                 activeState = 2;
             }
             else{
-                userOutput += colorText(visibleUsername, "red") + " - no HB";
+                userOutput += colorText(visibleUsername, "red") + " - inactive";
             }
         }
 
@@ -266,11 +274,25 @@ async function usersInfos( users, members ){
         userOutput += colorText(` ${instances} instances\n`, "gray");
         await setUserAttribValue( id, username, attrib_RealInstances, instances );
 
+        // Session stats
+        var sessionTime = roundToOneDecimal(parseFloat(getAttribValueFromUser(user, attrib_SessionTime)));
+        var sessionPacks = parseFloat(getAttribValueFromUser(user, attrib_SessionPacksOpened));
+
+
+        const text_Session = colorText("Session:", "gray");
+        const text_sessionTime = colorText("running for " + sessionTime + " mn", "gray");
+        const text_sessionPacks = colorText("with " + sessionPacks + " packs", "gray");
+        var sessionAvgPackMn = roundToOneDecimal(sessionPacks/sessionTime);
+        sessionAvgPackMn = sessionTime == 0 || sessionPacks == 0 ? 0 : sessionAvgPackMn;
+        const text_avgPackMn = colorText(sessionAvgPackMn, "blue");
+
+        userOutput += `    ${text_Session} ${text_avgPackMn} packs/mn  ${text_sessionTime} ${text_sessionPacks}\n`
+
         // Pack stats
         const totalPack = parseInt(getAttribValueFromUser(user, attrib_TotalPacksOpened));
         const sessionPack = parseInt(getAttribValueFromUser(user, attrib_SessionPacksOpened));
         const totalGodPack = parseInt(getAttribValueFromUser(user, attrib_GodPackFound));
-        const avgGodPack = totalGodPack >= 1 ? (totalPack+sessionPack)/totalGodPack : (totalPack+sessionPack);
+        const avgGodPack = roundToOneDecimal(totalGodPack >= 1 ? (totalPack+sessionPack)/totalGodPack : (totalPack+sessionPack));
 
         const text_GPAvg = colorText("GP Avg:", "gray");
         const text_Packs = colorText("Packs:", "gray");
@@ -280,18 +302,7 @@ async function usersInfos( users, members ){
         const text_GPRatio = totalGodPack >= 1 ? '1/' : '0/';
         const text_AvgGodPack = colorText(`${text_GPRatio}${avgGodPack}`, `blue`);
 
-        userOutput += `    ${text_GPAvg} ${text_AvgGodPack} packs  ${text_Packs} ${text_TotalPack}  ${text_GP} ${text_TotalGodPack}\n`
-        
-        // Session stats
-        const sessionTime = roundToOneDecimal(parseFloat(getAttribValueFromUser(user, attrib_SessionTime)));
-        const sessionPacks = parseFloat(getAttribValueFromUser(user, attrib_SessionPacksOpened));
-
-        const text_Session = colorText("Session:", "gray");
-        const text_sessionTime = colorText("running for " + sessionTime + " mn", "gray");
-        const text_sessionPacks = colorText("with " + sessionPacks + " packs", "gray");
-        const text_avgPackSec = colorText(roundToOneDecimal(sessionPacks/sessionTime), "blue");
-
-        userOutput += `    ${text_Session} ${text_avgPackSec} packs/mn  ${text_sessionTime} ${text_sessionPacks}`
+        userOutput += `    ${text_Packs} ${text_TotalPack}  ${text_GP} ${text_TotalGodPack}  ${text_GPAvg} ${text_AvgGodPack} packs`
 
         usersOutput += userOutput + `\n\`\`\``;
         usersInfos.push(usersOutput);
@@ -303,8 +314,7 @@ async function usersInfos( users, members ){
 
 async function sendUpdatedListOfIds( guild, update_server ){
 
-    const IDSyncChannel = guild.channels.cache.get(channelID_IDSync);
-    await bulkDeleteMessages(IDSyncChannel, 20);
+    await bulkDeleteMessages(guild.channels.cache.get(channelID_IDSync), 20);
 
     // CACHE MEMBERS
     const m = await guild.members.fetch()
@@ -313,9 +323,9 @@ async function sendUpdatedListOfIds( guild, update_server ){
     var activeUsersInfos = await usersInfos(activeUsers, m);
 
     // Send users data message by message otherwise it gets over the 2k words limit
-    IDSyncChannel.send({content:`# Liste des rerollers actifs :\n`}) // ENG : ## List of active rerollers
+    guild.channels.cache.get(channelID_IDSync).send({content:`# Liste des rerollers actifs :\n`}) // ENG : ## List of active rerollers
     activeUsersInfos.forEach( activeUserInfos =>{
-        IDSyncChannel.send({content:activeUserInfos});
+        guild.channels.cache.get(channelID_IDSync).send({content:activeUserInfos});
     });
 
     // Update Users
@@ -334,7 +344,7 @@ async function sendUpdatedListOfIds( guild, update_server ){
     const text_activePocketIDs = `*Contenu de IDs.txt :*\n\`\`\`\n${activePocketIDs}\n\`\`\``; // ENG : Content of ids.txt :
 
     // Send instances and IDs
-    IDSyncChannel.send({ content:`${text_activeInstances}${text_activePocketIDs}`});
+    guild.channels.cache.get(channelID_IDSync).send({ content:`${text_activeInstances}${text_activePocketIDs}`});
     if(update_server){
         updateGist(activePocketIDs);
     }
@@ -408,6 +418,10 @@ client.once(Events.ClientReady, async c => {
         .setName(`dead`)
         .setDescription(`Designe pack invalide, 1 god pack = 10% chance d'apparaître dans WP`); // ENG : Set the post as invalid / dud
 
+    const missSCB = new SlashCommandBuilder()
+        .setName(`miss`)
+        .setDescription(`Pour la verif, après X fois suivant le nombre de pack cela auto /dead`); // ENG : For verification purposes, after X times based on pack amount it sends /dead
+
     const generateusernamesSCB = new SlashCommandBuilder()
         .setName(`generateusernames`)
         .setDescription(`Génère liste basé sur suffixe et, facultatif, des mots `) // ENG : Generate a list based on a suffix and, if wanted, keywords
@@ -463,6 +477,9 @@ client.once(Events.ClientReady, async c => {
     
     const deadCommand = deadSCB.toJSON();
     client.application.commands.create(deadCommand, guildID);
+
+    const missCommand = missSCB.toJSON();
+    client.application.commands.create(missCommand, guildID);
     
     const generateusernamesCommand = generateusernamesSCB.toJSON();
     client.application.commands.create(generateusernamesCommand, guildID);
@@ -629,11 +646,56 @@ client.on(Events.InteractionCreate, async interaction => {
 
     }
 
+    // MISS COMMAND
+    if(interaction.commandName === `miss`){
+
+        // COMING UP FOR THE NEXT UPDATE, I DON'T HAVE THE TIME THIS EVENING
+
+        interaction.reply("coming up for the next update");
+
+        // var PacksAmount = 0;
+
+        // var missNeeded = 0
+        // var missAmount = 0;
+
+        // if(missAmount >= missNeeded){
+
+        //     const text_reply = `C'est mon ultime bafouille, **${missAmount} / ${missNeeded} miss**`; // ENG : Marked as dud
+            
+            
+        // }
+        // else{
+            
+        //     const text_reply = `**${missAmount} / ${missNeeded}**`; // ENG : Marked as dud
+
+        // }
+
+        
+        // const forumPost = client.channels.cache.get(interaction.channelId);
+        // // Edit a thread
+        // forumPost.edit({ name: `${forumPost.name.replace(text_waitingLogo, text_deadLogo)}` })
+        //     .catch(console.error);
+        
+        // // forumPost.setAutoArchiveDuration(ThreadAutoArchiveDuration.OneHour);
+            
+        // interaction.reply(text_deadLogo + ` ` + text_markAsDead);
+
+    }
+
     // GENERATE USERNAMES COMMAND
     if(interaction.commandName === `generateusernames`){
-        const suffix = interaction.options.getString(`suffix`);
-        const keyWords = interaction.options.getString(`keywords`).replaceAll(`,`,` `).split(' ');
 
+        const text_incorrectParameters = "Paramètres incorrects, entre suffix ET keywords"; // ENG : "Incorrect parameters, write suffix AND keyworks"
+
+        const suffix = interaction.options.getString(`suffix`);
+        var keyWords = interaction.options.getString(`keywords`);
+
+        if(suffix == null || keyWords == null)
+        {
+            return interaction.reply(text_incorrectParameters);
+        }
+        
+        keyWords = keyWords.replaceAll(`,`,` `).split(' ');
         const wordsGenerated = 1000;
         const maxNameLength = 14;
         const suffixLenth = suffix.length;
@@ -830,10 +892,10 @@ client.on("messageCreate", async (message) => {
 
         if(await doesUserProfileExists(userID, userUsername)){
 
-            const instances = heartbeatDatas[1].replaceAll("Online: ","").replaceAll("Main","").replaceAll(",","").split(" ");
-            const timeAndPacks = heartbeatDatas[3].replaceAll("Time: ","").replaceAll("Packs: ","").replaceAll("m","").split(" ");
+            const instances = countDigits(heartbeatDatas[1]);
+            const timeAndPacks = extractNumbers(heartbeatDatas[3]);
             const time = timeAndPacks[0];
-            const packs = timeAndPacks[1];
+            var packs = timeAndPacks[1];
 
             // const lastHeartbeatTime = new Date(await getUserAttribValue( client, userID, attrib_LastHeartbeatTime ));
             // const currentTime = new Date();
@@ -843,11 +905,27 @@ client.on("messageCreate", async (message) => {
             // console.log("currentTime " + currentTime);
             // console.log("diffActiveTime " + lastHeartbeatTime);
 
-            await setUserAttribValue( userID, userUsername, attrib_HBInstances, instances.length);
+            if(packs == NaN)
+            {
+                console.log(userUsername + " HAD NAAAAAAAAAAAAAAAAN packs, session was " + time + " time and " + packs + " packs")  
+            }
+            packs = packs == NaN ? 0 : packs;
+
+            await setUserAttribValue( userID, userUsername, attrib_HBInstances, instances);
             await setUserAttribValue( userID, userUsername, attrib_SessionTime, time);
-            if(time === "0" ){
-                const totalPacks = await getUserAttribValue( client, userID, attrib_TotalPacksOpened );
-                const sessionPacks = await getUserAttribValue( client, userID, attrib_SessionPacksOpened );
+            if( time === "0" ){
+                var totalPacks = await getUserAttribValue( client, userID, attrib_TotalPacksOpened );
+                var sessionPacks = await getUserAttribValue( client, userID, attrib_SessionPacksOpened );
+                if(totalPacks == NaN)
+                {
+                    console.log(userUsername + " HAD NAAAAAAAAAAAAAAAAN total packs, session was " + time + " time and " + packs + " packs")  
+                }
+                if(sessionPacks == NaN)
+                {
+                    console.log(userUsername + " HAD NAAAAAAAAAAAAAAAAN session packs, session was " + time + " time and " + packs + " packs")  
+                }
+                totalPacks = totalPacks == NaN ? 0 : totalPacks;
+                sessionPacks = sessionPacks == NaN ? 0 : sessionPacks;
                 await setUserAttribValue( userID, userUsername, attrib_TotalPacksOpened, parseInt(totalPacks) + parseInt(sessionPacks));
             }
             await setUserAttribValue( userID, userUsername, attrib_SessionPacksOpened, packs);

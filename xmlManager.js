@@ -3,9 +3,17 @@ import path from 'path';
 import xml2js from 'xml2js';
 
 import {
+    attrib_PocketID,
+    attrib_Active,
+    attrib_AverageInstances,
+    attrib_HBInstances,
+    attrib_RealInstances,
+    attrib_SessionTime,
+    attrib_TotalPacksOpened, 
+    attrib_SessionPacksOpened,
     attrib_GodPackFound,
-    attrib_TotalPacksOpened,
     attrib_LastActiveTime,
+    attrib_LastHeartbeatTime,
 } from './xmlConfig.js';
 
 const __dirname = import.meta.dirname;
@@ -69,12 +77,16 @@ async function createUserProfile( attribUserId, attribUserName ) {
             $: { username: attribUserName },
             _: attribUserId,
             // attrib_PocketID: "0000000000000000",
-            // attrib_Active: false,
-            // attrib_AverageInstances: 0,
-            [attrib_GodPackFound]: 0,
+            [attrib_Active]: false,
+            [attrib_AverageInstances]: 0,
+            [attrib_HBInstances]: 0,
+            [attrib_RealInstances]: 0,
+            [attrib_SessionTime]: 0,
             [attrib_TotalPacksOpened]: 0,
+            [attrib_SessionPacksOpened]: 0,
+            [attrib_GodPackFound]: 0,
             [attrib_LastActiveTime]: new Date(),
-            // attrib_LastHeartbeatTime: 0
+            [attrib_LastHeartbeatTime]: new Date(),
         });
         
         const builder = new xml2js.Builder();
