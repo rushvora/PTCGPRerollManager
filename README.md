@@ -118,6 +118,8 @@ In Arturo's bot the url should be placed in Friend ID and look like this : "http
 
 # TODO :
 
+- Fix multiple bugs that can cause crashes, trying to get Profile Attribute that is missing, username too long (addbar function), replaceAll on missing variable
+
 - Fix user having Nan packs even after heartbeats & total pack not accumulating across multiple sessions
 
 - Support heartbeat for users with multiple PCs farming for the same account
