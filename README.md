@@ -5,7 +5,7 @@ This repo is a Discord Bot written in javascript ES6 made to work with [Arturo P
 # Features
 
 ## Automated IDs from Discord commands 
-<img align="right" width="361" height="261" src="https://i.imgur.com/tdXYCPO.png">
+<img align="right" width="469" height="807" src="https://i.imgur.com/u1gmHEC.png">
 
 Using **/SetPlayerID**, player are able to link their ID with their discord account
 
@@ -15,7 +15,11 @@ As i'm using GitGist, the refresh time can be up to a maximum of 5 minutes
 
 With **/SetAverageInstances**, players can also specify how many instances they are usually running and **it will show the total amount of instances** that should be running actually based on all active rerollers that wrote /Add and are in the pull 
 
+## Heartbeats implementation
 
+Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets
+
+Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets
 
 ## Better GP management :
 
@@ -81,14 +85,7 @@ In Arturo's bot the url should be placed in Friend ID and look like this : "http
 
 # TODO :
 
-Use a more coherent system to stock data like xml instead of simple txt files
-
 Use the new 2 star filter webhook to create forum post in another or the same forum channel as for gp
-
-Use discord heartbeat to 
-- check players rerolling or not, maybe color active rerollers usernames based on if they are sending heartbeat or not
-- Calculte total instances amount on heartbeat if possible instead of /setaverageinstances
-- Show total packs since X time
 
 Filter out all the potentiel banwords from the user generated list and remove then, at this time it only filters special characters
 
