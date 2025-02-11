@@ -35,8 +35,8 @@ It will auto update in a specific channel every 16 minutes (default value) and s
 
 Color means something for the username :
 - Green : Heartbeat have been received in the last 30mn and the user is rerolling
-- Yellow : Heartbeat have not been received in the last 30mn but he started < 30mn
-- Red : Heartbeat have not been received in the last 30mn and he's been active for > 30mn
+- Yellow : Heartbeat have not been received in the last 30mn and active for < 30mn
+- Red : Heartbeat have not been received in the last 30mn and active for > 30mn
 <br />
 <br /> 
 
