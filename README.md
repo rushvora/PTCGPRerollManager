@@ -20,7 +20,6 @@ With **/SetAverageInstances**, players can also specify how many instances they 
 <br /> 
 <br /> 
 <br /> 
-<br /> 
 
 ## Heartbeats implementation
 
@@ -52,6 +51,7 @@ Moreover, peoples of your group can type **/Dead** or **/Verified** to change th
 
 ![Auto Thread](https://i.imgur.com/iO4WDha.png)
 <br /> 
+<br /> 
 
 ## Usernames generator :
 
@@ -62,10 +62,14 @@ Exemple : _/GenerateUsernames TOBI bae cute halp dang pwease noice UwU my that s
 Will generate things like : "UwUstoopidTOBI", "pweasehalpTOBI", etc...
 
 It helps tracking usernamers easily and brings joy to ppl in your group clearing their friendlist and seeing GP with funny names. With the arrival of the new Heartbeat system, it might become obsolete for presence check but it'll still be a small fun feature anyway
+<br /> 
+<br /> 
 
 ## Others :
 
 The bot sentences are in french but there's a comment in the code for each one with the english traduction
+<br /> 
+<br /> 
 
 # Install
 
@@ -103,6 +107,8 @@ After that [create a new fine-grained token](https://github.com/settings/tokens)
 Then, [create a GitGist](https://gist.github.com/) and get it's ID (the numbers in the URL). Now you're ready to fill out the last two variables in config.js and **modify the GitGistName variable** with you git name
 
 In Arturo's bot the url should be placed in Friend ID and look like this : "https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw"
+<br /> 
+<br /> 
 
 # TODO :
 
