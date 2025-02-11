@@ -77,7 +77,7 @@ The bot sentences are in french but there's a comment in the code for each one w
 
 Be sure to enable all Privileged Gateway Intents in the app settings
 
-- Be sure to install Node.js 
+- Install Node.js 
 - Ensure that your Windows Execution Policy is set to RemoteSigned or Unsigned
 - Open VisualStudioCode > Terminal and run :
 ```
@@ -118,11 +118,13 @@ In Arturo's bot the url should be placed in Friend ID and look like this : "http
 
 # TODO :
 
-- Use the new 2 star filter webhook to create forum post in another or the same forum channel as for gp
+- Fix user having Nan packs even after heartbeats & total pack not accumulating across multiple sessions
 
 - Support heartbeat for users with multiple PCs farming for the same account
 
+- Use the new 2 star filter webhook to create forum post in another or the same forum channel as for gp
+
 - Filter out all the potentiel banwords from the user generated list and remove then, at this time it only filters special characters
 
-- Any idea of yours ? feel free to [join the discord](https://discord.gg/pn6XSn42m6) and create a new forum post in "Bot-Suggestions"
+- Any idea of yours ? feel free to [join the discord](https://discord.gg/pn6XSn42m6) and create a new forum post in "Bot-Suggestions" 
 
