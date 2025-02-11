@@ -1,11 +1,13 @@
 # Thobi's Pocket Reroll Manager - Discord Bot
 
+![XlOCujH](https://github.com/user-attachments/assets/12eedef1-4237-4928-b175-288aea66d72f)
+
 This repo is a Discord Bot written in javascript ES6 made to work with [Arturo PTCG Bot](https://github.com/Arturo-1212/PTCGPB) for the [PTCGP French Rerollers](https://discord.gg/pn6XSn42m6) community
 
 # Features
 
 ## Automated IDs from Discord commands 
-<img align="right" width="469" height="807" src="https://i.imgur.com/u1gmHEC.png">
+<img align="right" width="415" height="463" src="https://i.imgur.com/BamGht5.png">
 
 Using **/SetPlayerID**, player are able to link their ID with their discord account
 
@@ -16,6 +18,8 @@ As i'm using GitGist, the refresh time can be up to a maximum of 5 minutes
 With **/SetAverageInstances**, players can also specify how many instances they are usually running and **it will show the total amount of instances** that should be running actually based on all active rerollers that wrote /Add and are in the pull 
 
 ## Heartbeats implementation
+
+<img align="right" width="375" height="507" src="https://i.imgur.com/goZDtl9.png">
 
 Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets
 
@@ -30,7 +34,7 @@ Instead of using only the webhook channel which is a nightmare to navigate, the 
 
 Moreover, peoples of your group can type **/Dead** or **/Verified** to change the icon from ⌛ to 💀 or ✅
 
-![Auto Thread](https://i.imgur.com/rIDDtIH.jpeg)
+![Auto Thread](https://i.imgur.com/iO4WDha.png)
 
 ## Usernames generator :
 
