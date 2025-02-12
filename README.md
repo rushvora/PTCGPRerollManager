@@ -125,6 +125,8 @@ In Arturo's bot the url should be placed in Friend ID and look like this : "http
 
 - Add a /miss command to auto /dead a post after % certitude
 
+- Centralise all group specific datas in config.json and add a way to switch to english with a single variable without having to modify every line of code
+
 - Support heartbeat for users with multiple PCs farming for the same account ( at this time for users with multiple pcs they should only enable heartbeat on the better one )
 
 - Use the new 2 star filter webhook to create forum post in another or the same forum channel as for gp
