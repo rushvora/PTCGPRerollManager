@@ -34,11 +34,11 @@ It will auto update in a specific channel every 16 minutes (default value) and s
 - The GodPack average luck (which is a fun luck test)
 
 Color means something for the username :
-- Green : Heartbeat have been received in the last 30mn and the user is rerolling
-- Yellow : Heartbeat have not been received in the last 30mn and active for < 30mn
-- Red : Heartbeat have not been received in the last 30mn and active for > 30mn
+- ${\color{lightgreen}Green}$ : Heartbeat have been received in the last 30mn and the user is rerolling
+- ${\color{yellow}Yellow}$ : Heartbeat have not been received in the last 30mn and active for < 30mn
+- ${\color{red}Red}$ : Heartbeat have not been received in the last 30mn and active for > 30mn
 
-You can also use /addgpfound and /removegpfound to fix false positive godpacks
+You can also use **/addgpfound** and **/removegpfound** to fix false positive godpacks from arturo's bot
 <br /> 
 <br /> 
 
