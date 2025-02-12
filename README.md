@@ -123,15 +123,15 @@ In Arturo's bot the url should be placed in Friend ID and look like this : "http
 
 # TODO :
 
-- Fix multiple bugs that can cause crashes, trying to get Profile Attribute that is missing, username too long (addbar function), replaceAll on missing variable
+- Add a /miss command to auto /dead a post after % certitude
 
-- Fix user having Nan packs even after heartbeats & total pack not accumulating across multiple sessions
-
-- Support heartbeat for users with multiple PCs farming for the same account
+- Support heartbeat for users with multiple PCs farming for the same account ( at this time for users with multiple pcs they should only enable heartbeat on the better one )
 
 - Use the new 2 star filter webhook to create forum post in another or the same forum channel as for gp
 
 - Filter out all the potentiel banwords from the user generated list and remove then, at this time it only filters special characters
+
+- Look for a way to let the possibility to create dynamically updating multiple subgroups to better optimize the number of packs per minute
 
 - Any idea of yours ? feel free to [join the discord](https://discord.gg/pn6XSn42m6) and create a new forum post in "Bot-Suggestions" 
 
