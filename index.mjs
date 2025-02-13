@@ -1,19 +1,12 @@
-// No creative commons or anything, do what you want with that bot
+// CC0-1.0 license you're free to do what you want with it
 //
 // Bot written by @thobi (discord) made to work with Arturo PTCG Bot for the PTCGP Rerollers community
 // See here : https://github.com/Arturo-1212/PTCGPB
-// Automated ids.txt modifications thanks to CJ and Arturo
+// Shoutout to @cjlj for Automated ids.txt modifications on the ahk side
 //
-// What to input into Config.json file ?
+// To know what to input into config.json file or other setup, check the github / readme file
+// https://github.com/TheThobi/PTCGPRerollManager
 //
-// token : You need to create an application on the discord developper portal, if you don't know how to do it, check tutorials about how to create an app
-// guildID : In developper mode,  In developper mode, right click your server then > copy ID
-// channelID_IDSync : In developper mode, right click the channel on your server where have their webhook linked then > copy ID
-// channelID_GPVerificationForum : In developper mode, right click the channel where you want to GP to be re-posted as forum post (which are a lot more easily readable to track what account do you need to test) then > copy ID
-// channelID_Webhook : In developper mode, right click the channel on your server where have their webhook linked then > copy ID
-//
-// for the git stuff check https://docs.github.com/en/rest/gists/gists?apiVersion=2022-11-28#update-a-gist
-// You need to create a Gist on GitGist, create a token on github and allow it to read/write your Gists
 
 // Imports
 
@@ -22,39 +15,38 @@ import { Octokit } from '@octokit/core';
 import {
     token,
     guildID,
-    channelID_IDSync,
+    channelID_IDs,
+    channelID_UserStats,
     channelID_GPVerificationForum,
     channelID_Webhook,
     channelID_Heartbeat,
     gitToken,
     gitGistID,
+    gitGistName,
+    missBeforeDead,
+    text_verifiedLogo,
+    text_deadLogo,
+    text_waitingLogo,
+    refreshStatsInterval,
 } from './config.js';
 
 import {
-    attrib_PocketID,
-    attrib_Active,
-    attrib_AverageInstances,
-    attrib_HBInstances,
-    attrib_RealInstances,
-    attrib_SessionTime,
-    attrib_TotalPacksOpened, 
-    attrib_SessionPacksOpened,
-    attrib_GodPackFound,
-    attrib_LastActiveTime,
-    attrib_LastHeartbeatTime,
-} from './xmlConfig.js';
-
-import {
-    Client,
-    Events,
-    GatewayIntentBits,
-    SlashCommandBuilder,
-    REST,
-    ThreadAutoArchiveDuration,
-    Routes,
-    PermissionsBitField,
-    time,
-} from 'discord.js';
+    sumIntArray, 
+    sumFloatArray, 
+    roundToOneDecimal, 
+    countDigits, 
+    extractNumbers, 
+    isNumbers, 
+    splitMulti, 
+    replaceLastOccurrence,
+    replaceMissCount,
+    sendReceivedMessage, 
+    bulkDeleteMessages, 
+    colorText, 
+    addTextBar,
+    localize,
+    getOldestMessage,
+} from './Dependencies/utils.js';
 
 import {
     doesUserProfileExists,
@@ -68,7 +60,36 @@ import {
     getAttribValueFromUsers,
     getAttribValueFromUser,
     cleanString,
-} from './xmlManager.js';
+} from './Dependencies/xmlManager.js';
+
+import {
+    attrib_PocketID,
+    attrib_Active,
+    attrib_AverageInstances,
+    attrib_HBInstances,
+    attrib_RealInstances,
+    attrib_SessionTime,
+    attrib_TotalPacksOpened, 
+    attrib_SessionPacksOpened,
+    attrib_GodPackFound,
+    attrib_LastActiveTime,
+    attrib_LastHeartbeatTime,
+} from './Dependencies/xmlConfig.js';
+
+import {
+    text_lowTension,
+    text_mediumTension,
+    text_highTension,
+} from './Dependencies/missSentences.js';
+
+import {
+    Client,
+    Events,
+    GatewayIntentBits,
+    SlashCommandBuilder,
+    REST,
+    PermissionsBitField,
+} from 'discord.js';
 
 // Global Var
 
@@ -81,12 +102,7 @@ const client = new Client({
 	]
 });
 
-const rest = new REST().setToken(token);
-const GitGistName = "FrenchiesIDs.txt"
-
-const text_verifiedLogo = "✅";
-const text_deadLogo = "💀";
-const text_waitingLogo = "⌛";
+var startIntervalTime = Date.now();
 
 // ID GitGist Management
 
@@ -102,7 +118,7 @@ async function updateGist( newContent ){
         gist_id: 'gitGistID',
         description: '',
         files:{
-            [GitGistName]:{
+            [gitGistName]:{
                 content: newContent
             }
         },
@@ -112,115 +128,22 @@ async function updateGist( newContent ){
     })
 }
 
-// async function updateGist( newContent ){
-//     console.log("================ Update GistGit ================")
-// }
-
 // Functions
 
-function sumIntArray( arrayNumbers ) {
-    return arrayNumbers.reduce((accumulator, currentValue) => parseInt(accumulator) + parseInt(currentValue), 0);
+function getNexIntervalRemainingTime() {
+    const currentTime = Date.now();
+    const elapsedTime = currentTime - startIntervalTime;
+    const timeRemaining = refreshStatsInterval - elapsedTime;
+    return timeRemaining/60000;
 }
 
-function sumFloatArray( arrayNumbers ) {
-    return arrayNumbers.reduce((accumulator, currentValue) => parseFloat(accumulator) + parseFloat(currentValue), 0);
-}
+async function getUsersStats( users, members ){
 
-function roundToOneDecimal(num) {
-    return parseFloat(num.toFixed(1));
-}
-
-function countDigits(str) {
-    return (str.match(/\d/g) || []).length;
-}
-
-function extractNumbers(str) {
-    return (str.match(/\d+/g) || []).map(Number);
-}
-
-function isNumbers( input ){
-    var isNumber = true;
-    for (let i = 0; i < input.length; i++) {
-        if(!/^\d+$/.test(input.charAt(i))){
-            isNumber = false;
-        }
-    }
-    return isNumber;
-}
-
-function splitMulti(str, tokens){
-    var tempChar = tokens[0]; // We can use the first token as a temporary join character
-    for(var i = 1; i < tokens.length; i++){
-        str = str.split(tokens[i]).join(tempChar);
-    }
-    str = str.split(tempChar);
-    return str;
-}
-
-async function bulkDeleteMessages(channel, numberOfMessages) {
-    try {
-        let messagesToDelete = [];
-        let totalDeleted = 0;
-
-        // Fetch messages in batches of 100
-        while (totalDeleted < numberOfMessages) {
-            const messages = await channel.messages.fetch({ limit: 100 });
-            const messagesToDelete = messages.filter(msg => !msg.pinned);
-
-            if (messagesToDelete.length === 0) {
-                break;
-            }
-
-            await channel.bulkDelete(messagesToDelete);
-            totalDeleted += messagesToDelete.length;
-        }
-    } catch (error) {
-        console.error('Error deleting messages:', error);
-    }
-}
-
-function colorText( text, color ){
-    
-    if(color == "gray")
-        return `[2;30m${text}[0m`
-
-    if(color == "red")
-        return `[2;31m${text}[0m`
-
-    if(color == "green")
-        return `[2;32m${text}[0m`
-
-    if(color == "yellow")
-        return `[2;33m${text}[0m`
-
-    if(color == "blue")
-        return `[2;34m${text}[0m`
-
-    if(color == "pink")
-        return `[2;35m${text}[0m`
-
-    if(color == "cyan")
-        return `[2;36m${text}[0m`
-}
-
-function addBar(str, targetLength) {
-    const currentLength = str.length;
-    // Calculate the number of spaces needed to reach the target length
-    const spacesNeeded = Math.max(targetLength - currentLength - 1,0);
-    // Create a string of spaces
-    const spaces = ' '.repeat(spacesNeeded);
-    // Return the string with the spaces and the bar added
-    return str + spaces + colorText('|', "gray");
-}
-
-async function usersInfos( users, members ){
-
-    var usersInfos = []
+    var usersStats = []
 
     for (const user of users) {
 
-        var usersOutput = `\`\`\`ansi\n`;
-        var userOutput = "";
+        var userOutput = `\`\`\`ansi\n`;
 
         const id = getIDFromUser(user);
         const username = getUsernameFromUser(user);
@@ -261,7 +184,7 @@ async function usersInfos( users, members ){
             }
         }
 
-        userOutput = addBar(userOutput, 40);
+        userOutput = addTextBar(userOutput, 40);
 
         // Instances
         var instances = "0";
@@ -278,10 +201,9 @@ async function usersInfos( users, members ){
         var sessionTime = roundToOneDecimal(parseFloat(getAttribValueFromUser(user, attrib_SessionTime)));
         var sessionPacks = parseFloat(getAttribValueFromUser(user, attrib_SessionPacksOpened));
 
-
         const text_Session = colorText("Session:", "gray");
-        const text_sessionTime = colorText("running for " + sessionTime + " mn", "gray");
-        const text_sessionPacks = colorText("with " + sessionPacks + " packs", "gray");
+        const text_sessionTime = colorText("running " + sessionTime + "mn", "gray");
+        const text_sessionPacks = colorText("w/ " + sessionPacks + " packs", "gray");
         var sessionAvgPackMn = roundToOneDecimal(sessionPacks/sessionTime);
         sessionAvgPackMn = sessionTime == 0 || sessionPacks == 0 ? 0 : sessionAvgPackMn;
         const text_avgPackMn = colorText(sessionAvgPackMn, "blue");
@@ -303,34 +225,34 @@ async function usersInfos( users, members ){
         const text_AvgGodPack = colorText(`${text_GPRatio}${avgGodPack}`, `blue`);
 
         userOutput += `    ${text_Packs} ${text_TotalPack}  ${text_GP} ${text_TotalGodPack}  ${text_GPAvg} ${text_AvgGodPack} packs`
+        userOutput += `\n\`\`\``;
 
-        usersOutput += userOutput + `\n\`\`\``;
-        usersInfos.push(usersOutput);
+        usersStats.push(userOutput);
     };
-
     
-    return usersInfos;
+    return usersStats;
 }
 
-async function sendUpdatedListOfIds( guild, update_server ){
+async function sendUserStats( guild ){
 
-    await bulkDeleteMessages(guild.channels.cache.get(channelID_IDSync), 20);
+    await bulkDeleteMessages(guild.channels.cache.get(channelID_UserStats), 20);
 
     // CACHE MEMBERS
     const m = await guild.members.fetch()
 
     var activeUsers = await getActiveUsers();
-    var activeUsersInfos = await usersInfos(activeUsers, m);
+    var activeUsersInfos = await getUsersStats(activeUsers, m);
 
     // Send users data message by message otherwise it gets over the 2k words limit
-    guild.channels.cache.get(channelID_IDSync).send({content:`# Liste des rerollers actifs :\n`}) // ENG : ## List of active rerollers
+    const text_ActiveList = localize("Liste des rerollers actifs", "List of actives rerollers");
+
+    guild.channels.cache.get(channelID_UserStats).send({content:`# ${text_ActiveList} :\n`})
     activeUsersInfos.forEach( activeUserInfos =>{
-        guild.channels.cache.get(channelID_IDSync).send({content:activeUserInfos});
+        guild.channels.cache.get(channelID_UserStats).send({content:activeUserInfos});
     });
 
-    // Update Users
+    // Update Users (due to RealInstance attribute getting updated) 
     activeUsers = await getActiveUsers();
-    const activePocketIDs = getAttribValueFromUsers(activeUsers, attrib_PocketID, "").join('\n');
     const activeInstances = getAttribValueFromUsers(activeUsers, attrib_RealInstances, [0]);
     const instancesAmount = sumIntArray(activeInstances);
 
@@ -340,14 +262,38 @@ async function sendUpdatedListOfIds( guild, update_server ){
     const accumulatedsessionPacks = sumFloatArray(globalsessionPacks);
     const accumulatedPackSec = roundToOneDecimal((accumulatedsessionPacks/accumulatedSessionTime) * globalsessionPacks.length);
 
-    const text_activeInstances = `## ${instancesAmount} Instances à environ ${accumulatedPackSec} packs/mn\n\n`; // ENG : ## Running instances
-    const text_activePocketIDs = `*Contenu de IDs.txt :*\n\`\`\`\n${activePocketIDs}\n\`\`\``; // ENG : Content of ids.txt :
+    const text_avgInstances = localize("instances à environ", "instance that run at");
+    const text_activeInstances = `## ${instancesAmount} ${text_avgInstances} ${accumulatedPackSec} packs/mn\n\n`; // ENG : ## Running instances
 
+    // Send UserStats
+    guild.channels.cache.get(channelID_UserStats).send({ content:`${text_activeInstances}`});
+}
+
+async function sendIDs( guild, updateServer = true ){
+
+    var activeUsers = await getActiveUsers();
+    const activePocketIDs = getAttribValueFromUsers(activeUsers, attrib_PocketID, "").join('\n');
+
+    const text_contentOf = localize("Contenu de IDs.txt", "Content of IDs.txt");
+    const text_activePocketIDs = `*${text_contentOf} :*\n\`\`\`\n${activePocketIDs}\n\`\`\``; // ENG : Content of ids.txt :
     // Send instances and IDs
-    guild.channels.cache.get(channelID_IDSync).send({ content:`${text_activeInstances}${text_activePocketIDs}`});
-    if(update_server){
+    guild.channels.cache.get(channelID_IDs).send({ content:`${text_activePocketIDs}`});
+    if(updateServer){
         updateGist(activePocketIDs);
     }
+}
+
+async function markAsDead( interaction, optionalText = "" ){
+    const text_markAsDead = localize("Godpack marqué comme mort","Godpack marked as dud");
+        
+    const forumPost = client.channels.cache.get(interaction.channelId);
+    // Edit a thread
+    forumPost.edit({ name: `${forumPost.name.replace(text_waitingLogo, text_deadLogo)}` })
+        .catch(console.error);
+    
+    // forumPost.setAutoArchiveDuration(ThreadAutoArchiveDuration.OneHour);
+        
+    await sendReceivedMessage(interaction, optionalText + text_deadLogo + ` ` + text_markAsDead);
 }
 
 // Events
@@ -357,8 +303,10 @@ client.once(Events.ClientReady, async c => {
 
     const guild = client.guilds.cache.get(guildID);
 
-    const interval = 960000; // in ms = 16mn
-    setInterval(() => sendUpdatedListOfIds(guild, false), interval);
+    setInterval(() =>{
+        startIntervalTime = Date.now();
+        sendUserStats(guild);
+    }, refreshStatsInterval);
 
     // // Clear all guild commands (Warning : also clearupdateGist channels restrictions set on discord)
     // const guild = await client.guilds.fetch(guildID);
@@ -366,9 +314,10 @@ client.once(Events.ClientReady, async c => {
 
     // Commands Creation
 
+    const playeridDesc = localize("Lie votre code ami à votre pseudo discord unique", "Link your ID Code with you Discord unique username");
     const playeridSCB = new SlashCommandBuilder()
         .setName(`setplayerid`)
-        .setDescription(`Lie votre code ami à votre pseudo discord unique\n`) // ENG : Link your ID Code with you Discord unique username
+        .setDescription(`${playeridDesc}\n`) // ENG : 
         .addStringOption(option =>
             option
                 .setName("id")
@@ -376,84 +325,106 @@ client.once(Events.ClientReady, async c => {
                 .setRequired(true)
         );
 
+    const instancesDesc = localize("Renseignez votre nombre d'instance moyen", "Set to your average number of instances");
+    const instancesDescAmount = localize("Nombres ronds (ex: pas 5.5 parce que vous etes a 6 et de fois 5)", "Round nombers (ex : not 5.5 if you're running 5 and sometimes 6)");
     const instancesSCB = new SlashCommandBuilder()
         .setName(`setaverageinstances`)
-        .setDescription(`Renseignez votre nombre d'instance moyen, sert à savoir combien d'instances tournent\n`) // ENG : Set to your average number of instances, used to know how many instances running at current time
+        .setDescription(`${instancesDesc}\n`)
         .addIntegerOption(option =>
             option
                 .setName("amount")
-                .setDescription("Nombres ronds (ex: pas 5.5 parce que vous etes a 6 et de fois 5)") // ENG : Round nombers (ex : not 5.5 if you're running 5 and sometimes 6)
+                .setDescription(`${instancesDescAmount}`)
                 .setRequired(true)
         );
 
+    const addDesc = localize("Vous ajoute dans le doc d'ID", "Add yourself to the active rerollers list");
+    const addDescUser = localize("ADMIN ONLY : pour forcer l'ajout de quelqu'un d'autre", "ADMIN ONLY : Only usefull so force add someone else than yourself");
     const addSCB = new SlashCommandBuilder()
         .setName(`add`)
-        .setDescription(`Vous ajoute dans le doc d'ID`) // ENG : Add yourself from the active rerollers list
+        .setDescription(`${addDesc}`) // ENG : 
         .addUserOption(option =>
             option
                 .setName("user")
-                .setDescription("ADMIN ONLY : seulement utile pour renseigner quelqu'un d'autre que soit") // ENG : Only usefull so add someone else than yourself
+                .setDescription(`${addDescUser}`) // ENG : 
                 .setRequired(false)
         );
-
+    
+    const removeDesc = localize("Vous retire du doc d'ID"," Withdraw yourself from the active rerollers list");
+    const removeDescUser = localize("ADMIN ONLY : pour forcer le retrait de quelqu'un d'autre", "ADMIN ONLY : Only usefull so force remove someone else than yourself");
     const removeSCB = new SlashCommandBuilder()
         .setName(`remove`)
-        .setDescription(`Vous retire dans le doc d'ID`) // ENG : Withdraw yourself from the active rerollers list
+        .setDescription(`${removeDesc}`)
         .addUserOption(option =>
             option
                 .setName("user")
-                .setDescription("ADMIN ONLY : seulement utile pour renseigner quelqu'un d'autre que soit") // ENG : ADMIN ONLY : Only usefull so remove someone else than yourself
+                .setDescription(`${removeDescUser}`)
                 .setRequired(false)
         );
-
+    
+    const refreshDesc = localize("Rafraichit la liste des ids et les envois au server","Refresh the ids.txt and sent them to servers");
     const refreshSCB = new SlashCommandBuilder()
         .setName(`refresh`)
-        .setDescription(`Rafraichit la liste des codes actifs`); // ENG : Refresh the codes of actives people rerolling
+        .setDescription(`${refreshDesc}`);
 
+    const forcerefreshDesc = localize("Rafraichit la liste des Stats instantanément","Refresh the user stats instantly");
+    const forcerefreshSCB = new SlashCommandBuilder()
+        .setName(`forcerefresh`)
+        .setDescription(`${forcerefreshDesc}`);
+
+    const verifiedDesc = localize("Designe pack valide","Flag the post as valid");
     const verifiedSCB = new SlashCommandBuilder()
         .setName(`verified`)
-        .setDescription(`Designe pack valide, 1 god pack = 10% chance d'apparaître dans WP`); // ENG : Set the post as valid
+        .setDescription(`${verifiedDesc}`);
 
+    const deadDesc = localize("Designe pack invalide / dud","Flag the post as invalid / dud");
     const deadSCB = new SlashCommandBuilder()
         .setName(`dead`)
-        .setDescription(`Designe pack invalide, 1 god pack = 10% chance d'apparaître dans WP`); // ENG : Set the post as invalid / dud
+        .setDescription(`${deadDesc}`);
 
+    const missDesc = localize("Pour la verification GP, après X fois suivant le nombre de pack cela auto /dead", "For verification purposes, after X times based on pack amount it sends /dead");
     const missSCB = new SlashCommandBuilder()
         .setName(`miss`)
-        .setDescription(`Pour la verif, après X fois suivant le nombre de pack cela auto /dead`); // ENG : For verification purposes, after X times based on pack amount it sends /dead
+        .setDescription(`${missDesc}`); // ENG : 
 
+    const generateusernamesDesc = localize("Génère liste basé sur suffixe et, facultatif, des mots","Generate a list based on a suffix and, if wanted, keywords");   
+    const generateusernamesDescSuffix = localize("Les 3 ou 4 premières lettres premières lettres de votre pseudo","The 3 or 4 firsts letter of your pseudonym");   
+    const generateusernamesDescKeyword = localize("Des mots clés qui seront assemblés aléatoirement, espace/virgule = séparation","Some keywords that will be assembled randomly, space or comma are separations");   
     const generateusernamesSCB = new SlashCommandBuilder()
         .setName(`generateusernames`)
-        .setDescription(`Génère liste basé sur suffixe et, facultatif, des mots `) // ENG : Generate a list based on a suffix and, if wanted, keywords
+        .setDescription(`${generateusernamesDesc}`)
         .addStringOption(option =>
             option
                 .setName("suffix")
-                .setDescription("Les 3 ou 4 premières lettres premières lettres de votre pseudo") // ENG : The 3 or 4 firsts letter of your pseudo
+                .setDescription(`${generateusernamesDescSuffix}`) // ENG : 
                 .setRequired(true)
         ).addStringOption(option2 =>
             option2
                 .setName("keywords")
-                .setDescription("Des mots clés qui seront assemblés aléatoirement, espace/virgule = séparation") // ENG : Some keywords that will be assembled randomly, space or comma are separations
+                .setDescription(`${generateusernamesDescKeyword}`) // ENG : 
                 .setRequired(false)
         );
 
+    const addGPFoundDesc = localize("ADMIN ONLY : Ajoute un GP trouvé à un utilisateur pour les stats","ADMIN ONLY : Add a GP Found to an user for the stats");
+    const addGPFoundDescUser = localize("seulement utile pour corriger des erreurs","Only usefull to fix bugs");
     const addGPFoundSCB = new SlashCommandBuilder()
         .setName(`addgpfound`)
-        .setDescription(`Ajoute un GP trouvé à un utilisateur pour les stats`) // ENG : Add a GP Found to an user for the stats
+        .setDescription(`${addGPFoundDesc}`) // ENG : 
         .addUserOption(option =>
             option
                 .setName("user")
-                .setDescription("ADMIN ONLY : seulement utile pour corriger des erreurs") // ENG : Only usefull to fix bugs
+                .setDescription(`${addGPFoundDescUser}`) // ENG : 
                 .setRequired(false)
         );
-        
+
+    const removeGPFoundDesc = localize("ADMIN ONLY : Retire un GP trouvé à un utilisateur pour les stats","ADMIN ONLY : Remove a GP Found to an user for the stats");
+    const removeGPFoundDescUser = localize("seulement utile pour corriger des erreurs","only usefull to fix bugs");
     const removeGPFoundSCB = new SlashCommandBuilder()
     .setName(`removegpfound`)
-    .setDescription(`Retire un GP trouvé à un utilisateur pour les stats`) // ENG : Remove a GP Found to an user for the stats
+    .setDescription(`${removeGPFoundDesc}`) // ENG : 
     .addUserOption(option =>
         option
             .setName("user")
-            .setDescription("ADMIN ONLY : seulement utile pour corriger des erreurs") // ENG : Only usefull to fix bugs
+            .setDescription(`${removeGPFoundDescUser}`) // ENG : 
             .setRequired(false)
     );
 
@@ -471,6 +442,9 @@ client.once(Events.ClientReady, async c => {
 
     const refreshCommand = refreshSCB.toJSON();
     client.application.commands.create(refreshCommand, guildID);
+
+    const forcerefreshCommand = forcerefreshSCB.toJSON();
+    client.application.commands.create(forcerefreshCommand, guildID);
     
     const verifiedCommand = verifiedSCB.toJSON();
     client.application.commands.create(verifiedCommand, guildID);
@@ -495,6 +469,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
     var interactionUserName = interaction.user.username;
     var interactionUserID = interaction.user.id;
+    var interactionDisplayName = interaction.user.displayName;
 
     const guild = client.guilds.cache.get(guildID);
 
@@ -504,14 +479,14 @@ client.on(Events.InteractionCreate, async interaction => {
     if(interaction.commandName === `setplayerid`){
         const id = interaction.options.getString(`id`);
 
-        const text_incorrectID = "ID Incorrect pour"; // ENG : ID Incorrect for
-        const text_incorrectReason = "Votre code doit être composé de **16 chifres**"; // ENG : Your could should be 16 numbers length
-        const text_replace = "a été remplacé par"; // ENG : have been replaced by
-        const text_for = "pour"; // ENG : for
-        const text_set = "set pour"; // ENG : set for user
+        const text_incorrectID = localize("ID Incorrect pour","ID Incorrect for");
+        const text_incorrectReason = localize("Votre code doit être composé de **16 chifres**","Your could should be **16 numbers length**");
+        const text_replace = localize("a été remplacé par","have been replaced by");
+        const text_for = localize("pour","for");
+        const text_set = localize("set pour","set for user");
 
         if(id.length != 16 || !isNumbers(id)){
-            interaction.reply(text_incorrectID + ` **<@${interactionUserID}>**, ` + text_incorrectReason);
+            await sendReceivedMessage(interaction, text_incorrectID + ` **<@${interactionUserID}>**, ` + text_incorrectReason);
         }
         else{
             const userPocketID = await getUserAttribValue( client, interactionUserID, attrib_PocketID);
@@ -519,11 +494,11 @@ client.on(Events.InteractionCreate, async interaction => {
             if( userPocketID != undefined ){
 
                 await setUserAttribValue( interactionUserID, interactionUserName, attrib_PocketID, cleanString(id));
-                interaction.reply(`Code **${userPocketID}** ` + text_replace + ` **${id}** ` + text_for + ` **<@${interactionUserID}>**`);
+                await sendReceivedMessage(interaction, `Code **${userPocketID}** ` + text_replace + ` **${id}** ` + text_for + ` **<@${interactionUserID}>**`);
             }
             else{
                 await setUserAttribValue( interactionUserID, interactionUserName, attrib_PocketID, cleanString(id));
-                interaction.reply(`Code **${id}** ` + text_set + ` **<@${interactionUserID}>**`);
+                await sendReceivedMessage(interaction, `Code **${id}** ` + text_set + ` **<@${interactionUserID}>**`);
             }
         }
     }
@@ -531,27 +506,26 @@ client.on(Events.InteractionCreate, async interaction => {
     // ADD COMMAND
     if(interaction.commandName === `add`){
 
-        const text_addID = "Ajout de l'ID de"; // ENG : Add the ID of user
-        const text_toRerollers = `aux rerollers actifs, voir <#${channelID_IDSync}>`; // ENG : to the active rerollers pool
-        const text_alreadyIn = "est déjà présent dans la liste des rerollers actifs"; // ENG : is already in the active rerollers pool
-        const text_missingPerm = "n\'a pas les permissions nécessaires pour changer l\'état de"; // ENG : do not have the permission de edit the user
-        const text_missingFriendCode = "Le Player ID est nécéssaire avant de vouloir s'add"; // ENG : The Player ID is needed before you can add yourself 
+        const text_alreadyIn = localize("est déjà présent dans la liste des rerollers actifs","is already in the active rerollers pool");
+        const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit other user");
+        const text_missingFriendCode = localize("Le Player ID est nécéssaire avant de vouloir s'add","The Player ID is needed before you can add yourself");
         const user = interaction.options.getUser(`user`);
         if( user != null){
             if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-                return interaction.reply({ content: `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, ephemeral: true });
+                return await sendReceivedMessage(interaction, { content: `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, ephemeral: true });
             }
             interactionUserName = user.username;
             interactionUserID = user.id;
+            interactionDisplayName = user.displayName;
         }
 
         if(await doesUserProfileExists(interactionUserID, interactionUserName)){
             if( await getUserAttribValue(client, interactionUserID, attrib_PocketID) == undefined){
-                return interaction.reply(text_missingFriendCode);
+                return await sendReceivedMessage(interaction, text_missingFriendCode);
             }
         }
         else{
-            return interaction.reply(text_missingFriendCode);
+            return await sendReceivedMessage(interaction, text_missingFriendCode);
         }
 
         var isPlayerActive = await getUserAttribValue( client, interactionUserID, attrib_Active) === "true";
@@ -561,35 +535,34 @@ client.on(Events.InteractionCreate, async interaction => {
 
             await setUserAttribValue( interactionUserID, interactionUserName, attrib_Active, true);
             await setUserAttribValue( interactionUserID, interactionUserName, attrib_LastActiveTime, new Date().toString());
-            interaction.reply(text_addID + ` **<@${interactionUserID}>** ` + text_toRerollers);
-            // Send the list of IDs to an URL and who is Active is the Channel Sync
-            sendUpdatedListOfIds(guild, true);
+            await sendReceivedMessage(interaction, `\`\`\`diff\n+${interactionDisplayName}\n\`\`\``);
+            // Send the list of IDs to an URL and who is Active is the IDs channel
+            sendIDs(guild);
         }
         else{
-            interaction.reply(`**<@${interactionUserID}>** ` + text_alreadyIn);
+            await sendReceivedMessage(interaction, `**<@${interactionUserID}>** ` + text_alreadyIn);
         }
     }
 
     // REMOVE COMMAND
     if(interaction.commandName === `remove`){
         
-        const text_removeID = "Retrait de l'ID de"; // ENG : Add the ID of user
-        const text_toRerollers = `des rerollers actifs, voir <#${channelID_IDSync}>`; // ENG : to the active rerollers pool
-        const text_alreadyOut = "est déjà absent de la liste des rerollers actifs"; // ENG : is already out of the active rerollers pool
-        const text_missingPerm = "n\'a pas les permissions nécessaires pour changer l\'état de"; // ENG : do not have the permission de edit the user
-        const text_missingFriendCode = "Le Player ID est nécéssaire avant de vouloir se remove"; // ENG : The Player ID is needed before you can remove yourself
+        const text_alreadyOut = localize("est déjà absent de la liste des rerollers actifs","is already out of the active rerollers pool");
+        const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit the other user");
+        const text_missingFriendCode = localize("Le Player ID est nécéssaire avant de vouloir se remove","The Player ID is needed before you can remove yourself");
         
         const user = interaction.options.getUser(`user`);
         if( user != null){
             if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-                return interaction.reply({ content: `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, ephemeral: true });
+                return await sendReceivedMessage(interaction, { content: `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, ephemeral: true });
             }
             interactionUserName = user.username;
             interactionUserID = user.id;
+            interactionDisplayName = user.displayName;
         }
 
         if( await getUserAttribValue(client, interactionUserID, attrib_PocketID) == undefined){
-            return interaction.reply(text_missingFriendCode);
+            return await sendReceivedMessage(interaction, text_missingFriendCode);
         }
         
         var isPlayerActive = await getUserAttribValue( client, interactionUserID, attrib_Active) === "true";
@@ -598,101 +571,108 @@ client.on(Events.InteractionCreate, async interaction => {
         if(isPlayerActive == 1){
 
             await setUserAttribValue( interactionUserID, interactionUserName, attrib_Active, false);
-            interaction.reply(text_removeID + ` **<@${interactionUserID}>** ` + text_toRerollers);
-            // Send the list of IDs to an URL and who is Active is the Channel Sync
-            sendUpdatedListOfIds(guild, true);
+            await sendReceivedMessage(interaction, `\`\`\`diff\n-${interactionDisplayName}\n\`\`\``);
+            // Send the list of IDs to an URL and who is Active is the IDs channel
+            sendIDs(guild);
         }
         else{
-            interaction.reply(`**<@${interactionUserID}>** ` + text_alreadyOut);
+            await sendReceivedMessage(interaction, `**<@${interactionUserID}>** ` + text_alreadyOut);
         }
     }
 
     // REFRESH COMMAND
     if(interaction.commandName === `refresh`){
         
-        const text_listRefreshed = `Liste rafraichie, voir <#${channelID_IDSync}>`; // ENG : List refreshed, see 
+        const refreshTime = roundToOneDecimal(getNexIntervalRemainingTime());
+        const text_IDsRefreshedIn = localize("**IDs rafraichis**, rafraichissment des **Stats dans","**IDs refreshed**, reshing the **Stats in");
+        const text_see = localize("voir","see");
+
+        const text_listRefreshed = `${text_IDsRefreshedIn} ${refreshTime}mn**, ${text_see} <#${channelID_UserStats}>`;
 
         // Reading the current players file
-        interaction.reply(text_listRefreshed);
-        sendUpdatedListOfIds(guild, true);
+        await sendReceivedMessage(interaction, text_listRefreshed);
+        sendIDs(guild);
     }
 
+    // FORCE REFRESH COMMAND
+    if(interaction.commandName === `forcerefresh`){
+    
+        const text_listForceRefreshed = localize("**Stats rerollers actifs rafraichies**", "**Active rerollers stats refreshed**");
+
+        // Reading the current players file
+        await sendReceivedMessage(interaction, text_listForceRefreshed);
+        sendUserStats(guild)
+    }
+    
     // VERIFIED COMMAND
     if(interaction.commandName === `verified`){
         
-        const text_markAsVerified = "Godpack marqué comme vérifié"; // ENG : Marked as verified
+        const text_markAsVerified = localize("Godpack marqué comme live","Godpack marked as live");
 
         const forumPost = client.channels.cache.get(interaction.channelId);
         // Edit a thread
         forumPost.edit({ name: `${forumPost.name.replace(text_waitingLogo, text_verifiedLogo)}` })
             .catch(console.error);
 
-        interaction.reply( text_verifiedLogo + ` ` + text_markAsVerified + ` ${forumPost}`);
+        await sendReceivedMessage(interaction, text_verifiedLogo + ` ` + text_markAsVerified + ` ${forumPost}`);
     }
 
     // DEAD COMMAND
     if(interaction.commandName === `dead`){
 
-        const text_markAsDead = "Godpack marqué comme mort"; // ENG : Marked as dud
-        
-        const forumPost = client.channels.cache.get(interaction.channelId);
-        // Edit a thread
-        forumPost.edit({ name: `${forumPost.name.replace(text_waitingLogo, text_deadLogo)}` })
-            .catch(console.error);
-        
-        // forumPost.setAutoArchiveDuration(ThreadAutoArchiveDuration.OneHour);
-            
-        interaction.reply(text_deadLogo + ` ` + text_markAsDead);
-
+        markAsDead(interaction);
     }
 
     // MISS COMMAND
     if(interaction.commandName === `miss`){
 
-        // COMING UP FOR THE NEXT UPDATE, I DON'T HAVE THE TIME THIS EVENING
+        const text_markasMiss = localize("Godpack marqué comme mort","Godpack marked as dud");
+        const text_notCompatible = localize("Le GP est dans **l'ancien format**, /miss incompatible","The GP is using the **old format**, /miss incompatible");
 
-        interaction.reply("coming up for the next update");
+        const forumPost = client.channels.cache.get(interaction.channelId);
+        const initialMessage = await getOldestMessage(forumPost);
+        const splitForumContent = splitMulti(initialMessage.content,['[',']']);
 
-        // var PacksAmount = 0;
+        if (splitForumContent.length > 1){
 
-        // var missNeeded = 0
-        // var missAmount = 0;
+            const numbersMiss = extractNumbers(splitForumContent[1]);
+    
+            var missAmount = numbersMiss[0];
+            var newMissAmount = parseInt(missAmount)+1;
+            var missNeeded = numbersMiss[1];
 
-        // if(missAmount >= missNeeded){
+            if(newMissAmount >= missNeeded){
+                
+                await initialMessage.edit( `${replaceMissCount(initialMessage.content, newMissAmount)}`);
 
-        //     const text_reply = `C'est mon ultime bafouille, **${missAmount} / ${missNeeded} miss**`; // ENG : Marked as dud
-            
-            
-        // }
-        // else{
-            
-        //     const text_reply = `**${missAmount} / ${missNeeded}**`; // ENG : Marked as dud
-
-        // }
-
-        
-        // const forumPost = client.channels.cache.get(interaction.channelId);
-        // // Edit a thread
-        // forumPost.edit({ name: `${forumPost.name.replace(text_waitingLogo, text_deadLogo)}` })
-        //     .catch(console.error);
-        
-        // // forumPost.setAutoArchiveDuration(ThreadAutoArchiveDuration.OneHour);
-            
-        // interaction.reply(text_deadLogo + ` ` + text_markAsDead);
-
+                const text_failed = localize(`C'est finito\n`,`Well rip,`) + ` **[ ${newMissAmount} miss / ${missNeeded} ]**\n`;
+                markAsDead(interaction, text_failed);
+            }
+            else{
+                await initialMessage.edit( `${replaceMissCount(initialMessage.content, newMissAmount)}`);
+                
+                // If miss is <= 50% the amount sentences are """encouraging""" then it gets worst and even more after 75% 
+                const text_fitTension = newMissAmount <= missNeeded*0.5 ? text_lowTension(client) : newMissAmount <= missNeeded*0.75 ? text_mediumTension(client) : text_highTension(client);
+                await sendReceivedMessage(interaction, `${text_fitTension}\n**[ ${newMissAmount} miss / ${missNeeded}]**`);            
+            }
+        }
+        else{
+            await sendReceivedMessage(interaction, text_notCompatible);
+        }
     }
 
     // GENERATE USERNAMES COMMAND
     if(interaction.commandName === `generateusernames`){
 
-        const text_incorrectParameters = "Paramètres incorrects, entre suffix ET keywords"; // ENG : "Incorrect parameters, write suffix AND keyworks"
+        const text_incorrectParameters = localize("Paramètres incorrects, entre suffix ET keywords","Incorrect parameters, write suffix AND keyworks");
+        const text_listGenerated = localize("Nouvelle liste d'usernames generé :","New usernames.txt list generated :");
 
         const suffix = interaction.options.getString(`suffix`);
         var keyWords = interaction.options.getString(`keywords`);
 
         if(suffix == null || keyWords == null)
         {
-            return interaction.reply(text_incorrectParameters);
+            return await sendReceivedMessage(interaction, text_incorrectParameters);
         }
         
         keyWords = keyWords.replaceAll(`,`,` `).split(' ');
@@ -725,8 +705,9 @@ client.on(Events.InteractionCreate, async interaction => {
             }
         }
         
-        interaction.reply(`New usernames.txt list generated :\n`);
-        interaction.channel.send({
+
+        await sendReceivedMessage(interaction, text_listGenerated);
+        await interaction.channel.send({
             files: [{
                 attachment: Buffer.from(content),
                 name: 'usernames.txt'
@@ -738,27 +719,27 @@ client.on(Events.InteractionCreate, async interaction => {
     if(interaction.commandName === `setaverageinstances`){
         const amount = interaction.options.getInteger(`amount`);
 
-        const text_instancesSetTo = "Nombre d'instance moyenne défini à"; // ENG : Average amount of instances set to
-        const text_incorrectAmount = "Connard entre ton vrai nombre d'instances moyenne"; // ENG : Duh... input your real number of instances
-        const text_for = "pour"; // ENG : for
+        const text_instancesSetTo = localize("Nombre d'instance moyenne défini à","Average amount of instances set to");
+        const text_incorrectAmount = localize("Pti con va, entre ton vrai nombre d'instances","You lil sneaky boy... input your real number of instances");
+        const text_for = localize("pour","for");
 
         if(amount < 1 || amount > 100){
-            interaction.reply(text_incorrectAmount);
+            await sendReceivedMessage(interaction, text_incorrectAmount);
         }
         else{
             await setUserAttribValue( interactionUserID, interactionUserName, attrib_AverageInstances, amount);
-            interaction.reply(text_instancesSetTo + ` **${amount}** ` + text_for + ` **<@${interactionUserID}>**`);
+            await sendReceivedMessage(interaction, text_instancesSetTo + ` **${amount}** ` + text_for + ` **<@${interactionUserID}>**`);
         }
     }
 
     // ADD GP FOUND COMMAND
     if(interaction.commandName === `addgpfound`){
         
-        const text_addGP = "Ajout d\'un GP pour"; // ENG : Add a GP for
-        const text_missingPerm = "n\'a pas les permissions nécessaires pour changer l\'état de"; // ENG : do not have the permission de edit the user
+        const text_addGP = localize("Ajout d\'un GP pour","Add a GP for");
+        const text_missingPerm = localize("n\'a pas les permissions d\'Admin","do not have Admin permissions");
         
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            return interaction.reply({ content: `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, ephemeral: true });
+            return await sendReceivedMessage(interaction, { content: `<@${interactionUserID}> ${text_missingPerm}`, ephemeral: true });
         }
 
         const user = interaction.options.getUser(`user`);
@@ -769,7 +750,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
         var GPCount = parseInt(await getUserAttribValue( client, interactionUserID, attrib_GodPackFound));
         await setUserAttribValue( interactionUserID, interactionUserName, attrib_GodPackFound, GPCount+1);
-        interaction.reply(`${text_addGP} **<@${interactionUserID}>**`).then(tempMessage => {
+        await sendReceivedMessage(interaction, `${text_addGP} **<@${interactionUserID}>**`).then(tempMessage => {
             setTimeout(() => {
                 tempMessage.delete()
             }, 5000);
@@ -779,12 +760,12 @@ client.on(Events.InteractionCreate, async interaction => {
     // REMOVE GP FOUND COMMAND
     if(interaction.commandName === `removegpfound`){
 
-        const text_removeGP = "Retrait d\'un GP pour"; // ENG : Remove a GP for
-        const text_minimumGP = "Nombre de GP déjà au minimum pour"; // ENG : GP Count already at the minimum value for
-        const text_missingPerm = "n\'a pas les permissions nécessaires pour changer l\'état de"; // ENG : do not have the permission de edit the user
+        const text_removeGP = localize("Retrait d\'un GP pour","Remove a GP for");
+        const text_minimumGP = localize("Nombre de GP déjà au minimum pour","GP Count already at the minimum value for");
+        const text_missingPerm = localize("n\'a pas les permissions d\'Admin","do not have Admin permissions");
 
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            return interaction.reply({ content: `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, ephemeral: true });
+            return await sendReceivedMessage(interaction, { content: `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, ephemeral: true });
         }
 
         const user = interaction.options.getUser(`user`);
@@ -796,14 +777,14 @@ client.on(Events.InteractionCreate, async interaction => {
         var GPCount = parseInt(await getUserAttribValue( client, interactionUserID, attrib_GodPackFound));
         if (GPCount > 0){
             await setUserAttribValue( interactionUserID, interactionUserName, attrib_GodPackFound, GPCount-1);
-            interaction.reply(`${text_removeGP} **<@${interactionUserID}>**`).then(tempMessage => {
+            await sendReceivedMessage(interaction, `${text_removeGP} **<@${interactionUserID}>**`).then(tempMessage => {
                 setTimeout(() => {
                     tempMessage.delete()
                 }, 5000);
             });
         }
         else{
-            interaction.reply(`${text_minimumGP} **<@${interactionUserID}>**`).then(tempMessage => {
+            await sendReceivedMessage(interaction, `${text_minimumGP} **<@${interactionUserID}>**`).then(tempMessage => {
                 setTimeout(() => {
                     tempMessage.delete()
                 }, 5000);
@@ -821,17 +802,20 @@ client.on("messageCreate", async (message) => {
         //Execute when screen is posted
         if (message.attachments.first() != undefined && !message.content.includes("invalid") && message.content.includes("God Pack") ) {
 
-            const text_verificationRedirect = "Verification ici :" // ENG : Verification link here :
-            const text_godpackFoundBy = "GodPack trouvé par" // ENG : GodPack found by
-            const text_commandTooltip = "**Écrivez /verified ou /dead dans le poste pour le signaler comme live ou non**" // ENG : Write /verified or /dead in the post to mark it at live or dud
-            const text_eligible = "**Éligibles :**" // ENG : Eligible :
+            const text_verificationRedirect = localize("Verification ici :","Verification link here :");
+            const text_godpackFoundBy = localize("GP trouvé par","GP found by");
+            const text_commandTooltip = localize(
+                "Écrivez **/miss** si un autre est apparu ou que vous ne l'avez pas\n**/verified** ou **/dead** pour changer l'état du post",
+                "Write **/miss** if another one appeared or you didn't saw it\n**/verified** or **/dead** to change post state");
+            const text_eligible = localize("**Éligibles :**","**Eligible :**");
             
             var arrayGodpackMessage = splitMulti(message.content, ['<@','>','!','found','(',')']);
             var ownerID = arrayGodpackMessage[1];
             var ownerUsername = (await guild.members.fetch(cleanString(ownerID))).user.username;
             var accountName = arrayGodpackMessage[3];
-            var packAmount = arrayGodpackMessage[7];
-                        
+            var accountID = arrayGodpackMessage[4];
+            var text_packAmount = arrayGodpackMessage[7];
+            
             const godPackFound = await getUserAttribValue( client, ownerID, attrib_GodPackFound );
             if( godPackFound == undefined ) {
                 await setUserAttribValue( ownerID, ownerUsername, attrib_GodPackFound, 1);
@@ -844,19 +828,7 @@ client.on("messageCreate", async (message) => {
             var activeUsersID = getIDFromUsers(await getActiveUsers());
             var tagActiveUsernames = "";
 
-            // CACHE MEMBERS
-            // const m = await guild.members.fetch()
-            // let members = m.map(u => u.user.id)
-
             activeUsersID.forEach((id) =>{
-
-                    // var id = "";
-                    // m.forEach((member) =>{
-
-                    //     if(member.user.username == username){
-                    //         id = member.user.id;
-                    //     }
-                    // });
                     tagActiveUsernames += `<@${id}>`
             });
 
@@ -864,13 +836,27 @@ client.on("messageCreate", async (message) => {
             const thread = await message.startThread({
                 name: text_verificationRedirect,
             }).then( async thread =>{
+                // First line
+                const text_foundbyLine = `${text_godpackFoundBy} **<@${ownerID}>**\n`;
+                
+                // Second line
+                var packAmount = extractNumbers(text_packAmount);
+                packAmount = Math.max(Math.min(packAmount,3),1); // Ensure that it is only 1 to 3
+                const text_miss = `## [ 0 miss / ${missBeforeDead[packAmount-1]} ]`
+                const text_missLine = `${text_miss}\n\n`;
+                
+                // Third line
+                const text_eligibleLine = `${text_eligible} ${tagActiveUsernames}\n\n`;
+                
+                // Fourth line
+                const text_metadataLine = `Source: ${message.url}\n${imageUrl}\n\n`;
         
                 // Create forum post for verification
                 const forum = client.channels.cache.get(channelID_GPVerificationForum);
                 const forumPost = forum.threads.create({
-                name: `⌛ ${accountName} - ${packAmount}`,
+                name: `⌛ ${accountName} - ${text_packAmount}`,
                 message: {
-                    content: text_godpackFoundBy + ` **<@${ownerID}>**\n\nSource: ${message.url}\n${imageUrl}\n\n` + text_eligible + " " + tagActiveUsernames + `\n\n` + text_commandTooltip,
+                    content: text_foundbyLine + text_missLine + text_eligibleLine + text_metadataLine + text_commandTooltip,
                 },
                 }).then ( async forum =>{
         
@@ -878,6 +864,8 @@ client.on("messageCreate", async (message) => {
                     await thread.send(text_verificationRedirect + ` ${forum}`);
                     // Lock thread
                     await thread.setLocked(true);
+
+                    guild.channels.cache.get(await forum.id).send({content:`${accountID} is the id of the account\n`})
                 })
             });
         }
@@ -897,25 +885,21 @@ client.on("messageCreate", async (message) => {
             const time = timeAndPacks[0];
             var packs = timeAndPacks[1];
 
-            // const lastHeartbeatTime = new Date(await getUserAttribValue( client, userID, attrib_LastHeartbeatTime ));
-            // const currentTime = new Date();
-            // const diffActiveTime = (currentTime - lastHeartbeatTime) / 60000;
-
-            // console.log("lastActiveTime " + lastActiveTime);
-            // console.log("currentTime " + currentTime);
-            // console.log("diffActiveTime " + lastHeartbeatTime);
-
+            //////////////////////////////////////////////////// TEMPORARY //////////////////////////////////////////////////////////////////
             if(packs == NaN)
             {
                 console.log(userUsername + " HAD NAAAAAAAAAAAAAAAAN packs, session was " + time + " time and " + packs + " packs")  
             }
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             packs = packs == NaN ? 0 : packs;
 
             await setUserAttribValue( userID, userUsername, attrib_HBInstances, instances);
             await setUserAttribValue( userID, userUsername, attrib_SessionTime, time);
-            if( time === "0" ){
+
+            if( time == "0" ){
                 var totalPacks = await getUserAttribValue( client, userID, attrib_TotalPacksOpened );
                 var sessionPacks = await getUserAttribValue( client, userID, attrib_SessionPacksOpened );
+                //////////////////////////////////////////////////// TEMPORARY //////////////////////////////////////////////////////////////////
                 if(totalPacks == NaN)
                 {
                     console.log(userUsername + " HAD NAAAAAAAAAAAAAAAAN total packs, session was " + time + " time and " + packs + " packs")  
@@ -924,6 +908,7 @@ client.on("messageCreate", async (message) => {
                 {
                     console.log(userUsername + " HAD NAAAAAAAAAAAAAAAAN session packs, session was " + time + " time and " + packs + " packs")  
                 }
+                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 totalPacks = totalPacks == NaN ? 0 : totalPacks;
                 sessionPacks = sessionPacks == NaN ? 0 : sessionPacks;
                 await setUserAttribValue( userID, userUsername, attrib_TotalPacksOpened, parseInt(totalPacks) + parseInt(sessionPacks));

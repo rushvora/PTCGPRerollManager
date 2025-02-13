@@ -10,4 +10,16 @@ const attrib_GodPackFound = "GodPackFound";
 const attrib_LastActiveTime = "LastActiveTime";
 const attrib_LastHeartbeatTime = "LastHeartbeatTime";
 
-export{ attrib_PocketID, attrib_Active, attrib_AverageInstances, attrib_HBInstances, attrib_RealInstances, attrib_SessionTime, attrib_TotalPacksOpened, attrib_SessionPacksOpened, attrib_GodPackFound, attrib_LastActiveTime, attrib_LastHeartbeatTime }
+export{ 
+    attrib_PocketID, 
+    attrib_Active, 
+    attrib_AverageInstances, 
+    attrib_HBInstances, 
+    attrib_RealInstances, 
+    attrib_SessionTime, 
+    attrib_TotalPacksOpened, 
+    attrib_SessionPacksOpened, 
+    attrib_GodPackFound, 
+    attrib_LastActiveTime, 
+    attrib_LastHeartbeatTime 
+}

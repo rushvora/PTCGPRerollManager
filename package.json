@@ -4,6 +4,7 @@
   "main": "index.mjs",
   "type": "module",
   "dependencies": {
+    "async-lock": "^1.4.1",
     "before-after-hook": "^3.0.2",
     "bottleneck": "^2.19.5",
     "discord-api-types": "^0.37.119",
