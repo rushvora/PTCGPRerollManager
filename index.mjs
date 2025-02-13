@@ -184,7 +184,7 @@ async function getUsersStats( users, members ){
             }
         }
 
-        userOutput = addTextBar(userOutput, 40);
+        userOutput = addTextBar(userOutput, 50);
 
         // Instances
         var instances = "0";
@@ -512,7 +512,7 @@ client.on(Events.InteractionCreate, async interaction => {
         const user = interaction.options.getUser(`user`);
         if( user != null){
             if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-                return await sendReceivedMessage(interaction, { content: `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, ephemeral: true });
+                return await sendReceivedMessage(interaction, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`);
             }
             interactionUserName = user.username;
             interactionUserID = user.id;
@@ -554,7 +554,7 @@ client.on(Events.InteractionCreate, async interaction => {
         const user = interaction.options.getUser(`user`);
         if( user != null){
             if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-                return await sendReceivedMessage(interaction, { content: `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, ephemeral: true });
+                return await sendReceivedMessage(interaction, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`);
             }
             interactionUserName = user.username;
             interactionUserID = user.id;
@@ -653,7 +653,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 
                 // If miss is <= 50% the amount sentences are """encouraging""" then it gets worst and even more after 75% 
                 const text_fitTension = newMissAmount <= missNeeded*0.5 ? text_lowTension(client) : newMissAmount <= missNeeded*0.75 ? text_mediumTension(client) : text_highTension(client);
-                await sendReceivedMessage(interaction, `${text_fitTension}\n**[ ${newMissAmount} miss / ${missNeeded}]**`);            
+                await sendReceivedMessage(interaction, `${text_fitTension}\n**[ ${newMissAmount} miss / ${missNeeded} ]**`);            
             }
         }
         else{
@@ -739,7 +739,7 @@ client.on(Events.InteractionCreate, async interaction => {
         const text_missingPerm = localize("n\'a pas les permissions d\'Admin","do not have Admin permissions");
         
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            return await sendReceivedMessage(interaction, { content: `<@${interactionUserID}> ${text_missingPerm}`, ephemeral: true });
+            return await sendReceivedMessage(interaction, `<@${interactionUserID}> ${text_missingPerm}`);
         }
 
         const user = interaction.options.getUser(`user`);
@@ -761,7 +761,7 @@ client.on(Events.InteractionCreate, async interaction => {
         const text_missingPerm = localize("n\'a pas les permissions d\'Admin","do not have Admin permissions");
 
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            return await sendReceivedMessage(interaction, { content: `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, ephemeral: true });
+            return await sendReceivedMessage(interaction, `<@${interactionUserID}> ${text_missingPerm}`);
         }
 
         const user = interaction.options.getUser(`user`);
