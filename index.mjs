@@ -750,11 +750,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
         var GPCount = parseInt(await getUserAttribValue( client, interactionUserID, attrib_GodPackFound));
         await setUserAttribValue( interactionUserID, interactionUserName, attrib_GodPackFound, GPCount+1);
-        await sendReceivedMessage(interaction, `${text_addGP} **<@${interactionUserID}>**`).then(tempMessage => {
-            setTimeout(() => {
-                tempMessage.delete()
-            }, 5000);
-        });
+        await sendReceivedMessage(interaction, `${text_addGP} **<@${interactionUserID}>**`);
     }
 
     // REMOVE GP FOUND COMMAND
@@ -777,18 +773,10 @@ client.on(Events.InteractionCreate, async interaction => {
         var GPCount = parseInt(await getUserAttribValue( client, interactionUserID, attrib_GodPackFound));
         if (GPCount > 0){
             await setUserAttribValue( interactionUserID, interactionUserName, attrib_GodPackFound, GPCount-1);
-            await sendReceivedMessage(interaction, `${text_removeGP} **<@${interactionUserID}>**`).then(tempMessage => {
-                setTimeout(() => {
-                    tempMessage.delete()
-                }, 5000);
-            });
+            await sendReceivedMessage(interaction, `${text_removeGP} **<@${interactionUserID}>**`);
         }
         else{
-            await sendReceivedMessage(interaction, `${text_minimumGP} **<@${interactionUserID}>**`).then(tempMessage => {
-                setTimeout(() => {
-                    tempMessage.delete()
-                }, 5000);
-            });
+            await sendReceivedMessage(interaction, `${text_minimumGP} **<@${interactionUserID}>**`);
         }
     }        
 });
