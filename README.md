@@ -48,8 +48,9 @@ Instead of using only the webhook channel which is a nightmare to navigate, the 
 - The Name and the Pack amount as title
 - A **quote to all rerollers** that **were active** at the time of the GP pull
 - The image and a link to the source (the webhook post)
+In a forum post, peoples of your group can type **/Dead** or **/Verified** to change instantly the icon from ⌛ to 💀 or ✅
 
-Moreover, peoples of your group can type **/Dead** or **/Verified** to change the icon from ⌛ to 💀 or ✅
+Moreover, you can type **/miss** and after a specific amount of miss based on packs ammount, it will automatically switch it as **/dead**. There's a thread on our discord if you have some ideas of funny sentences that the bot could say (As i also implemented a system that make the bot different things based on the % of miss)
 
 ![Auto Thread](https://i.imgur.com/iO4WDha.png)
 <br /> 
@@ -69,7 +70,7 @@ It helps tracking usernamers easily and brings joy to ppl in your group clearing
 
 ## Others :
 
-The bot sentences are in french but there's a comment in the code for each one with the english traduction
+The bot sentences can be switched from English to French only by changing a variable from ```true``` to ```fals``` in config.json
 <br /> 
 <br /> 
 
@@ -87,6 +88,7 @@ npm init -y
 npm install discord.js
 npm install octokit
 npm install xml2js
+npm install async-lock
 npm update
 ```
 - You're almost good to go, to make it start, run
@@ -101,8 +103,9 @@ Now place the repo in your project folder and edit config.json
 
 - *token* is you Discord App token
 - *guildID* is your Server ID
-- *channelID_IDSync* is the channel ID where all the datas about the actives rerollers will be sent
-- *channelID_GPVerificationForum* is the channel ID **(needs to be a forum channel**, check about discord community servers to enable forums) and it's where all the valid packs will be sent for verifications
+- For all *channelID_NameOfTheChannel* variable, you can link them wherever you want
+
+Only for those ones you need to set them in different channels both linked with Arturo's webhooks
 - *channelID_Webhook* is the channel ID were your group have their webhook linked to
 - *channelID_Heartbeat* is the channel ID were your group have their hearbeat webhook linked to
 
@@ -122,10 +125,6 @@ In Arturo's bot the url should be placed in Friend ID and look like this : "http
 <br /> 
 
 # TODO :
-
-- Add a /miss command to auto /dead a post after % certitude
-
-- Centralise all group specific datas in config.json and add a way to switch to english with a single variable without having to modify every line of code
 
 - Support heartbeat for users with multiple PCs farming for the same account ( at this time for users with multiple pcs they should only enable heartbeat on the better one )
 
