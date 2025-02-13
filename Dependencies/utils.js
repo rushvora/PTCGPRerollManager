@@ -1,6 +1,6 @@
 import {
     EnglishLanguage,
-} from '../______qzdqzdconfig.js';
+} from '../config.js';
 
 function sumIntArray( arrayNumbers ) {
     return arrayNumbers.reduce((accumulator, currentValue) => parseInt(accumulator) + parseInt(currentValue), 0);
