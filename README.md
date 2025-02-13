@@ -70,6 +70,8 @@ It helps tracking usernamers easily and brings joy to ppl in your group clearing
 
 ## Others :
 
+If you wish to easily set up the bot for your server, i created a **Discord server template** based on our main server where we run the bot, here it is : https://discord.new/zXx8avYs85wk
+
 The bot sentences can be switched from English to French only by changing a variable from ```true``` to ```fals``` in config.json
 <br /> 
 <br /> 
