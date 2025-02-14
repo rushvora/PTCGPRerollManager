@@ -73,6 +73,8 @@ It helps tracking usernamers easily and brings joy to ppl in your group clearing
 If you wish to easily set up the bot for your server, i created a **Discord server template** based on our main server where we run the bot, here it is : https://discord.new/zXx8avYs85wk
 
 The bot sentences can be switched from English to French only by changing a variable from ```true``` to ```false``` in config.json
+
+There is also another command named **/lastactivity** which shows of list of all users in the database and how old was the last HeartBeat
 <br /> 
 <br /> 
 
@@ -108,13 +110,19 @@ Only for those ones you need to set them in different channels both linked with 
 - *channelID_Webhook* is the channel ID were your group have their webhook linked to
 - *channelID_Heartbeat* is the channel ID were your group have their hearbeat webhook linked to
 
-**For the heartbeat to work**, you need to tell your group to input their **Discord ID in the left field** in Arturo's bot
-
 After that [create a new fine-grained token](https://github.com/settings/tokens) for your GitHub account, and make sure to only check to read/write your Gists
 
 Then, [create a GitGist](https://gist.github.com/) and get it's ID (the numbers in the URL). Now you're ready to fill out the last two variables in config.js and **modify the GitGistName variable in index.mjs** with you git file name
 
 In Arturo's bot the url should be placed in Friend ID and look like this : "https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw"
+<br /> 
+<br /> 
+
+## Heartbeat Setup :
+
+**For the heartbeat to work**, you need to tell your group to input their **Discord ID in the left field** in Arturo's bot
+
+Heartbeat also supports users farming with multiples PCs, to know how to setup it up, [read the v1.4 patch note](https://github.com/TheThobi/PTCGPRerollManager/releases/tag/v1.4)
 <br /> 
 <br /> 
 
@@ -125,9 +133,7 @@ In Arturo's bot the url should be placed in Friend ID and look like this : "http
 
 # TODO :
 
-- Support heartbeat for users with multiple PCs farming for the same account ( at this time for users with multiple pcs they should only enable heartbeat on the better one )
-
-- Use the new 2 star filter webhook to create forum post in another or the same forum channel as for gp
+- Wait for a better 2 star filter from Arturo'bot to create forum post in another or the same forum channel as for gp when a 2 Star appears in webhook
 
 - Filter out all the potentiel banwords from the user generated list and remove then, at this time it only filters special characters
 
