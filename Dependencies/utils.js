@@ -54,7 +54,6 @@ function splitMulti(str, tokens){
 }
 
 async function sendReceivedMessage(interaction, content) {
-    await interaction.deferReply();
     await interaction.followUp({ content: content });
 }
 
@@ -105,14 +104,15 @@ function colorText( text, color ){
         return `[2;36m${text}[0m`
 }
 
-function addTextBar(str, targetLength) {
+function addTextBar(str, targetLength, color = true) {
     const currentLength = str.length;
     // Calculate the number of spaces needed to reach the target length
     const spacesNeeded = Math.max(targetLength - currentLength - 1,0);
     // Create a string of spaces
     const spaces = ' '.repeat(spacesNeeded);
     // Return the string with the spaces and the bar added
-    return str + spaces + colorText('|', "gray");
+    const bar = color == true ? colorText('|', "gray") : '|';
+    return str + spaces + bar;
 }
 
 function localize( text_french, text_english ){

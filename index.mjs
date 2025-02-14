@@ -1,6 +1,11 @@
-// CC0-1.0 license you're free to do what you want with it
+//                    GNU GENERAL PUBLIC LICENSE
+//                       Version 3, 29 June 2007
 //
-// Bot written by @thobi (discord) made to work with Arturo PTCG Bot for the PTCGP Rerollers community
+//Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+//Everyone is permitted to copy and distribute verbatim copies
+//of this license document, but changing it is not allowed.
+//
+// Bot written by @thobi made to work with Arturo PTCG Bot for the PTCGP Rerollers community
 // See here : https://github.com/Arturo-1212/PTCGPB
 // Shoutout to @cjlj for Automated ids.txt modifications on the ahk side
 //
@@ -18,6 +23,7 @@ import {
     channelID_IDs,
     channelID_UserStats,
     channelID_GPVerificationForum,
+    channelID_2StarVerificationForum,
     channelID_Webhook,
     channelID_Heartbeat,
     gitToken,
@@ -52,13 +58,17 @@ import {
     doesUserProfileExists,
     setUserAttribValue,
     getUserAttribValue,
+    setUserSubsystemAttribValue,
+    getUserSubsystemAttribValue,
     getActiveUsers,
+    getAllUsers,
     getUsernameFromUsers, 
     getUsernameFromUser, 
     getIDFromUsers, 
     getIDFromUser, 
     getAttribValueFromUsers,
     getAttribValueFromUser,
+    getAttribValueFromUserSubsystems,
     cleanString,
 } from './Dependencies/xmlManager.js';
 
@@ -145,9 +155,33 @@ async function getUsersStats( users, members ){
 
         var userOutput = `\`\`\`ansi\n`;
 
+        const currentTime = new Date();
         const id = getIDFromUser(user);
         const username = getUsernameFromUser(user);
         var visibleUsername = username;
+
+        // Subsystems stats
+        const instancesSubsystems = getAttribValueFromUserSubsystems(user, attrib_HBInstances, 0);
+        const sessionTimeSubsystems = getAttribValueFromUserSubsystems(user, attrib_SessionTime, 0);
+        const sessionPacksSubsystems = getAttribValueFromUserSubsystems(user, attrib_SessionPacksOpened, 0);
+        const lastHBTimeSubsystems = getAttribValueFromUserSubsystems(user, attrib_LastHeartbeatTime, 0);
+
+        var totalSessionPacksSubsystems = 0;
+        var biggerSessionTimeSubsystems = 0;
+        var totalInstancesSubsystems = 0;
+        var smallerDiffHBTimeSubsystems = 1000;
+
+        for (let i = 0; i < instancesSubsystems.length; i++){
+
+            const diffHBSubsystem = (currentTime - new Date(lastHBTimeSubsystems[i])) / 60000;
+            smallerDiffHBTimeSubsystems = Math.min(smallerDiffHBTimeSubsystems, diffHBSubsystem);
+
+            if(diffHBSubsystem < 31){ // If last HB less than 31mn then count instances and session time
+                totalInstancesSubsystems += parseInt(instancesSubsystems[i]);
+                biggerSessionTimeSubsystems = Math.max(biggerSessionTimeSubsystems, sessionTimeSubsystems[i]);
+            }
+            totalSessionPacksSubsystems += parseFloat(sessionPacksSubsystems[i]);
+        }
 
         // Activity check
         members.forEach( member =>{
@@ -158,14 +192,16 @@ async function getUsersStats( users, members ){
 
         const lastActiveTime = new Date(getAttribValueFromUser(user, attrib_LastActiveTime));
         const lastHBTime = new Date(getAttribValueFromUser(user, attrib_LastHeartbeatTime));
-        const currentTime = new Date();
         const diffActiveTime = (currentTime - lastActiveTime) / 60000;
-        const diffHBTime = (currentTime - lastHBTime) / 60000;
+        var diffHBTime = (currentTime - lastHBTime) / 60000;
+        // Check for Subsystem diff
+        diffHBTime = Math.min(diffHBTime, smallerDiffHBTimeSubsystems);
 
-        var activeState = 0; // 0=missing - 1=waiting - 2=valid
+        // PlayerState 0=missing - 1=waiting - 2=valid
+        var activeState = 0; 
 
-        if(diffActiveTime < 31) { // If player added less than 31mn ago (might still not have received HB)
-            if(diffHBTime < 31){ // If less than 31mn since last HB
+        if(diffActiveTime < 31) { // If player active less than 31mn ago (might still not have received HB)
+            if(diffHBTime < 31){ // If last HB less than 31mn
                 userOutput += colorText(visibleUsername, "green");
                 activeState = 2;
             }
@@ -174,8 +210,8 @@ async function getUsersStats( users, members ){
                 activeState = 1;
             }
         }
-        else{ // If player added more than 31mn ago (HB have been received)
-            if(diffHBTime < 31){ // If less than 31mn since last HB
+        else{ // If player active more than 31mn ago (HB have should havebeen received)
+            if(diffHBTime < 31){ // If last HB less than 31mn
                 userOutput += colorText(visibleUsername, "green");
                 activeState = 2;
             }
@@ -189,37 +225,45 @@ async function getUsersStats( users, members ){
         // Instances
         var instances = "0";
         if( activeState == 2 ){
-            instances = getAttribValueFromUser(user, attrib_HBInstances, 0);
+            instances = parseInt(getAttribValueFromUser(user, attrib_HBInstances, 0));
+            // Add Subsystems instances
+            instances += parseInt(totalInstancesSubsystems);
         }
         else{
-            instances = getAttribValueFromUser(user, attrib_AverageInstances, 0);
+            instances = parseInt(getAttribValueFromUser(user, attrib_AverageInstances, 0));
         }
         userOutput += colorText(` ${instances} instances\n`, "gray");
         await setUserAttribValue( id, username, attrib_RealInstances, instances );
 
-        // Session stats
-        var sessionTime = roundToOneDecimal(parseFloat(getAttribValueFromUser(user, attrib_SessionTime)));
-        var sessionPacks = parseFloat(getAttribValueFromUser(user, attrib_SessionPacksOpened));
+        // Session stats       
+
+        var sessionTime = getAttribValueFromUser(user, attrib_SessionTime)
+        sessionTime = roundToOneDecimal( parseFloat( Math.max(sessionTime,biggerSessionTimeSubsystems) ) );
+        var sessionPackF = parseFloat(getAttribValueFromUser(user, attrib_SessionPacksOpened)) + totalSessionPacksSubsystems;
+        // Add Subsystems packs
+        // sessionPackF += parseFloat(totalSessionPacksSubsystems);
 
         const text_Session = colorText("Session:", "gray");
         const text_sessionTime = colorText("running " + sessionTime + "mn", "gray");
-        const text_sessionPacks = colorText("w/ " + sessionPacks + " packs", "gray");
-        var sessionAvgPackMn = roundToOneDecimal(sessionPacks/sessionTime);
-        sessionAvgPackMn = sessionTime == 0 || sessionPacks == 0 ? 0 : sessionAvgPackMn;
+        const text_sessionPackF = colorText("w/ " + sessionPackF + " packs", "gray");
+        var sessionAvgPackMn = roundToOneDecimal(sessionPackF/sessionTime);
+        sessionAvgPackMn = sessionTime == 0 || sessionPackF == 0 ? 0 : sessionAvgPackMn;
         const text_avgPackMn = colorText(sessionAvgPackMn, "blue");
 
-        userOutput += `    ${text_Session} ${text_avgPackMn} packs/mn  ${text_sessionTime} ${text_sessionPacks}\n`
+        userOutput += `    ${text_Session} ${text_avgPackMn} packs/mn  ${text_sessionTime} ${text_sessionPackF}\n`
 
         // Pack stats
         const totalPack = parseInt(getAttribValueFromUser(user, attrib_TotalPacksOpened));
-        const sessionPack = parseInt(getAttribValueFromUser(user, attrib_SessionPacksOpened));
+        var sessionPackI = parseInt(getAttribValueFromUser(user, attrib_SessionPacksOpened)) + totalSessionPacksSubsystems;
+        // Add Subsystems
+        // sessionPackI += parseInt(totalSessionPacksSubsystems);
         const totalGodPack = parseInt(getAttribValueFromUser(user, attrib_GodPackFound));
-        const avgGodPack = roundToOneDecimal(totalGodPack >= 1 ? (totalPack+sessionPack)/totalGodPack : (totalPack+sessionPack));
+        const avgGodPack = roundToOneDecimal(totalGodPack >= 1 ? (totalPack+sessionPackI)/totalGodPack : (totalPack+sessionPackI));
 
         const text_GPAvg = colorText("GP Avg:", "gray");
         const text_Packs = colorText("Packs:", "gray");
         const text_GP = colorText("GP:", "gray");
-        const text_TotalPack = colorText(totalPack + sessionPack, "blue");
+        const text_TotalPack = colorText(totalPack + sessionPackI, "blue");
         const text_TotalGodPack = colorText(totalGodPack, "blue");
         const text_GPRatio = totalGodPack >= 1 ? '1/' : '0/';
         const text_AvgGodPack = colorText(`${text_GPRatio}${avgGodPack}`, `blue`);
@@ -263,7 +307,7 @@ async function sendUserStats( guild ){
     const accumulatedPackSec = roundToOneDecimal((accumulatedsessionPacks/accumulatedSessionTime) * globalsessionPacks.length);
 
     const text_avgInstances = localize("instances à environ", "instance that run at");
-    const text_activeInstances = `## ${instancesAmount} ${text_avgInstances} ${accumulatedPackSec} packs/mn\n\n`; // ENG : ## Running instances
+    const text_activeInstances = `## ${instancesAmount} ${text_avgInstances} ${accumulatedPackSec} packs/mn\n\n`;
 
     // Send UserStats
     guild.channels.cache.get(channelID_UserStats).send({ content:`${text_activeInstances}`});
@@ -275,7 +319,7 @@ async function sendIDs( guild, updateServer = true ){
     const activePocketIDs = getAttribValueFromUsers(activeUsers, attrib_PocketID, "").join('\n');
 
     const text_contentOf = localize("Contenu de IDs.txt", "Content of IDs.txt");
-    const text_activePocketIDs = `*${text_contentOf} :*\n\`\`\`\n${activePocketIDs}\n\`\`\``; // ENG : Content of ids.txt :
+    const text_activePocketIDs = `*${text_contentOf} :*\n\`\`\`\n${activePocketIDs}\n\`\`\``;
     // Send instances and IDs
     guild.channels.cache.get(channelID_IDs).send({ content:`${text_activePocketIDs}`});
     if(updateServer){
@@ -283,17 +327,88 @@ async function sendIDs( guild, updateServer = true ){
     }
 }
 
+async function createForumPost( guild, message, channelID, packName ) {
+
+    const text_verificationRedirect = localize("Verification ici :","Verification link here :");
+    const text_godpackFoundBy = localize(`${packName} trouvé par`,`${packName} found by`);
+    const text_commandTooltip = localize(
+        "Écrivez **/miss** si un autre est apparu ou que vous ne l'avez pas\n**/verified** ou **/dead** pour changer l'état du post",
+        "Write **/miss** if another one appeared or you didn't saw it\n**/verified** or **/dead** to change post state");
+    const text_eligible = localize("**Éligibles :**","**Eligible :**");
+    
+    var arrayGodpackMessage = splitMulti(message.content, ['<@','>','\n','(',')']);
+    var ownerID = arrayGodpackMessage[1];
+    var ownerUsername = (await guild.members.fetch(cleanString(ownerID))).user.username;
+    var accountName = arrayGodpackMessage[3];
+    var accountID = arrayGodpackMessage[4];
+    var text_packAmount = arrayGodpackMessage[7];
+    
+    const godPackFound = await getUserAttribValue( client, ownerID, attrib_GodPackFound );
+    if( godPackFound == undefined ) {
+        await setUserAttribValue( ownerID, ownerUsername, attrib_GodPackFound, 1);
+    } else {
+        await setUserAttribValue( ownerID, ownerUsername, attrib_GodPackFound, parseInt(godPackFound) + 1);
+    }
+    
+    var imageUrl = message.attachments.first().url;
+
+    var activeUsersID = getIDFromUsers(await getActiveUsers());
+    var tagActiveUsernames = "";
+
+    activeUsersID.forEach((id) =>{
+            tagActiveUsernames += `<@${id}>`
+    });
+
+    // Create thread in Webhook channel
+    const thread = await message.startThread({
+        name: text_verificationRedirect,
+    }).then( async thread =>{
+        // First line
+        const text_foundbyLine = `${text_godpackFoundBy} **<@${ownerID}>**\n`;
+        
+        // Second line
+        var packAmount = extractNumbers(text_packAmount);
+        packAmount = Math.max(Math.min(packAmount,3),1); // Ensure that it is only 1 to 3
+        const text_miss = `## [ 0 miss / ${missBeforeDead[packAmount-1]} ]`
+        const text_missLine = `${text_miss}\n\n`;
+        
+        // Third line
+        const text_eligibleLine = `${text_eligible} ${tagActiveUsernames}\n\n`;
+        
+        // Fourth line
+        const text_metadataLine = `Source: ${message.url}\n${imageUrl}\n\n`;
+
+        // Create forum post for verification
+        const forum = client.channels.cache.get(channelID);
+        const forumPost = forum.threads.create({
+        name: `⌛ ${accountName} - ${text_packAmount}`,
+        message: {
+            content: text_foundbyLine + text_missLine + text_eligibleLine + text_metadataLine + text_commandTooltip,
+        },
+        }).then ( async forum =>{
+
+            // Post forum link in webhook thread
+            await thread.send(text_verificationRedirect + ` ${forum}`);
+            // Lock thread
+            await thread.setLocked(true);
+
+            guild.channels.cache.get(await forum.id).send({content:`${accountID} is the id of the account\n`})
+        })
+    });
+} 
+
 async function markAsDead( interaction, optionalText = "" ){
-    const text_markAsDead = localize("Godpack marqué comme mort","Godpack marked as dud");
+
+    const text_markAsDead = localize("Godpack marqué comme mort et fermé","Godpack marked as dud and closed");
         
     const forumPost = client.channels.cache.get(interaction.channelId);
     // Edit a thread
     forumPost.edit({ name: `${forumPost.name.replace(text_waitingLogo, text_deadLogo)}` })
         .catch(console.error);
-    
-    // forumPost.setAutoArchiveDuration(ThreadAutoArchiveDuration.OneHour);
-        
+
     await sendReceivedMessage(interaction, optionalText + text_deadLogo + ` ` + text_markAsDead);
+    
+    forumPost.setArchived(true);
 }
 
 // Events
@@ -315,13 +430,14 @@ client.once(Events.ClientReady, async c => {
     // Commands Creation
 
     const playeridDesc = localize("Lie votre code ami à votre pseudo discord unique", "Link your ID Code with you Discord unique username");
+    const playeridDescId = localize("Votre ID SANS TIRET", "Your ID without any dash");
     const playeridSCB = new SlashCommandBuilder()
         .setName(`setplayerid`)
-        .setDescription(`${playeridDesc}\n`) // ENG : 
+        .setDescription(`${playeridDesc}\n`) 
         .addStringOption(option =>
             option
                 .setName("id")
-                .setDescription("votre ID SANS TIRET") // ENG : Your ID without any dash
+                .setDescription(`${playeridDescId}`)
                 .setRequired(true)
         );
 
@@ -341,11 +457,11 @@ client.once(Events.ClientReady, async c => {
     const addDescUser = localize("ADMIN ONLY : pour forcer l'ajout de quelqu'un d'autre", "ADMIN ONLY : Only usefull so force add someone else than yourself");
     const addSCB = new SlashCommandBuilder()
         .setName(`add`)
-        .setDescription(`${addDesc}`) // ENG : 
+        .setDescription(`${addDesc}`)
         .addUserOption(option =>
             option
                 .setName("user")
-                .setDescription(`${addDescUser}`) // ENG : 
+                .setDescription(`${addDescUser}`)
                 .setRequired(false)
         );
     
@@ -384,7 +500,12 @@ client.once(Events.ClientReady, async c => {
     const missDesc = localize("Pour la verification GP, après X fois suivant le nombre de pack cela auto /dead", "For verification purposes, after X times based on pack amount it sends /dead");
     const missSCB = new SlashCommandBuilder()
         .setName(`miss`)
-        .setDescription(`${missDesc}`); // ENG : 
+        .setDescription(`${missDesc}`);
+
+    const lastactivityDesc = localize("Montre à combien de temps remonte le dernier Heartbeat", "Show how long since the last Heartbeat was");
+    const lastactivitySCB = new SlashCommandBuilder()
+        .setName(`lastactivity`)
+        .setDescription(`${lastactivityDesc}`);
 
     const generateusernamesDesc = localize("Génère liste basé sur suffixe et, facultatif, des mots","Generate a list based on a suffix and, if wanted, keywords");   
     const generateusernamesDescSuffix = localize("Les 3 ou 4 premières lettres premières lettres de votre pseudo","The 3 or 4 firsts letter of your pseudonym");   
@@ -395,12 +516,12 @@ client.once(Events.ClientReady, async c => {
         .addStringOption(option =>
             option
                 .setName("suffix")
-                .setDescription(`${generateusernamesDescSuffix}`) // ENG : 
+                .setDescription(`${generateusernamesDescSuffix}`)
                 .setRequired(true)
         ).addStringOption(option2 =>
             option2
                 .setName("keywords")
-                .setDescription(`${generateusernamesDescKeyword}`) // ENG : 
+                .setDescription(`${generateusernamesDescKeyword}`)
                 .setRequired(false)
         );
 
@@ -408,11 +529,11 @@ client.once(Events.ClientReady, async c => {
     const addGPFoundDescUser = localize("seulement utile pour corriger des erreurs","Only usefull to fix bugs");
     const addGPFoundSCB = new SlashCommandBuilder()
         .setName(`addgpfound`)
-        .setDescription(`${addGPFoundDesc}`) // ENG : 
+        .setDescription(`${addGPFoundDesc}`)
         .addUserOption(option =>
             option
                 .setName("user")
-                .setDescription(`${addGPFoundDescUser}`) // ENG : 
+                .setDescription(`${addGPFoundDescUser}`)
                 .setRequired(false)
         );
 
@@ -420,11 +541,11 @@ client.once(Events.ClientReady, async c => {
     const removeGPFoundDescUser = localize("seulement utile pour corriger des erreurs","only usefull to fix bugs");
     const removeGPFoundSCB = new SlashCommandBuilder()
     .setName(`removegpfound`)
-    .setDescription(`${removeGPFoundDesc}`) // ENG : 
+    .setDescription(`${removeGPFoundDesc}`)
     .addUserOption(option =>
         option
             .setName("user")
-            .setDescription(`${removeGPFoundDescUser}`) // ENG : 
+            .setDescription(`${removeGPFoundDescUser}`)
             .setRequired(false)
     );
 
@@ -454,6 +575,9 @@ client.once(Events.ClientReady, async c => {
 
     const missCommand = missSCB.toJSON();
     client.application.commands.create(missCommand, guildID);
+
+    const lastactivityCommand = lastactivitySCB.toJSON();
+    client.application.commands.create(lastactivityCommand, guildID);
     
     const generateusernamesCommand = generateusernamesSCB.toJSON();
     client.application.commands.create(generateusernamesCommand, guildID);
@@ -477,6 +601,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
     // SET PLAYER ID COMMAND
     if(interaction.commandName === `setplayerid`){
+
+        await interaction.deferReply();
         const id = interaction.options.getString(`id`);
 
         const text_incorrectID = localize("ID Incorrect pour","ID Incorrect for");
@@ -506,6 +632,7 @@ client.on(Events.InteractionCreate, async interaction => {
     // ADD COMMAND
     if(interaction.commandName === `add`){
 
+        await interaction.deferReply();
         const text_alreadyIn = localize("est déjà présent dans la liste des rerollers actifs","is already in the active rerollers pool");
         const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit other user");
         const text_missingFriendCode = localize("Le Player ID est nécéssaire avant de vouloir s'add","The Player ID is needed before you can add yourself");
@@ -546,7 +673,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
     // REMOVE COMMAND
     if(interaction.commandName === `remove`){
-        
+
+        await interaction.deferReply();
         const text_alreadyOut = localize("est déjà absent de la liste des rerollers actifs","is already out of the active rerollers pool");
         const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit the other user");
         const text_missingFriendCode = localize("Le Player ID est nécéssaire avant de vouloir se remove","The Player ID is needed before you can remove yourself");
@@ -583,6 +711,7 @@ client.on(Events.InteractionCreate, async interaction => {
     // REFRESH COMMAND
     if(interaction.commandName === `refresh`){
         
+        await interaction.deferReply();
         const refreshTime = roundToOneDecimal(getNexIntervalRemainingTime());
         const text_IDsRefreshedIn = localize("**IDs rafraichis**, rafraichissment des **Stats dans","**IDs refreshed**, reshing the **Stats in");
         const text_see = localize("voir","see");
@@ -596,7 +725,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
     // FORCE REFRESH COMMAND
     if(interaction.commandName === `forcerefresh`){
-    
+
+        await interaction.deferReply();
         const text_listForceRefreshed = localize("**Stats rerollers actifs rafraichies**", "**Active rerollers stats refreshed**");
 
         // Reading the current players file
@@ -607,6 +737,7 @@ client.on(Events.InteractionCreate, async interaction => {
     // VERIFIED COMMAND
     if(interaction.commandName === `verified`){
         
+        await interaction.deferReply();
         const text_markAsVerified = localize("Godpack marqué comme live","Godpack marked as live");
 
         const forumPost = client.channels.cache.get(interaction.channelId);
@@ -620,12 +751,14 @@ client.on(Events.InteractionCreate, async interaction => {
     // DEAD COMMAND
     if(interaction.commandName === `dead`){
 
+        await interaction.deferReply();
         markAsDead(interaction);
     }
 
     // MISS COMMAND
     if(interaction.commandName === `miss`){
 
+        await interaction.deferReply();
         const text_markasMiss = localize("Godpack marqué comme mort","Godpack marked as dud");
         const text_notCompatible = localize("Le GP est dans **l'ancien format**, /miss incompatible","The GP is using the **old format**, /miss incompatible");
 
@@ -661,9 +794,37 @@ client.on(Events.InteractionCreate, async interaction => {
         }
     }
 
+    // DEAD COMMAND
+    if(interaction.commandName === `lastactivity`){
+
+        await interaction.deferReply();
+
+        // text_days = localize("jour","h");
+        var activityOutput = "\`\`\`\n";
+
+        const allUsers = await getAllUsers();
+
+        for( var i = 0; i < allUsers.length; i++ ) {
+            
+            var userID = getIDFromUser(allUsers[i]);
+            var userDisplayName = (await guild.members.fetch(cleanString(userID))).user.displayName;
+
+            const lastHBTime = new Date(getAttribValueFromUser(allUsers[i], attrib_LastHeartbeatTime));
+            var diffTime = (Date.now() - lastHBTime) / 60000 / 60;
+            diffTime = roundToOneDecimal(diffTime);
+
+            activityOutput += addTextBar(`${userDisplayName} `, 20, false) + ` ${diffTime} h\n`
+        };
+
+        activityOutput+="\`\`\`";
+
+        await sendReceivedMessage(interaction, activityOutput);
+    }
+
     // GENERATE USERNAMES COMMAND
     if(interaction.commandName === `generateusernames`){
 
+        await interaction.deferReply();
         const text_incorrectParameters = localize("Paramètres incorrects, entre suffix ET keywords","Incorrect parameters, write suffix AND keyworks");
         const text_listGenerated = localize("Nouvelle liste d'usernames generé :","New usernames.txt list generated :");
 
@@ -717,6 +878,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
     // SET AVERAGE INSTANCES COMMAND
     if(interaction.commandName === `setaverageinstances`){
+
+        await interaction.deferReply();
         const amount = interaction.options.getInteger(`amount`);
 
         const text_instancesSetTo = localize("Nombre d'instance moyenne défini à","Average amount of instances set to");
@@ -734,7 +897,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
     // ADD GP FOUND COMMAND
     if(interaction.commandName === `addgpfound`){
-        
+
+        await interaction.deferReply();        
         const text_addGP = localize("Ajout d\'un GP pour","Add a GP for");
         const text_missingPerm = localize("n\'a pas les permissions d\'Admin","do not have Admin permissions");
         
@@ -756,6 +920,7 @@ client.on(Events.InteractionCreate, async interaction => {
     // REMOVE GP FOUND COMMAND
     if(interaction.commandName === `removegpfound`){
 
+        await interaction.deferReply();
         const text_removeGP = localize("Retrait d\'un GP pour","Remove a GP for");
         const text_minimumGP = localize("Nombre de GP déjà au minimum pour","GP Count already at the minimum value for");
         const text_missingPerm = localize("n\'a pas les permissions d\'Admin","do not have Admin permissions");
@@ -785,125 +950,90 @@ client.on("messageCreate", async (message) => {
 
     const guild = await client.guilds.fetch(guildID);
 
+    // Do never continue if the author is the bot, that should not filter webhooks
+    if (message.author.id === client.user.id) return;
+
     if (message.channel.id === channelID_Webhook)
     {
         //Execute when screen is posted
         if (message.attachments.first() != undefined && !message.content.includes("invalid") && message.content.includes("God Pack") ) {
 
-            const text_verificationRedirect = localize("Verification ici :","Verification link here :");
-            const text_godpackFoundBy = localize("GP trouvé par","GP found by");
-            const text_commandTooltip = localize(
-                "Écrivez **/miss** si un autre est apparu ou que vous ne l'avez pas\n**/verified** ou **/dead** pour changer l'état du post",
-                "Write **/miss** if another one appeared or you didn't saw it\n**/verified** or **/dead** to change post state");
-            const text_eligible = localize("**Éligibles :**","**Eligible :**");
-            
-            var arrayGodpackMessage = splitMulti(message.content, ['<@','>','!','found','(',')']);
-            var ownerID = arrayGodpackMessage[1];
-            var ownerUsername = (await guild.members.fetch(cleanString(ownerID))).user.username;
-            var accountName = arrayGodpackMessage[3];
-            var accountID = arrayGodpackMessage[4];
-            var text_packAmount = arrayGodpackMessage[7];
-            
-            const godPackFound = await getUserAttribValue( client, ownerID, attrib_GodPackFound );
-            if( godPackFound == undefined ) {
-                await setUserAttribValue( ownerID, ownerUsername, attrib_GodPackFound, 1);
-            } else {
-                await setUserAttribValue( ownerID, ownerUsername, attrib_GodPackFound, parseInt(godPackFound) + 1);
-            }
-            
-            var imageUrl = message.attachments.first().url;
-        
-            var activeUsersID = getIDFromUsers(await getActiveUsers());
-            var tagActiveUsernames = "";
+            await createForumPost(guild, message, channelID_GPVerificationForum, "GodPack");
+        }
 
-            activeUsersID.forEach((id) =>{
-                    tagActiveUsernames += `<@${id}>`
-            });
+        //Execute when screen is posted
+        if (message.attachments.first() != undefined && !message.content.includes("invalid") && message.content.includes("2-Star") ) {
 
-            // Create thread in Webhook channel
-            const thread = await message.startThread({
-                name: text_verificationRedirect,
-            }).then( async thread =>{
-                // First line
-                const text_foundbyLine = `${text_godpackFoundBy} **<@${ownerID}>**\n`;
-                
-                // Second line
-                var packAmount = extractNumbers(text_packAmount);
-                packAmount = Math.max(Math.min(packAmount,3),1); // Ensure that it is only 1 to 3
-                const text_miss = `## [ 0 miss / ${missBeforeDead[packAmount-1]} ]`
-                const text_missLine = `${text_miss}\n\n`;
-                
-                // Third line
-                const text_eligibleLine = `${text_eligible} ${tagActiveUsernames}\n\n`;
-                
-                // Fourth line
-                const text_metadataLine = `Source: ${message.url}\n${imageUrl}\n\n`;
-        
-                // Create forum post for verification
-                const forum = client.channels.cache.get(channelID_GPVerificationForum);
-                const forumPost = forum.threads.create({
-                name: `⌛ ${accountName} - ${text_packAmount}`,
-                message: {
-                    content: text_foundbyLine + text_missLine + text_eligibleLine + text_metadataLine + text_commandTooltip,
-                },
-                }).then ( async forum =>{
-        
-                    // Post forum link in webhook thread
-                    await thread.send(text_verificationRedirect + ` ${forum}`);
-                    // Lock thread
-                    await thread.setLocked(true);
-
-                    guild.channels.cache.get(await forum.id).send({content:`${accountID} is the id of the account\n`})
-                })
-            });
+            // if(channelID_2StarVerificationForum != ""){
+            //     await createForumPost(guild, message, channelID_2StarVerificationForum, "2Star");
+            // }
         }
     }
 
     if (message.channel.id === channelID_Heartbeat)
     {
+        const text_WrongHB = localize("Quelqu'un a mal configuré ses paramètres Heartbeat","Someone missed up their Heartbeat settings");
+        const text_CorrectInput = localize(
+            "Veuillez entrer votre \`\`\`DiscordID\`\`\` dans ce champ pour votre PC Principal et \`\`\`DiscordID_YOURPCNAME\`\`\` Pour les autre ordinateurs si vous souhaitez en utiliser plusieurs",
+            "Please input your \`\`\`DiscordID\`\`\` in this field for your main PC and \`\`\`DiscordID_YOURPCNAME\`\`\` For others computers if you wish to use multiple"
+        );
+
         var heartbeatDatas = message.content.split("\n");
-        const userID = heartbeatDatas[0];
-        
+        const firstLine = heartbeatDatas[0];
+        const firstLineSplit = firstLine.split("_");
+        const userID = firstLineSplit[0];
+
+        // I heard Discord ID could be 17 digits long, not only 18, so just in case
+        if(userID.length < 17 || userID.length > 18 || !isNumbers(userID)){
+            return await message.reply(`${text_WrongHB} **( ${userID} )**\n${text_CorrectInput}`);
+        }
+
         var userUsername = (await guild.members.fetch(cleanString(userID))).user.username;
+        
+        if(firstLineSplit.length <= 1 ) { // If ID do not have underscore
 
-        if(await doesUserProfileExists(userID, userUsername)){
+            if(await doesUserProfileExists(userID, userUsername)){
+    
+                const instances = countDigits(heartbeatDatas[1]);
+                const timeAndPacks = extractNumbers(heartbeatDatas[3]);
+                const time = timeAndPacks[0];
+                var packs = timeAndPacks[1];
 
-            const instances = countDigits(heartbeatDatas[1]);
-            const timeAndPacks = extractNumbers(heartbeatDatas[3]);
-            const time = timeAndPacks[0];
-            var packs = timeAndPacks[1];
-
-            //////////////////////////////////////////////////// TEMPORARY //////////////////////////////////////////////////////////////////
-            if(packs == NaN)
-            {
-                console.log(userUsername + " HAD NAAAAAAAAAAAAAAAAN packs, session was " + time + " time and " + packs + " packs")  
-            }
-            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            packs = packs == NaN ? 0 : packs;
-
-            await setUserAttribValue( userID, userUsername, attrib_HBInstances, instances);
-            await setUserAttribValue( userID, userUsername, attrib_SessionTime, time);
-
-            if( time == "0" ){
-                var totalPacks = await getUserAttribValue( client, userID, attrib_TotalPacksOpened );
-                var sessionPacks = await getUserAttribValue( client, userID, attrib_SessionPacksOpened );
-                //////////////////////////////////////////////////// TEMPORARY //////////////////////////////////////////////////////////////////
-                if(totalPacks == NaN)
-                {
-                    console.log(userUsername + " HAD NAAAAAAAAAAAAAAAAN total packs, session was " + time + " time and " + packs + " packs")  
+                await setUserAttribValue( userID, userUsername, attrib_HBInstances, instances);
+                await setUserAttribValue( userID, userUsername, attrib_SessionTime, time);
+    
+                if( time == "0" ){
+                    var totalPacks = await getUserAttribValue( client, userID, attrib_TotalPacksOpened, 0 );
+                    var sessionPacks = await getUserAttribValue( client, userID, attrib_SessionPacksOpened, 0 );
+                    await setUserAttribValue( userID, userUsername, attrib_TotalPacksOpened, parseInt(totalPacks) + parseInt(sessionPacks));
                 }
-                if(sessionPacks == NaN)
-                {
-                    console.log(userUsername + " HAD NAAAAAAAAAAAAAAAAN session packs, session was " + time + " time and " + packs + " packs")  
-                }
-                ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                totalPacks = totalPacks == NaN ? 0 : totalPacks;
-                sessionPacks = sessionPacks == NaN ? 0 : sessionPacks;
-                await setUserAttribValue( userID, userUsername, attrib_TotalPacksOpened, parseInt(totalPacks) + parseInt(sessionPacks));
+                await setUserAttribValue( userID, userUsername, attrib_SessionPacksOpened, packs);
+                await setUserAttribValue( userID, userUsername, attrib_LastHeartbeatTime, new Date().toString());
             }
-            await setUserAttribValue( userID, userUsername, attrib_SessionPacksOpened, packs);
+        }
+        else{ // If ID have underscore
 
-            await setUserAttribValue( userID, userUsername, attrib_LastHeartbeatTime, new Date().toString());
+            const subSystemName = firstLineSplit[1];
+
+            if(await doesUserProfileExists(userID, userUsername)){
+            
+                const instances = countDigits(heartbeatDatas[1]);
+                const timeAndPacks = extractNumbers(heartbeatDatas[3]);
+                const time = timeAndPacks[0];
+                var packs = timeAndPacks[1];
+
+                await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_HBInstances, instances);
+                await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_SessionTime, time);
+
+                if( time == "0" ){
+                    var totalPacks = await getUserAttribValue( client, userID, attrib_TotalPacksOpened, 0 );
+                    var sessionSubsystemPacks = await getUserSubsystemAttribValue( client, userID, subSystemName, attrib_SessionPacksOpened, 0 );
+                    await setUserAttribValue( userID, userUsername, attrib_TotalPacksOpened, parseInt(totalPacks) + parseInt(sessionSubsystemPacks));
+                }
+                await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_SessionPacksOpened, packs);
+                await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_LastHeartbeatTime, new Date().toString());
+
+            }
         }
     }
 });

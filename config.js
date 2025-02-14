@@ -3,6 +3,7 @@ const guildID = "XXXXXXXXXXXXXXXXXXX";
 const channelID_IDs = "XXXXXXXXXXXXXXXXXXX";
 const channelID_UserStats = "XXXXXXXXXXXXXXXXXXX";
 const channelID_GPVerificationForum = "XXXXXXXXXXXXXXXXXXX";
+const channelID_2StarVerificationForum = "";
 const channelID_Webhook = "XXXXXXXXXXXXXXXXXXX"; 
 const channelID_Heartbeat = "XXXXXXXXXXXXXXXXXXX"; 
 
@@ -26,6 +27,7 @@ export {
     channelID_IDs,
     channelID_UserStats,
     channelID_GPVerificationForum,
+    channelID_2StarVerificationForum,
     channelID_Webhook,
     channelID_Heartbeat,
     gitToken,

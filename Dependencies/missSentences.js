@@ -83,6 +83,7 @@ function text_highTension(client){
         `Ca fait beaucoup là, non... ?`,
         `TU ES TILTÉ BOUBOU ! TU AS BESOIN DE BOL ! ${emoji_KEKW}`,
         "It was at this moment that he knew... The gp was fucked up",
+        "C'est ciao.",
         `Rentrons il commence à pleuvoir...`]),
     getRandomStringFromArray([
         `EMOTIONAL DAMAGE`,

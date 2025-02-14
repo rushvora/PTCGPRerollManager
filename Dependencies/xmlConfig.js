@@ -9,6 +9,8 @@ const attrib_SessionPacksOpened = "SessionPacksOpened";
 const attrib_GodPackFound = "GodPackFound";
 const attrib_LastActiveTime = "LastActiveTime";
 const attrib_LastHeartbeatTime = "LastHeartbeatTime";
+const attrib_Subsystems = "Subsystems";
+const attrib_Subsystem = "Subsystem";
 
 export{ 
     attrib_PocketID, 
@@ -21,5 +23,7 @@ export{
     attrib_SessionPacksOpened, 
     attrib_GodPackFound, 
     attrib_LastActiveTime, 
-    attrib_LastHeartbeatTime 
+    attrib_LastHeartbeatTime,
+    attrib_Subsystems,
+    attrib_Subsystem,
 }

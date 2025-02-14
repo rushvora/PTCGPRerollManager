@@ -17,6 +17,8 @@ import {
     attrib_GodPackFound,
     attrib_LastActiveTime,
     attrib_LastHeartbeatTime,
+    attrib_Subsystems,
+    attrib_Subsystem,
 } from './xmlConfig.js';
 
 const __dirname = import.meta.dirname;
@@ -163,6 +165,11 @@ async function doesUserProfileExists( attribUserId, attribUserName ) {
     }
 }
 
+
+
+
+
+
 // Set the attrib value of an user
 async function setUserAttribValue( attribUserId, attribUserName, subAttribName, subAttribValue ) {
 
@@ -209,7 +216,7 @@ async function setUserAttribValue( attribUserId, attribUserName, subAttribName, 
 }
 
 // Get User attributes from ID and Name
-async function getUserAttribValue( client, attribUserId, subAttribName ) {
+async function getUserAttribValue( client, attribUserId, subAttribName, fallbackValue = undefined ) {
 
     const attribUsername = (await client.users.fetch(attribUserId)).username;
 
@@ -237,14 +244,134 @@ async function getUserAttribValue( client, attribUserId, subAttribName ) {
                 return value;
             } else {
                 console.log(`Attribute ${subAttribName} not found for the user ${attribUserId}`);
-                return undefined
+                return fallbackValue
             }
         }
     } catch (err) {
         console.log(`Try to get attribute ${subAttribName} but does not exist:`);
-        return undefined
+        return fallbackValue
     }
 }
+
+
+
+
+
+
+// Set the attrib value of an user
+async function setUserSubsystemAttribValue( attribUserId, attribUserName, subSystemName, subAttribName, subAttribValue ) {
+
+    try {
+        // ==== ASYNC LOCK READ ==== //
+        var result = "";
+        await lock.acquire('fileLock', async () => {
+            try {
+                result = await readFileAsync();
+            } catch (error) {
+                console.log('===== ERROR TRYING TO READ FILESYNC WITH LOCK =====');
+        }});
+        ////////////////////////////////
+
+        const user = result.root.user.find(user => cleanString(user._) === attribUserId);
+
+        if (user) {
+
+            // Create Systems + System if it doesn't exist
+            if (!user[attrib_Subsystems]) {
+                user[attrib_Subsystems] = [{ [attrib_Subsystem]: {
+                    _: subSystemName,
+                    [attrib_HBInstances]: 0,
+                    [attrib_SessionTime]: 0,
+                    [attrib_SessionPacksOpened]: 0,
+                    [attrib_LastHeartbeatTime]: "",
+                } }];
+            }
+
+            // Create System if it doesn't exist
+            var subSystem = user[attrib_Subsystems][0][attrib_Subsystem].find(sub => cleanString(sub._) === subSystemName);
+            if (!subSystem) {
+                user[attrib_Subsystems][0][attrib_Subsystem].push({
+                    _: subSystemName,
+                    [attrib_HBInstances]: 0,
+                    [attrib_SessionTime]: 0,
+                    [attrib_SessionPacksOpened]: 0,
+                    [attrib_LastHeartbeatTime]: "",
+                });
+                subSystem = user[attrib_Subsystems][0][attrib_Subsystem].find(sub => cleanString(sub._) === subSystemName);
+            }
+            
+            subSystem[subAttribName] = subAttribValue;
+
+            console.log(`Set ${subAttribName} to ${subAttribValue} for User ${attribUserName} on Subsystem ${subSystemName}`);
+        } else {
+            console.log(`User ${attribUserName} not found.`);
+        }
+
+        const builder = new xml2js.Builder();
+        let xmlOutput = builder.buildObject(result);
+        xmlOutput = cleanString(xmlOutput)
+
+        // ==== ASYNC LOCK WRITE ==== //
+        await lock.acquire('fileLock', async () => {
+            try {
+                await fs.promises.writeFile(pathUsersData, xmlOutput, 'utf8');
+            } catch (error) {
+                console.log('===== ERROR TRYING TO WRITE FILESYNC WITH LOCK =====');
+        }});
+        ////////////////////////////////
+
+    } catch (err) {
+        console.error('Error modifying the XML file:', err);
+    }
+}
+
+// Get User attributes from ID and Name
+async function getUserSubsystemAttribValue( client, attribUserId, subSystemName, subAttribName, fallbackValue = undefined ) {
+
+    const attribUsername = (await client.users.fetch(attribUserId)).username;
+
+    try {
+        // ==== ASYNC LOCK READ ==== //
+        var result = "";
+        await lock.acquire('fileLock', async () => {
+            try {
+                result = await readFileAsync();
+            } catch (error) {
+                console.log('===== ERROR TRYING TO READ FILESYNC WITH LOCK =====');
+        }});
+        ////////////////////////////////
+
+        if (result.root && result.root.user && result.root.user.length > 0){
+            const user = result.root.user.find(user => cleanString(user._) === attribUserId);
+
+            if (user[attrib_Subsystems]) {
+
+                const subSystem = user[attrib_Subsystems][0][attrib_Subsystem].find(sub => cleanString(sub._) === subSystemName);
+
+                if(!subSystem){
+                    console.log(`Attribute ${subAttribName} not found for subsystem ${subSystemName} of user ${attribUserId}`);
+                    return fallbackValue
+                }
+
+                const value = subSystem[subAttribName][0];
+                console.log(`Attribute ${subAttribName} found : ${value} for user ${attribUserId}`);
+                return value;
+
+            } else {
+                console.log(`Attribute ${subAttribName} not found for subsystem ${subSystemName} of user ${attribUserId}`);
+                return fallbackValue
+            }
+        }
+    } catch (err) {
+        console.log(`Try to get attribute ${subAttribName} but does not exist:`);
+        return fallbackValue
+    }
+}
+
+
+
+
+
 
 async function getActiveUsers() {
 
@@ -260,6 +387,25 @@ async function getActiveUsers() {
 
     if (result.root && result.root.user && result.root.user.length > 0){
         var ActiveUsers = result.root.user.filter(u => u.Active && u.Active[0] === 'true');
+    }
+    
+    return ActiveUsers;
+}
+
+async function getAllUsers() {
+
+    // ==== ASYNC LOCK READ ==== //
+    var result = "";
+    await lock.acquire('fileLock', async () => {
+        try {
+            result = await readFileAsync();
+        } catch (error) {
+            console.log('===== ERROR TRYING TO READ FILESYNC WITH LOCK =====');
+    }});
+    ////////////////////////////////
+
+    if (result.root && result.root.user && result.root.user.length > 0){
+        var ActiveUsers = result.root.user;
     }
     
     return ActiveUsers;
@@ -302,4 +448,45 @@ function getAttribValueFromUser( user, attrib, fallbackValue = undefined ){
     }
 }
 
-export { doesUserProfileExists, setUserAttribValue, getUserAttribValue, getActiveUsers, getUsernameFromUsers, getUsernameFromUser, getIDFromUsers, getIDFromUser, getAttribValueFromUsers, getAttribValueFromUser, cleanString }
+function getAttribValueFromUserSubsystems( user, attrib, fallbackValue = undefined ){
+    try{
+
+        if(user[attrib_Subsystems] && user[attrib_Subsystems][0][attrib_Subsystem])
+        {
+            var arrayValue = [];
+
+            user[attrib_Subsystems][0][attrib_Subsystem].forEach(subsystem => {
+
+                if (subsystem[attrib][0]) {
+                    arrayValue.push(subsystem[attrib]);
+                }
+            });
+
+            return arrayValue;
+        }
+        else{
+            return fallbackValue;
+        }
+    } catch (err) {
+        console.log('===== ERROR GATHERING SUBSYSTEMS =====');
+        return fallbackValue;
+    }
+}
+
+export { 
+    doesUserProfileExists, 
+    setUserAttribValue, 
+    getUserAttribValue, 
+    setUserSubsystemAttribValue,
+    getUserSubsystemAttribValue,
+    getActiveUsers,
+    getAllUsers,
+    getUsernameFromUsers, 
+    getUsernameFromUser, 
+    getIDFromUsers, 
+    getIDFromUser, 
+    getAttribValueFromUsers, 
+    getAttribValueFromUser, 
+    getAttribValueFromUserSubsystems,
+    cleanString,
+}
