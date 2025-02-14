@@ -87,10 +87,7 @@ Be sure to enable all Privileged Gateway Intents in the app settings
 - Open VisualStudioCode > Terminal and run :
 ```
 npm init -y
-npm install discord.js
-npm install octokit
-npm install xml2js
-npm install async-lock
+npm install discord.js octokit xml2js async-lock
 npm update
 ```
 - You're almost good to go, to make it start, run
