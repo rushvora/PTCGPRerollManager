@@ -278,13 +278,7 @@ async function setUserSubsystemAttribValue( attribUserId, attribUserName, subSys
 
             // Create Systems + System if it doesn't exist
             if (!user[attrib_Subsystems]) {
-                user[attrib_Subsystems] = [{ [attrib_Subsystem]: {
-                    _: subSystemName,
-                    [attrib_HBInstances]: 0,
-                    [attrib_SessionTime]: 0,
-                    [attrib_SessionPacksOpened]: 0,
-                    [attrib_LastHeartbeatTime]: "",
-                } }];
+                user[attrib_Subsystems] = [{ [attrib_Subsystem]: [] }];
             }
 
             // Create System if it doesn't exist
@@ -295,7 +289,7 @@ async function setUserSubsystemAttribValue( attribUserId, attribUserName, subSys
                     [attrib_HBInstances]: 0,
                     [attrib_SessionTime]: 0,
                     [attrib_SessionPacksOpened]: 0,
-                    [attrib_LastHeartbeatTime]: "",
+                    [attrib_LastHeartbeatTime]: new Date(),
                 });
                 subSystem = user[attrib_Subsystems][0][attrib_Subsystem].find(sub => cleanString(sub._) === subSystemName);
             }

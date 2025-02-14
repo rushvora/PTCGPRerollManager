@@ -200,6 +200,8 @@ async function getUsersStats( users, members ){
         // PlayerState 0=missing - 1=waiting - 2=valid
         var activeState = 0; 
 
+        var barOffset = 50;
+
         if(diffActiveTime < 31) { // If player active less than 31mn ago (might still not have received HB)
             if(diffHBTime < 31){ // If last HB less than 31mn
                 userOutput += colorText(visibleUsername, "green");
@@ -216,11 +218,12 @@ async function getUsersStats( users, members ){
                 activeState = 2;
             }
             else{
-                userOutput += colorText(visibleUsername, "red") + " - inactive";
+                userOutput += colorText(visibleUsername, "red") + ` - inactive for ${colorText(Math.round(diffHBTime),"red")}mn`;
+                barOffset += 11; // 11 more because coloring the text adds 11 hidden characters
             }
         }
 
-        userOutput = addTextBar(userOutput, 50);
+        userOutput = addTextBar(userOutput, barOffset);
 
         // Instances
         var instances = "0";
