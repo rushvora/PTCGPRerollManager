@@ -54,7 +54,7 @@ function splitMulti(str, tokens){
 }
 
 async function sendReceivedMessage(interaction, content) {
-    await interaction.followUp({ content: content });
+    await interaction.editReply({ content: content });
 }
 
 

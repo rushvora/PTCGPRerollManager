@@ -411,7 +411,7 @@ async function markAsDead( interaction, optionalText = "" ){
 
     await sendReceivedMessage(interaction, optionalText + text_deadLogo + ` ` + text_markAsDead);
     
-    forumPost.setArchived(true);
+    // forumPost.setArchived(true);
 }
 
 // Events
@@ -986,8 +986,8 @@ client.on("messageCreate", async (message) => {
         const firstLineSplit = firstLine.split("_");
         const userID = firstLineSplit[0];
 
-        // I heard Discord ID could be 17 digits long, not only 18, so just in case
-        if(userID.length < 17 || userID.length > 18 || !isNumbers(userID)){
+        // I At this time it seems that discordID are 17 to 19 length but it costs nothing to keep a little margin
+        if(userID.length < 17 || userID.length > 20 || !isNumbers(userID)){
             return await message.reply(`${text_WrongHB} **( ${userID} )**\n${text_CorrectInput}`);
         }
 
@@ -997,7 +997,7 @@ client.on("messageCreate", async (message) => {
 
             if(await doesUserProfileExists(userID, userUsername)){
     
-                const instances = countDigits(heartbeatDatas[1]);
+                const instances = extractNumbers(heartbeatDatas[1]).length;
                 const timeAndPacks = extractNumbers(heartbeatDatas[3]);
                 const time = timeAndPacks[0];
                 var packs = timeAndPacks[1];
