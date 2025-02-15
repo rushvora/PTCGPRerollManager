@@ -102,7 +102,7 @@ And press Ctrl+C to stop it.
 
 You can upload it on a server easily, I personnaly use discloud and it should work great once set up
 
-Now place the repo in your project folder and edit config.json
+Now place the repo in your project folder if you haven't alrdy done it and edit config.json
 
 - *token* is you Discord App token
 - *guildID* is your Server ID
