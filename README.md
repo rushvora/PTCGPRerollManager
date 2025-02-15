@@ -84,6 +84,8 @@ There is also another command named **/lastactivity** which shows of list of all
 
 Be sure to enable all Privileged Gateway Intents in the app settings
 
+At this time you can either import the repo in a folder and run npm commands from here for updating it easier or create your bot and drop  the repo afterward. Be sure to reimport package.json if npm replaced it for you or it won't find the script where to begin with and will treat it as a commonJS file and not ES6 module js.
+
 - Install Node.js 
 - Ensure that your Windows Execution Policy is set to RemoteSigned or Unsigned
 - Open VisualStudioCode > Terminal and run :
@@ -107,12 +109,12 @@ Now place the repo in your project folder and edit config.json
 - For all *channelID_NameOfTheChannel* variable, you can link them wherever you want
 
 Only for those ones you need to set them in different channels both linked with Arturo's webhooks
-- *channelID_Webhook* is the channel ID were your group have their webhook linked to
+- *channelID_Webhook* is the channel ID were your group have their gp webhook linked to
 - *channelID_Heartbeat* is the channel ID were your group have their hearbeat webhook linked to
 
 After that [create a new fine-grained token](https://github.com/settings/tokens) for your GitHub account, and make sure to only check to read/write your Gists
 
-Then, [create a GitGist](https://gist.github.com/) and get it's ID (the numbers in the URL). Now you're ready to fill out the last two variables in config.js and **modify the GitGistName variable in index.mjs** with you git file name
+Then, [create a GitGist](https://gist.github.com/) and get it's ID (the numbers in the URL). Now you're ready to fill out the last two variables in config.js and **modify the GitGistName variable in index.mjs** with your gist file name
 
 In Arturo's bot the url should be placed in Friend ID and look like this : "https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw"
 <br /> 
