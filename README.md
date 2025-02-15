@@ -27,7 +27,7 @@ With **/SetAverageInstances**, players can also specify how many instances they 
 
 You can ask your group to use heartbeat so everyone will know who's rerolling and who's not based on the webhook
 
-It will auto update in a specific channel every 16 minutes (default value) and shows a lot of informations such as :
+It will auto update in a specific channel every 10 minutes and shows a lot of informations such as :
 - Amount of Packs per minute for the session
 - Total Amount of Packs
 - Total Amount of Godpacks
