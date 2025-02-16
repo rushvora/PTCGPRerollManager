@@ -41,6 +41,7 @@ Color means something for the username :
 You can also use **/addgpfound** and **/removegpfound** to fix false positive godpacks from arturo's bot
 <br /> 
 <br /> 
+<br /> 
 
 ## Better GP management :
 
@@ -70,14 +71,13 @@ It helps tracking usernamers easily and brings joy to ppl in your group clearing
 
 ## Others features :
 
-The bot sentences can be switched from English to French only by changing a variable from ```true``` to ```false``` in config.json
+- The bot sentences can be switched from **English to French** only by changing a variable from ```true``` to ```false``` in config.json
 
-You'll have plenty of stuff to tweak in config.json include an **AutoKick inactive rerollers** which automatically exclude peoples that did /add more than 30mn ago and are not sending any heartbeat (disabled by default)
+- You'll have plenty of stuff to tweak in config.json include an **AutoKick inactive rerollers** which automatically exclude peoples that did /add more than 30mn ago and are not sending any heartbeat (disabled by default)
 
-There is also another command named **/lastactivity** which shows of list of all users in the database and how old was the last HeartBeat and another one named **/misscount** to show how often people contribute to check packs validity, showing their /miss per hour rerolling.
+- There is also another command named **/lastactivity** which shows of list of all users in the database and how old was the last HeartBeat and another one named **/misscount** to show how often people contribute to check packs validity, showing their /miss per hour rerolling.
 
-If you wish to easily set up the bot for your server, i created a **Discord server template** based on our main server where we run the bot, here it is : https://discord.new/zXx8avYs85wk
-<br /> 
+- If you wish to easily set up the bot for your server, i created a **Discord server template** based on our main server where we run the bot, here it is : https://discord.new/zXx8avYs85wk
 <br /> 
 
 # Install
@@ -144,6 +144,7 @@ Heartbeat also supports users farming with multiples PCs, to know how to setup i
 - Look for a way to let the possibility to create dynamically updating multiple subgroups to better optimize the number of packs per minute
 
 - Any idea of yours ? feel free to [join the discord](https://discord.gg/pn6XSn42m6) and create a new forum post in "Bot-Suggestions" 
+<br />
 
 # Commands Spreadsheet :
 
