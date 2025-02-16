@@ -491,6 +491,8 @@ function getAttribValueFromUserSubsystems( user, attrib, fallbackValue = undefin
 async function refreshUserActiveState( user, fallbackValue = ["waiting",0] ){
 
     try{
+        const currentTime = Date.now();
+
         // First get subsystems smaller time diff from now
         var smallerDiffHBTimeSubsystems = 10000;
         const lastHBTimeSubsystems = getAttribValueFromUserSubsystems(user, attrib_LastHeartbeatTime, -1);
@@ -502,10 +504,8 @@ async function refreshUserActiveState( user, fallbackValue = ["waiting",0] ){
                 smallerDiffHBTimeSubsystems = Math.min(smallerDiffHBTimeSubsystems, diffHBSubsystem);
             }
         }
-
         
         // Then get main machine time diff from now
-        const currentTime = Date.now();
         const lastActiveTime = new Date(getAttribValueFromUser(user, attrib_LastActiveTime));
         const lastHBTime = new Date(getAttribValueFromUser(user, attrib_LastHeartbeatTime));
         const diffActiveTime = (currentTime - lastActiveTime) / 60000;

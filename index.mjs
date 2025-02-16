@@ -189,17 +189,19 @@ async function getUsersStats( users, members ){
         const sessionPacksSubsystems = getAttribValueFromUserSubsystems(user, attrib_SessionPacksOpened, 0);
         const lastHBTimeSubsystems = getAttribValueFromUserSubsystems(user, attrib_LastHeartbeatTime, 0);
 
-        var totalSessionPacksSubsystems = 0;
+        var session_PacksSubsystems = 0;
+        var total_PacksSubsystems = 0;
         var biggerSessionTimeSubsystems = 0;
 
         for (let i = 0; i < lastHBTimeSubsystems.length; i++){
 
             const diffHBSubsystem = (currentTime - new Date(lastHBTimeSubsystems[i])) / 60000;
-
+            
             if(diffHBSubsystem < parseFloat(inactiveTime)){ // If last HB less than Xmn then count instances and session time
                 biggerSessionTimeSubsystems = Math.max(biggerSessionTimeSubsystems, sessionTimeSubsystems[i]);
+                session_PacksSubsystems += parseFloat(sessionPacksSubsystems[i]);
             }
-            totalSessionPacksSubsystems += parseFloat(sessionPacksSubsystems[i]);
+            total_PacksSubsystems += parseFloat(sessionPacksSubsystems[i]);
         }
 
         // Activity check
@@ -239,7 +241,7 @@ async function getUsersStats( users, members ){
 
         var sessionTime = getAttribValueFromUser(user, attrib_SessionTime)
         sessionTime = roundToOneDecimal( parseFloat( Math.max(sessionTime,biggerSessionTimeSubsystems) ) );
-        var sessionPackF = parseFloat(getAttribValueFromUser(user, attrib_SessionPacksOpened)) + totalSessionPacksSubsystems;
+        var sessionPackF = parseFloat(getAttribValueFromUser(user, attrib_SessionPacksOpened)) + session_PacksSubsystems;
         // Add Subsystems packs
         // sessionPackF += parseFloat(totalSessionPacksSubsystems);
 
@@ -254,7 +256,7 @@ async function getUsersStats( users, members ){
 
         // Pack stats
         const totalPack = parseInt(getAttribValueFromUser(user, attrib_TotalPacksOpened));
-        var sessionPackI = parseInt(getAttribValueFromUser(user, attrib_SessionPacksOpened)) + totalSessionPacksSubsystems;
+        var sessionPackI = parseInt(getAttribValueFromUser(user, attrib_SessionPacksOpened)) + total_PacksSubsystems;
         // Add Subsystems
         // sessionPackI += parseInt(totalSessionPacksSubsystems);
         const totalGodPack = parseInt(getAttribValueFromUser(user, attrib_GodPackFound));
