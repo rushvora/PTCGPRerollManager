@@ -137,18 +137,18 @@ async function updateGist(){
 
     console.log("================ Update GistGit ================")
 
-    // await octokit.request(`PATCH /gists/${gitGistID}`,{
-    //     gist_id: 'gitGistID',
-    //     description: '',
-    //     files:{
-    //         [gitGistName]:{
-    //             content: gitContent
-    //         }
-    //     },
-    //     headers: {
-    //         'X-GitHub-Api-Version': '2022-11-28'
-    //     }
-    // })
+    await octokit.request(`PATCH /gists/${gitGistID}`,{
+        gist_id: 'gitGistID',
+        description: '',
+        files:{
+            [gitGistName]:{
+                content: gitContent
+            }
+        },
+        headers: {
+            'X-GitHub-Api-Version': '2022-11-28'
+        }
+    })
 }
 
 // Functions
