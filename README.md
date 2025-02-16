@@ -68,13 +68,15 @@ It helps tracking usernamers easily and brings joy to ppl in your group clearing
 <br /> 
 <br /> 
 
-## Others :
-
-If you wish to easily set up the bot for your server, i created a **Discord server template** based on our main server where we run the bot, here it is : https://discord.new/zXx8avYs85wk
+## Others features :
 
 The bot sentences can be switched from English to French only by changing a variable from ```true``` to ```false``` in config.json
 
-There is also another command named **/lastactivity** which shows of list of all users in the database and how old was the last HeartBeat
+You'll have plenty of stuff to tweak in config.json include an **AutoKick inactive rerollers** which automatically exclude peoples that did /add more than 30mn ago and are not sending any heartbeat (disabled by default)
+
+There is also another command named **/lastactivity** which shows of list of all users in the database and how old was the last HeartBeat and another one named **/misscount** to show how often people contribute to check packs validity, showing their /miss per hour rerolling.
+
+If you wish to easily set up the bot for your server, i created a **Discord server template** based on our main server where we run the bot, here it is : https://discord.new/zXx8avYs85wk
 <br /> 
 <br /> 
 
@@ -142,4 +144,19 @@ Heartbeat also supports users farming with multiples PCs, to know how to setup i
 - Look for a way to let the possibility to create dynamically updating multiple subgroups to better optimize the number of packs per minute
 
 - Any idea of yours ? feel free to [join the discord](https://discord.gg/pn6XSn42m6) and create a new forum post in "Bot-Suggestions" 
+
+# Commands Spreadsheet :
+
+- /SetPlayerID - Use for automatic IDs
+- /SetAverageInstances - Use if Heartbeats instances not received yet
+- /Add /Remove - Change availability
+- /Refresh - Refresh the IDs & upload (usefull when changing PlayerID)
+- /ForceRefresh - Refresh the UserStats instantly
+- /Verified /Dead - Change GP state
+- /Miss - Increase GP miss counter
+- /MissCount - List of peoples miss per hour 
+- /LastActivity - List of how old the last Heartbeat was
+- /GenerateUsernames - To generate cool account names
+- /AddGPFound /RemoveGPFound - To correct false positives GP
+
 
