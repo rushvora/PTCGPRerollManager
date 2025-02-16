@@ -17,9 +17,16 @@ import {
     attrib_GodPackFound,
     attrib_LastActiveTime,
     attrib_LastHeartbeatTime,
+    attrib_TotalTime,
+    attrib_TotalMiss,
+    attrib_ActiveState,
     attrib_Subsystems,
     attrib_Subsystem,
 } from './xmlConfig.js';
+
+import {
+    inactiveTime,
+} from '.././config.js';
 
 const __dirname = import.meta.dirname;
 const pathUsersData = __dirname+'/../users/UsersData.xml';
@@ -46,7 +53,7 @@ async function readFileAsync() {
             });
         });
     } catch (err) {
-        console.error('Error reading the XML file:', err);
+        console.error('❌ Error reading the XML file:', err);
     }
 }
 
@@ -64,7 +71,7 @@ async function checkFileExistsOrCreate( content='' ) {
             try {
                 await fs.promises.writeFile(pathUsersData, content);
             } catch (error) {
-                console.log('===== ERROR TRYING TO WRITE FILESYNC WITH LOCK =====');
+                console.log('❌ ERROR trying to write filesync with lock');
         }});
         ////////////////////////////////
     }
@@ -80,7 +87,7 @@ async function createUserProfile( attribUserId, attribUserName ) {
             try {
                 result = await readFileAsync();
             } catch (error) {
-                console.log('===== ERROR TRYING TO READ FILESYNC WITH LOCK =====');
+                console.log('❌ ERROR trying to read filesync with lock');
         }});
         ////////////////////////////////
 
@@ -120,12 +127,12 @@ async function createUserProfile( attribUserId, attribUserName ) {
             try {
                 await fs.promises.writeFile(pathUsersData, xmlOutput, 'utf8');
             } catch (error) {
-                console.log('===== ERROR TRYING TO WRITE FILESYNC WITH LOCK =====');
+                console.log('❌ ERROR trying to write filesync with lock');
         }});
         ////////////////////////////////
 
     } catch (err) {
-        console.error('Error modifying the XML file:', err);
+        console.error('❌ ERROR modifying the XML file:', err);
     }
 }
 
@@ -147,7 +154,7 @@ async function doesUserProfileExists( attribUserId, attribUserName ) {
         try {
             result = await readFileAsync();
         } catch (error) {
-            console.log('===== ERROR TRYING TO READ FILESYNC WITH LOCK =====');
+            console.log('❌ ERROR trying to read filesync with lock');
     }});
     ////////////////////////////////
 
@@ -184,7 +191,7 @@ async function setUserAttribValue( attribUserId, attribUserName, subAttribName, 
             try {
                 result = await readFileAsync();
             } catch (error) {
-                console.log('===== ERROR TRYING TO READ FILESYNC WITH LOCK =====');
+                console.log('❌ ERROR trying to read filesync with lock');
         }});
         ////////////////////////////////
 
@@ -206,12 +213,12 @@ async function setUserAttribValue( attribUserId, attribUserName, subAttribName, 
             try {
                 await fs.promises.writeFile(pathUsersData, xmlOutput, 'utf8');
             } catch (error) {
-                console.log('===== ERROR TRYING TO WRITE FILESYNC WITH LOCK =====');
+                console.log('❌ ERROR trying to write filesync with lock');
         }});
         ////////////////////////////////
 
     } catch (err) {
-        console.error('Error modifying the XML file:', err);
+        console.error('❌ ERROR modifying the XML file:', err);
     }
 }
 
@@ -231,7 +238,7 @@ async function getUserAttribValue( client, attribUserId, subAttribName, fallback
             try {
                 result = await readFileAsync();
             } catch (error) {
-                console.log('===== ERROR TRYING TO READ FILESYNC WITH LOCK =====');
+                console.log('❌ ERROR trying to read filesync with lock');
         }});
         ////////////////////////////////
 
@@ -240,10 +247,10 @@ async function getUserAttribValue( client, attribUserId, subAttribName, fallback
 
             if (user && user[subAttribName][0]) {
                 const value = user[subAttribName][0];
-                console.log(`Attribute ${subAttribName} found : ${value} for user ${attribUserId}`);
+                // console.log(`Attribute ${subAttribName} found : ${value} for user ${attribUsername}`);
                 return value;
             } else {
-                console.log(`Attribute ${subAttribName} not found for the user ${attribUserId}`);
+                // console.log(`Attribute ${subAttribName} not found for the user ${attribUsername}`);
                 return fallbackValue
             }
         }
@@ -268,7 +275,7 @@ async function setUserSubsystemAttribValue( attribUserId, attribUserName, subSys
             try {
                 result = await readFileAsync();
             } catch (error) {
-                console.log('===== ERROR TRYING TO READ FILESYNC WITH LOCK =====');
+                console.log('❌ ERROR trying to read filesync with lock');
         }});
         ////////////////////////////////
 
@@ -310,12 +317,12 @@ async function setUserSubsystemAttribValue( attribUserId, attribUserName, subSys
             try {
                 await fs.promises.writeFile(pathUsersData, xmlOutput, 'utf8');
             } catch (error) {
-                console.log('===== ERROR TRYING TO WRITE FILESYNC WITH LOCK =====');
+                console.log('❌ ERROR trying to write filesync with lock');
         }});
         ////////////////////////////////
 
     } catch (err) {
-        console.error('Error modifying the XML file:', err);
+        console.error('❌ ERROR modifying the XML file:', err);
     }
 }
 
@@ -331,7 +338,7 @@ async function getUserSubsystemAttribValue( client, attribUserId, subSystemName,
             try {
                 result = await readFileAsync();
             } catch (error) {
-                console.log('===== ERROR TRYING TO READ FILESYNC WITH LOCK =====');
+                console.log('❌ ERROR trying to read filesync with lock');
         }});
         ////////////////////////////////
 
@@ -367,23 +374,38 @@ async function getUserSubsystemAttribValue( client, attribUserId, subSystemName,
 
 
 
-async function getActiveUsers() {
+async function getActiveUsers( fallbackValue = "" ) {
 
-    // ==== ASYNC LOCK READ ==== //
-    var result = "";
-    await lock.acquire('fileLock', async () => {
-        try {
-            result = await readFileAsync();
-        } catch (error) {
-            console.log('===== ERROR TRYING TO READ FILESYNC WITH LOCK =====');
-    }});
-    ////////////////////////////////
+    try{
+        // ==== ASYNC LOCK READ ==== //
+        var result = "";
+        await lock.acquire('fileLock', async () => {
+            try {
+                result = await readFileAsync();
+            } catch (error) {
+                console.log('❌ ERROR trying to read filesync with lock');
+        }});
+        ////////////////////////////////
 
-    if (result.root && result.root.user && result.root.user.length > 0){
-        var ActiveUsers = result.root.user.filter(u => u.Active && u.Active[0] === 'true');
+        if (result.root && result.root.user && result.root.user.length > 0){
+            var ActiveUsers = result.root.user.filter(u => u.Active && u.Active[0] === 'true');
+        }
+        
+        return ActiveUsers;
     }
+    catch {
+        console.log('❌ ERROR trying to read users database, please add users');
+        return fallbackValue;
+        
+    }
+}
+
+async function getActiveIDs( joined = true ){
+    const activeUsers = await getActiveUsers();
+    const gitContent = getAttribValueFromUsers(activeUsers, attrib_PocketID, "");
     
-    return ActiveUsers;
+    if(joined) {return gitContent.join('\n');}
+    return gitContent;
 }
 
 async function getAllUsers() {
@@ -394,7 +416,7 @@ async function getAllUsers() {
         try {
             result = await readFileAsync();
         } catch (error) {
-            console.log('===== ERROR TRYING TO READ FILESYNC WITH LOCK =====');
+            console.log('❌ ERROR trying to read filesync with lock');
     }});
     ////////////////////////////////
 
@@ -444,8 +466,7 @@ function getAttribValueFromUser( user, attrib, fallbackValue = undefined ){
 
 function getAttribValueFromUserSubsystems( user, attrib, fallbackValue = undefined ){
     try{
-
-        if(user[attrib_Subsystems] && user[attrib_Subsystems][0][attrib_Subsystem])
+        if(user[attrib_Subsystems])
         {
             var arrayValue = [];
 
@@ -462,9 +483,102 @@ function getAttribValueFromUserSubsystems( user, attrib, fallbackValue = undefin
             return fallbackValue;
         }
     } catch (err) {
-        console.log('===== ERROR GATHERING SUBSYSTEMS =====');
+        console.log(`❌ ERROR gathering subsystems with attrib ${attrib}`);
         return fallbackValue;
     }
+}
+
+async function refreshUserActiveState( user, fallbackValue = ["waiting",0] ){
+
+    try{
+        // First get subsystems smaller time diff from now
+        var smallerDiffHBTimeSubsystems = 10000;
+        const lastHBTimeSubsystems = getAttribValueFromUserSubsystems(user, attrib_LastHeartbeatTime, -1);
+        
+        if(lastHBTimeSubsystems != -1){
+            for (let i = 0; i < lastHBTimeSubsystems.length; i++){
+    
+                const diffHBSubsystem = (currentTime - new Date(lastHBTimeSubsystems[i])) / 60000;
+                smallerDiffHBTimeSubsystems = Math.min(smallerDiffHBTimeSubsystems, diffHBSubsystem);
+            }
+        }
+
+        
+        // Then get main machine time diff from now
+        const currentTime = Date.now();
+        const lastActiveTime = new Date(getAttribValueFromUser(user, attrib_LastActiveTime));
+        const lastHBTime = new Date(getAttribValueFromUser(user, attrib_LastHeartbeatTime));
+        const diffActiveTime = (currentTime - lastActiveTime) / 60000;
+        
+        var diffHBTime = (currentTime - lastHBTime) / 60000;
+        // Keep the lower result
+        diffHBTime = Math.min(diffHBTime, smallerDiffHBTimeSubsystems);
+        
+        var activeState = ""; 
+    
+        if(diffActiveTime < parseFloat(inactiveTime)) { // If player active less than Xmn ago (might still not have received HB)
+            if(diffHBTime < parseFloat(inactiveTime)){ // If last HB less than Xmn
+                activeState = "active";
+            }
+            else{
+                activeState = "waiting";
+            }
+        }
+        else{ // If player active more than Xmn ago (HB have should havebeen received)
+            if(diffHBTime < parseFloat(inactiveTime)){ // If last HB less than Xmn
+                activeState = "active";
+            }
+            else{
+                activeState = "inactive"
+            }
+        }
+        //Set activity type
+        await setUserAttribValue( getIDFromUser(user), getUsernameFromUser(user), attrib_ActiveState, activeState );
+    
+        return [activeState, diffHBTime];
+    }
+    catch{
+        console.log(`❌ ERROR Refreshing user ${getUsernameFromUser(user)} ActiveState`)
+        return fallbackValue
+    }
+}
+
+async function refreshUserRealInstances( user, activeState, fallbackValue = 1 ){
+
+    try{
+        const currentTime = Date.now();
+        const instancesSubsystems = getAttribValueFromUserSubsystems(user, attrib_HBInstances, 0);
+        const lastHBTimeSubsystems = getAttribValueFromUserSubsystems(user, attrib_LastHeartbeatTime, 0);
+        var totalInstancesSubsystems = 0;
+
+        if(lastHBTimeSubsystems.length > 0) {
+            for (let i = 0; i < lastHBTimeSubsystems.length; i++){
+
+                const diffHBSubsystem = (currentTime - new Date(lastHBTimeSubsystems[i])) / 60000;
+
+                if(diffHBSubsystem < parseFloat(inactiveTime)){ // If last HB less than Xmn then count instances and session time
+                    totalInstancesSubsystems += parseInt(instancesSubsystems[i]);
+                }
+            }
+        }
+
+        var instances = "0";
+        if(activeState == "active"){
+            instances = parseInt(getAttribValueFromUser(user, attrib_HBInstances, fallbackValue));
+            // Add Subsystems instances
+            instances += parseInt(totalInstancesSubsystems);
+        }
+        else if(activeState == "waiting"){
+            instances = parseInt(getAttribValueFromUser(user, attrib_AverageInstances, fallbackValue));
+        }
+        await setUserAttribValue( getIDFromUser(user), getUsernameFromUser(user), attrib_RealInstances, instances );
+        return instances
+    }
+    catch{
+        console.log(`❌ ERROR Refreshing user ${getUsernameFromUser(user)} RealInstances`)
+        return fallbackValue
+    }
+
 }
 
 export { 
@@ -474,6 +588,7 @@ export {
     setUserSubsystemAttribValue,
     getUserSubsystemAttribValue,
     getActiveUsers,
+    getActiveIDs,
     getAllUsers,
     getUsernameFromUsers, 
     getUsernameFromUser, 
@@ -482,5 +597,7 @@ export {
     getAttribValueFromUsers, 
     getAttribValueFromUser, 
     getAttribValueFromUserSubsystems,
+    refreshUserActiveState,
+    refreshUserRealInstances,
     cleanString,
 }
