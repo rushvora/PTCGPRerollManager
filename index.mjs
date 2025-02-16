@@ -378,7 +378,16 @@ async function createForumPost( guild, message, channelID, packName ) {
     
     var arrayGodpackMessage = splitMulti(message.content, ['<@','>','\n','(',')']);
     var ownerID = arrayGodpackMessage[1];
-    var ownerUsername = (await getMemberByID(guild, ownerID)).user.username;
+
+    const member = await getMemberByID(guild, userID);
+
+    // Skip if member do not exist
+    if (member == "") {
+        console.log(`Heartbeat from ID ${userID} is no registered on this server`)
+        return;
+    }
+    var ownerUsername = (member).user.username;
+
     var accountName = arrayGodpackMessage[3];
     var accountID = arrayGodpackMessage[4];
     var text_packAmount = arrayGodpackMessage[7];
@@ -866,10 +875,14 @@ client.on(Events.InteractionCreate, async interaction => {
             
             var user = allUsers[i];
             var userID = getIDFromUser(user);
+            
             const member = await getMemberByID(guild, userID);
 
-            // Skip iteration if member do not exist
-            if (member == ""){continue};
+            // Skip if member do not exist
+            if (member == "") {
+                console.log(`Heartbeat from ID ${userID} is no registered on this server`)
+                continue;
+            }
 
             var userDisplayName = (member).user.displayName;
             const totalMiss = getAttribValueFromUser(user, attrib_TotalMiss, 0);
@@ -900,7 +913,15 @@ client.on(Events.InteractionCreate, async interaction => {
         for( var i = 0; i < allUsers.length; i++ ) {
             
             var userID = getIDFromUser(allUsers[i]);
-            var userDisplayName = (await getMemberByID(guild, userID)).user.displayName;
+            const member = await getMemberByID(guild, userID);
+
+            // Skip if member do not exist
+            if (member == "") {
+                console.log(`Heartbeat from ID ${userID} is no registered on this server`)
+                continue;
+            }
+
+            var userDisplayName = (member).user.displayName;
 
             const lastHBTime = new Date(getAttribValueFromUser(allUsers[i], attrib_LastHeartbeatTime));
             var diffTime = (Date.now() - lastHBTime) / 60000 / 60;
@@ -1081,7 +1102,15 @@ client.on("messageCreate", async (message) => {
             return await message.reply(`${text_WrongHB} **( ${userID} )**\n${text_CorrectInput}`);
         }
 
-        var userUsername = (await getMemberByID(guild, userID)).user.username;
+        const member = await getMemberByID(guild, userID);
+
+        // Skip if member do not exist
+        if (member == "") {
+            console.log(`Heartbeat from ID ${userID} is no registered on this server`)
+            return;
+        }
+
+        var userUsername = (member).user.username;
         
         if(firstLineSplit.length <= 1 ) { // If ID do not have underscore
 
