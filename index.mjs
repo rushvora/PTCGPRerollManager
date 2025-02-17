@@ -234,7 +234,7 @@ async function getUsersStats( users, members ){
 
         // Instances
         
-        var instances = await refreshUserRealInstances(user);
+        var instances = await refreshUserRealInstances(user, activeState);
         userOutput += colorText(` ${instances} instances\n`, "gray");
 
         // Session stats       
