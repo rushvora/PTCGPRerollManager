@@ -139,6 +139,10 @@ Heartbeat also supports users farming with multiples PCs, to know how to setup i
 
 - Wait for a better 2 star filter from Arturo'bot to create forum post in another or the same forum channel as for gp when a 2 Star appears in webhook
 
+- Help to remove friends easily by exporting a list of all the GP account id you're eligible
+
+- Make a command to remove you from the eligibles in a gp in case you were active but verifying gp at this time ( :'( dw it happened to all of us )
+
 - Filter out all the potentiel banwords from the user generated list and remove then, at this time it only filters special characters
 
 - Look for a way to let the possibility to create dynamically updating multiple subgroups to better optimize the number of packs per minute
