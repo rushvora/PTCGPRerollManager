@@ -524,7 +524,7 @@ async function refreshUserActiveState( user, fallbackValue = ["waiting",0] ){
                 activeState = "waiting";
             }
         }
-        else{ // If player active more than Xmn ago (HB have should havebeen received)
+        else{ // If player active more than Xmn ago (HB have should have been received)
             if(diffHBTime < parseFloat(inactiveTime)){ // If last HB less than Xmn
                 activeState = "active";
             }
