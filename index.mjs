@@ -379,7 +379,7 @@ async function createForumPost( guild, message, channelID, packName ) {
     var arrayGodpackMessage = splitMulti(message.content, ['<@','>','\n','(',')']);
     var ownerID = arrayGodpackMessage[1];
 
-    const member = await getMemberByID(guild, userID);
+    const member = await getMemberByID(guild, ownerID);
 
     // Skip if member do not exist
     if (member == "") {
