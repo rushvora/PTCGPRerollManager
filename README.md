@@ -148,16 +148,16 @@ Heartbeat also supports users farming with multiples PCs, to know how to setup i
 
 # Commands Spreadsheet :
 
-- /SetPlayerID - Use for automatic IDs
-- /SetAverageInstances - Use if Heartbeats instances not received yet
-- /Add /Remove - Change availability
-- /Refresh - Refresh the IDs & upload (usefull when changing PlayerID)
-- /ForceRefresh - Refresh the UserStats instantly
-- /Verified /Dead - Change GP state
-- /Miss - Increase GP miss counter
-- /MissCount - List of peoples miss per hour 
-- /LastActivity - List of how old the last Heartbeat was
-- /GenerateUsernames - To generate cool account names
-- /AddGPFound /RemoveGPFound - To correct false positives GP
+- **/SetPlayerID** - _Use for automatic IDs_
+- **/SetAverageInstances** - _Use if Heartbeats instances not received yet_
+- **/Add /Remove** - _Change availability_
+- **/Refresh** - _Refresh the IDs & upload (usefull when changing PlayerID)_
+- **/ForceRefresh** - _Refresh the UserStats instantly_
+- **/Verified /Dead** - _Change GP state_
+- **/Miss** - _Increase GP miss counter_
+- **/MissCount** - _List of peoples miss per hour_
+- **/LastActivity** - _List of how old the last Heartbeat was_
+- **/GenerateUsernames** - _To generate cool account names_
+- **/AddGPFound /RemoveGPFound** - _To correct false positives GP_
 
 
