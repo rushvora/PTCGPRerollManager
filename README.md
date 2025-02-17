@@ -158,7 +158,7 @@ Heartbeat also supports users farming with multiples PCs, to know how to setup i
 - **/Refresh** - _Refresh the IDs & upload (usefull when changing PlayerID)_
 - **/ForceRefresh** - _Refresh the UserStats instantly_
 - **/Verified /Dead** - _Change GP state_
-- **/Miss** - _Increase GP miss counter_
+- **/Miss** - _Increase GP miss counter on a GP verification post_
 - **/MissCount** - _List of peoples miss per hour_
 - **/LastActivity** - _List of how old the last Heartbeat was_
 - **/GenerateUsernames** - _To generate cool account names_
