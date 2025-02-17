@@ -139,6 +139,10 @@ Heartbeat also supports users farming with multiples PCs, to know how to setup i
 
 - Wait for a better 2 star filter from Arturo'bot to create forum post in another or the same forum channel as for gp when a 2 Star appears in webhook
 
+- Help to remove friends easily by exporting a list of all the GP account id you're eligible
+
+- Make a command to remove you from the eligibles in a gp in case you were active but verifying gp at this time ( :'( dw it happened to all of us )
+
 - Filter out all the potentiel banwords from the user generated list and remove then, at this time it only filters special characters
 
 - Look for a way to let the possibility to create dynamically updating multiple subgroups to better optimize the number of packs per minute
@@ -148,16 +152,16 @@ Heartbeat also supports users farming with multiples PCs, to know how to setup i
 
 # Commands Spreadsheet :
 
-- /SetPlayerID - Use for automatic IDs
-- /SetAverageInstances - Use if Heartbeats instances not received yet
-- /Add /Remove - Change availability
-- /Refresh - Refresh the IDs & upload (usefull when changing PlayerID)
-- /ForceRefresh - Refresh the UserStats instantly
-- /Verified /Dead - Change GP state
-- /Miss - Increase GP miss counter
-- /MissCount - List of peoples miss per hour 
-- /LastActivity - List of how old the last Heartbeat was
-- /GenerateUsernames - To generate cool account names
-- /AddGPFound /RemoveGPFound - To correct false positives GP
+- **/SetPlayerID** - _Use for automatic IDs_
+- **/SetAverageInstances** - _Use if Heartbeats instances not received yet_
+- **/Add /Remove** - _Change availability_
+- **/Refresh** - _Refresh the IDs & upload (usefull when changing PlayerID)_
+- **/ForceRefresh** - _Refresh the UserStats instantly_
+- **/Verified /Dead** - _Change GP state_
+- **/Miss** - _Increase GP miss counter on a GP verification post_
+- **/MissCount** - _List of peoples miss per hour_
+- **/LastActivity** - _List of how old the last Heartbeat was_
+- **/GenerateUsernames** - _To generate cool account names_
+- **/AddGPFound /RemoveGPFound** - _To correct false positives GP_
 
 
