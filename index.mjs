@@ -902,9 +902,9 @@ client.on(Events.InteractionCreate, async interaction => {
             const totalMiss = getAttribValueFromUser(user, attrib_TotalMiss, 0);
             const totalTime = getAttribValueFromUser(user, attrib_TotalTime, 0);
             const totalTimeHour = parseFloat(totalTime)/60;
-            var missPerHour = roundToOneDecimal( (parseFloat(totalMiss) / totalTimeHour) * 24 );
+            var missPer24Hour = roundToOneDecimal( (parseFloat(totalMiss) / totalTimeHour) * 24 );
 
-            missPerHour = isNaN(missPer24Hour) || missPerHour == Infinity ? 0 : missPerHour;
+            missPer24Hour = isNaN(missPer24Hour) || missPer24Hour == Infinity ? 0 : missPer24Hour;
 
             activityOutput += addTextBar(`${userDisplayName} `, 20, false) + ` ${missPer24Hour} miss per 24h\n`
         };
