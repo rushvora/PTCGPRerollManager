@@ -364,7 +364,7 @@ async function inactivityCheck(myGuild){
         const userPackPerMin = await getAttribValueFromUser(user, attrib_PacksPerMin, 10);
         
         // Check if kickable and prevent him if he have been kicked
-        const text_haveBeenKicked = ""
+        var text_haveBeenKicked = ""
         if( userActiveState == "inactive" ){
             text_haveBeenKicked = localize(`a été kick des rerollers actifs pour inactivité depuis plus de ${inactiveTime}mn`,` have been kicked out of active rerollers for inactivity for more than ${inactiveTime}mn`);
         } 
