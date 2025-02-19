@@ -360,19 +360,23 @@ async function inactivityCheck(myGuild){
         const userActiveState = await refreshUserActiveState(user);
         // Check user instances count
         const userInstances = await refreshUserRealInstances(user, userActiveState[0]);
-        // Check user pack per min
+        // Check user pack per min & sessionTime
         const userPackPerMin = await getAttribValueFromUser(user, attrib_PacksPerMin, 10);
+        const sessionTime = await getAttribValueFromUser(user, attrib_SessionTime, 0);
         
         // Check if kickable and prevent him if he have been kicked
         var text_haveBeenKicked = ""
         if( userActiveState == "inactive" ){
             text_haveBeenKicked = localize(`a été kick des rerollers actifs pour inactivité depuis plus de ${inactiveTime}mn`,` have been kicked out of active rerollers for inactivity for more than ${inactiveTime}mn`);
+            console.log(`➖ Kicked ${getUsernameFromUser(user)} - inactivity for more than ${inactiveTime}mn`);
         } 
         else if ( userInstances <= parseInt(inactiveInstanceCount) ){
             text_haveBeenKicked = localize(`a été kick des rerollers actifs pour car il a ${userInstances} instances en cours`,` have been kicked out of active rerollers for inactivity because he had ${userInstances} instances running`);
+            console.log(`➖ Kicked ${getUsernameFromUser(user)} - ${userInstances} instances running`);
         }
-        else if ( userPackPerMin < inactivePackPerMinCount ){
-            text_haveBeenKicked = localize(`a été kick des rerollers actifs pour avoir fait ${userPackPerMin} packs/mn`,` have been kicked out of active rerollers for inactivity because make ${userPackPerMin} packs/mn`);
+        else if ( userPackPerMin < inactivePackPerMinCount && sessionTime > parseInt(heartbeatRate)+1 ){
+            text_haveBeenKicked = localize(`a été kick des rerollers actifs pour avoir fait ${userPackPerMin} packs/mn`,` have been kicked out of active rerollers for inactivity because made ${userPackPerMin} packs/mn`);
+            console.log(`➖ Kicked ${getUsernameFromUser(user)} - made ${userPackPerMin} packs/mn`);
         }
         else{
             continue;
@@ -739,6 +743,7 @@ client.on(Events.InteractionCreate, async interaction => {
         // Skip if player already active
         if(isPlayerActive == 0){
 
+            console.log(`➕ Added ${interactionUserName}`);
             await setUserAttribValue( interactionUserID, interactionUserName, attrib_Active, true);
             await setUserAttribValue( interactionUserID, interactionUserName, attrib_LastActiveTime, new Date().toString());
             await sendReceivedMessage(interaction, `\`\`\`diff\n+${interactionDisplayName}\n\`\`\``);
@@ -1180,6 +1185,7 @@ client.on("messageCreate", async (message) => {
                         // And prevent him that he have been kicked
                         const text_haveBeenKicked = localize("a été kick des rerollers actifs car son Main est Offline"," have been kicked out of active rerollers due to Main being Offline");
                         guild.channels.cache.get(channelID_IDs).send({ content:`<@${userID}> ${text_haveBeenKicked}`});
+                        console.log(`➖ Kicked ${userUsername} - Main was Offline`);
                     }
                 }
             }
@@ -1217,6 +1223,7 @@ client.on("messageCreate", async (message) => {
                         // And prevent him that he have been kicked
                         const text_haveBeenKicked = localize("a été kick des rerollers actifs car son Main est Offline"," have been kicked out of active rerollers due to Main being Offline");
                         guild.channels.cache.get(channelID_IDs).send({ content:`<@${userID}> ${text_haveBeenKicked}`});
+                        console.log(`➖ Kicked ${userUsername} - Main was Offline`);
                     }
                 }
             }
