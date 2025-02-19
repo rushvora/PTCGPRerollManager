@@ -31,16 +31,21 @@ const missBeforeDead = [4,6,8];
 const EnglishLanguage = true;
 
 // Setting this to true will enable auto kick and kick players based on the others factors below
-const AutoKickInactive = true;
+const AutoKick = false;
 // Every X minute divided by 2 it will alternate between sending user stats and checking for inactive peoples
 // Exemple with a value of 10 : 5mn:InactivityCheck, 10mn:UserStats, 15mn:InactivityCheck, 20mn:UserStats, etc...
 var refreshInterval = 10;
 // After how many minutes the user will be consider inactive (keep in mind that heartbeats are sent every 30mn by default)
 var inactiveTime = 61;
 // At which number of instances users will be kicked, for a value of 1, users with 2 instances and above won't be kicked (Main is not counted as an instance)
-var inactiveWhenInstance = 1;
-// Kick instantly if it detects that Main is On AND Offline /!\ At this time there are false positive where Main could be considered offline but it have no issue
+var inactiveInstanceCount = 1;
+// At which number of instances users will be kicked, for a value of 1, users below 1 pack per min will be kicked)
+var inactivePackPerMinCount = 1;
+// Kick instantly if it detects that Main is On AND Offline /!\ At this time there are false positive where Main could be considered offline but it have no issue in reality
 var inactiveIfMainOffline = false;
+
+// No need to modify it except you specifically changed the rate in yours ahk files
+var heartbeatRate = 30;
 
 // Icons of GP Validation
 const text_verifiedLogo = "✅";
@@ -61,11 +66,13 @@ export {
     gitGistName,
     missBeforeDead,
     EnglishLanguage,
-    AutoKickInactive,
+    AutoKick,
     refreshInterval,
     inactiveTime,
-    inactiveWhenInstance,
+    inactiveInstanceCount,
+    inactivePackPerMinCount,
     inactiveIfMainOffline,
+    heartbeatRate,
     text_verifiedLogo,
     text_deadLogo,
     text_waitingLogo,

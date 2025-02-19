@@ -30,14 +30,17 @@ import {
     gitGistID,
     gitGistName,
     missBeforeDead,
+    EnglishLanguage,
+    AutoKick,
+    refreshInterval,
+    inactiveTime,
+    inactiveInstanceCount,
+    inactivePackPerMinCount,
+    inactiveIfMainOffline,
+    heartbeatRate,
     text_verifiedLogo,
     text_deadLogo,
     text_waitingLogo,
-    refreshInterval,
-    inactiveTime,
-    inactiveWhenInstance,
-    inactiveIfMainOffline,
-    AutoKickInactive,
 } from './config.js';
 
 import {
@@ -90,6 +93,8 @@ import {
     attrib_SessionTime,
     attrib_TotalPacksOpened, 
     attrib_SessionPacksOpened,
+    attrib_DiffPacksSinceLastHB,
+    attrib_PacksPerMin,
     attrib_GodPackFound,
     attrib_LastActiveTime,
     attrib_LastHeartbeatTime,
@@ -190,18 +195,22 @@ async function getUsersStats( users, members ){
         const sessionTimeSubsystems = getAttribValueFromUserSubsystems(user, attrib_SessionTime, 0);
         const sessionPacksSubsystems = getAttribValueFromUserSubsystems(user, attrib_SessionPacksOpened, 0);
         const lastHBTimeSubsystems = getAttribValueFromUserSubsystems(user, attrib_LastHeartbeatTime, 0);
+        const diffPacksSinceLastHBSubsystems = getAttribValueFromUserSubsystems(user, attrib_DiffPacksSinceLastHB, 0);
 
         var session_PacksSubsystems = 0;
+        var total_PacksSinceLastHbSubsystems = 0;
         var total_PacksSubsystems = 0;
+        var total_diffPacksSinceLastHBSubsystems = 0;
         var biggerSessionTimeSubsystems = 0;
 
         for (let i = 0; i < lastHBTimeSubsystems.length; i++){
 
             const diffHBSubsystem = (currentTime - new Date(lastHBTimeSubsystems[i])) / 60000;
             
-            if(diffHBSubsystem < parseFloat(inactiveTime)){ // If last HB less than Xmn then count instances and session time
+            if(diffHBSubsystem < parseFloat(heartbeatRate+1)){ // If last HB less than Xmn then count instances and session time
                 biggerSessionTimeSubsystems = Math.max(biggerSessionTimeSubsystems, sessionTimeSubsystems[i]);
                 session_PacksSubsystems += parseFloat(sessionPacksSubsystems[i]);
+                total_diffPacksSinceLastHBSubsystems += parseFloat(diffPacksSinceLastHBSubsystems[i]);
             }
             total_PacksSubsystems += parseFloat(sessionPacksSubsystems[i]);
         }
@@ -242,25 +251,26 @@ async function getUsersStats( users, members ){
         // Session stats       
 
         var sessionTime = getAttribValueFromUser(user, attrib_SessionTime)
-        sessionTime = roundToOneDecimal( parseFloat( Math.max(sessionTime,biggerSessionTimeSubsystems) ) );
+        sessionTime = roundToOneDecimal( parseFloat( Math.max(sessionTime, biggerSessionTimeSubsystems) ) );
         var sessionPackF = parseFloat(getAttribValueFromUser(user, attrib_SessionPacksOpened)) + session_PacksSubsystems;
-        // Add Subsystems packs
-        // sessionPackF += parseFloat(totalSessionPacksSubsystems);
 
         const text_Session = colorText("Session:", "gray");
         const text_sessionTime = colorText("running " + sessionTime + "mn", "gray");
         const text_sessionPackF = colorText("w/ " + sessionPackF + " packs", "gray");
-        var sessionAvgPackMn = roundToOneDecimal(sessionPackF/sessionTime);
-        sessionAvgPackMn = sessionTime == 0 || sessionPackF == 0 ? 0 : sessionAvgPackMn;
-        const text_avgPackMn = colorText(sessionAvgPackMn, "blue");
+
+        // Calculate packs/mn
+        var diffPacksSinceLastHb = parseFloat(getAttribValueFromUser(user, attrib_DiffPacksSinceLastHB)) + total_diffPacksSinceLastHBSubsystems;
+        var avgPackMn = roundToOneDecimal(diffPacksSinceLastHb/heartbeatRate);
+        avgPackMn = isNaN(avgPackMn) ? 0 : avgPackMn;
+        await setUserAttribValue( id, username, attrib_PacksPerMin, avgPackMn);
+        const text_avgPackMn = colorText(avgPackMn, "blue");
 
         userOutput += `    ${text_Session} ${text_avgPackMn} packs/mn  ${text_sessionTime} ${text_sessionPackF}\n`
 
         // Pack stats
         const totalPack = parseInt(getAttribValueFromUser(user, attrib_TotalPacksOpened));
         var sessionPackI = parseInt(getAttribValueFromUser(user, attrib_SessionPacksOpened)) + total_PacksSubsystems;
-        // Add Subsystems
-        // sessionPackI += parseInt(totalSessionPacksSubsystems);
+
         const totalGodPack = parseInt(getAttribValueFromUser(user, attrib_GodPackFound));
         const avgGodPack = roundToOneDecimal(totalGodPack >= 1 ? (totalPack+sessionPackI)/totalGodPack : (totalPack+sessionPackI));
 
@@ -309,14 +319,11 @@ async function sendUserStats( guild ){
     const activeInstances = getAttribValueFromUsers(activeUsers, attrib_RealInstances, [0]);
     const instancesAmount = sumIntArray(activeInstances);
 
-    const globalsessionTime = getAttribValueFromUsers(activeUsers, attrib_SessionTime, [0]);
-    const globalsessionPacks = getAttribValueFromUsers(activeUsers, attrib_SessionPacksOpened, [0]);
-    const accumulatedSessionTime = sumFloatArray(globalsessionTime);
-    const accumulatedsessionPacks = sumFloatArray(globalsessionPacks);
-    const accumulatedPackSec = roundToOneDecimal((accumulatedsessionPacks/accumulatedSessionTime) * globalsessionPacks.length);
+    const globalPacksPerMin = getAttribValueFromUsers(activeUsers, attrib_PacksPerMin, [0]);
+    const accumulatedPacksPerMin = roundToOneDecimal(sumFloatArray(globalPacksPerMin));
 
     const text_avgInstances = localize("instances à environ", "instance that run at");
-    const text_activeInstances = `## ${instancesAmount} ${text_avgInstances} ${accumulatedPackSec} packs/mn\n\n`;
+    const text_activeInstances = `## ${instancesAmount} ${text_avgInstances} ${accumulatedPacksPerMin} packs/mn\n\n`;
 
     // Send UserStats
     guild.channels.cache.get(channelID_UserStats).send({ content:`${text_activeInstances}`});
@@ -353,14 +360,26 @@ async function inactivityCheck(myGuild){
         const userActiveState = await refreshUserActiveState(user);
         // Check user instances count
         const userInstances = await refreshUserRealInstances(user, userActiveState[0]);
+        // Check user pack per min
+        const userPackPerMin = await getAttribValueFromUser(user, attrib_PacksPerMin, 10);
         
-        if (userInstances > parseInt(inactiveWhenInstance)){continue;}
+        // Check if kickable and prevent him if he have been kicked
+        const text_haveBeenKicked = ""
+        if( userActiveState == "inactive" ){
+            text_haveBeenKicked = localize(`a été kick des rerollers actifs pour inactivité depuis plus de ${inactiveTime}mn`,` have been kicked out of active rerollers for inactivity for more than ${inactiveTime}mn`);
+        } 
+        else if ( userInstances <= parseInt(inactiveInstanceCount) ){
+            text_haveBeenKicked = localize(`a été kick des rerollers actifs pour car il a ${userInstances} instances en cours`,` have been kicked out of active rerollers for inactivity because he had ${userInstances} instances running`);
+        }
+        else if ( userPackPerMin < inactivePackPerMinCount ){
+            text_haveBeenKicked = localize(`a été kick des rerollers actifs pour avoir fait ${userPackPerMin} packs/mn`,` have been kicked out of active rerollers for inactivity because make ${userPackPerMin} packs/mn`);
+        }
+        else{
+            continue;
+        }
 
-        // Else we can kick the user
+        // Then we can kick the user if continue didn't triggered
         await setUserAttribValue( getIDFromUser(user), getUsernameFromUser(user), attrib_Active, false);
-
-        // And prevent him that he have been kicked
-        const text_haveBeenKicked = localize("a été kick des rerollers actifs pour inactivité"," have been kicked out of active rerollers for inactivity");
         myGuild.channels.cache.get(channelID_IDs).send({ content:`<@${getIDFromUser(user)}> ${text_haveBeenKicked}`});
     };
 
@@ -469,7 +488,7 @@ client.once(Events.ClientReady, async c => {
         if (evenTurnInterval) {
             sendUserStats(guild);
         } 
-        else if(AutoKickInactive) {
+        else if(AutoKick) {
             inactivityCheck(guild);
         }
 
@@ -697,8 +716,8 @@ client.on(Events.InteractionCreate, async interaction => {
         const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit other user");
         const text_missingFriendCode = localize("Le Player ID est nécéssaire avant de vouloir s'add","The Player ID is needed before you can add yourself");
         const user = interaction.options.getUser(`user`);
-        if( user != null){
-            if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+        if( user != null ){
+            if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
                 return await sendReceivedMessage(interaction, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`);
             }
             interactionUserName = user.username;
@@ -741,7 +760,7 @@ client.on(Events.InteractionCreate, async interaction => {
         
         const user = interaction.options.getUser(`user`);
         if( user != null){
-            if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+            if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
                 return await sendReceivedMessage(interaction, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`);
             }
             interactionUserName = user.username;
@@ -787,7 +806,7 @@ client.on(Events.InteractionCreate, async interaction => {
     if(interaction.commandName === `forcerefresh`){
 
         await interaction.deferReply();
-        const text_listForceRefreshed = localize("**Stats rerollers actifs rafraichies**", "**Active rerollers stats refreshed**");
+        const text_listForceRefreshed = localize(`**Stats des rerollers actifs rafraichies dans <#${channelID_UserStats}>**`, `**Active rerollers stats refreshed in <#${channelID_UserStats}>**`);
 
         // Reading the current players file
         await sendReceivedMessage(interaction, text_listForceRefreshed);
@@ -883,11 +902,11 @@ client.on(Events.InteractionCreate, async interaction => {
             const totalMiss = getAttribValueFromUser(user, attrib_TotalMiss, 0);
             const totalTime = getAttribValueFromUser(user, attrib_TotalTime, 0);
             const totalTimeHour = parseFloat(totalTime)/60;
-            var missPerHour = roundToOneDecimal( parseFloat(totalMiss) / totalTimeHour);
+            var missPerHour = roundToOneDecimal( (parseFloat(totalMiss) / totalTimeHour) * 24 );
 
-            missPerHour = isNaN(missPerHour) || missPerHour == Infinity ? 0 : missPerHour;
+            missPerHour = isNaN(missPer24Hour) || missPerHour == Infinity ? 0 : missPerHour;
 
-            activityOutput += addTextBar(`${userDisplayName} `, 20, false) + ` ${missPerHour} miss per hour\n`
+            activityOutput += addTextBar(`${userDisplayName} `, 20, false) + ` ${missPer24Hour} miss per 24h\n`
         };
 
         activityOutput+="\`\`\`";
@@ -1065,7 +1084,7 @@ client.on("messageCreate", async (message) => {
     if (message.channel.id === channelID_Webhook)
     {
         //Execute when screen is posted
-        if (message.attachments.first() != undefined && !message.content.includes("invalid") && message.content.toLowerCase().includes("god pack found") ) {
+        if (message.attachments.first() != undefined && !message.content.toLowerCase().includes("invalid") && message.content.toLowerCase().includes("god pack found") ) {
 
             var arrayGodpackMessage = splitMulti(message.content, ['<@','>','\n','(',')','[',']']);
             
@@ -1081,7 +1100,7 @@ client.on("messageCreate", async (message) => {
         }
 
         //Execute when screen is posted
-        if (message.attachments.first() != undefined && !message.content.includes("invalid") && message.content.toLowerCase().includes("double") ) {
+        if (message.attachments.first() != undefined && !message.content.toLowerCase().includes("invalid") && message.content.toLowerCase().includes("double") ) {
 
             if(channelID_2StarVerificationForum == ""){return;}
 
@@ -1133,9 +1152,9 @@ client.on("messageCreate", async (message) => {
                 const instances = extractNumbers(heartbeatDatas[1]).length;
                 const timeAndPacks = extractNumbers(heartbeatDatas[3]);
                 const time = timeAndPacks[0];
-                var packs = timeAndPacks[1];
+                var packs = parseInt(timeAndPacks[1]);
 
-                // Get previously saved time
+                var sessionPacks = parseInt(await getUserAttribValue( client, userID, attrib_SessionPacksOpened, 0 ));
                 
                 if( time == "0" ){
                     var totalTime = await getUserAttribValue( client, userID, attrib_TotalTime, 0 );
@@ -1143,10 +1162,10 @@ client.on("messageCreate", async (message) => {
                     await setUserAttribValue( userID, userUsername, attrib_TotalTime, parseFloat(totalTime) + parseFloat(sessionTime));
 
                     var totalPacks = await getUserAttribValue( client, userID, attrib_TotalPacksOpened, 0 );
-                    var sessionPacks = await getUserAttribValue( client, userID, attrib_SessionPacksOpened, 0 );
-                    await setUserAttribValue( userID, userUsername, attrib_TotalPacksOpened, parseInt(totalPacks) + parseInt(sessionPacks));
+                    await setUserAttribValue( userID, userUsername, attrib_TotalPacksOpened, parseInt(totalPacks) + sessionPacks);
                 }
 
+                await setUserAttribValue( userID, userUsername, attrib_DiffPacksSinceLastHB, Math.max(packs-sessionPacks,0));
                 await setUserAttribValue( userID, userUsername, attrib_SessionTime, time);
                 await setUserAttribValue( userID, userUsername, attrib_SessionPacksOpened, packs);
                 await setUserAttribValue( userID, userUsername, attrib_HBInstances, instances);
@@ -1154,11 +1173,14 @@ client.on("messageCreate", async (message) => {
 
                 const mainInactive = heartbeatDatas[2].toLowerCase().includes("main");
                 
-                if(mainInactive && inactiveIfMainOffline && AutoKickInactive){
-                    await setUserAttribValue( userID, userUsername, attrib_Active, false);
-                    // And prevent him that he have been kicked
-                    const text_haveBeenKicked = localize("a été kick des rerollers actifs car son Main est Offline"," have been kicked out of active rerollers due to Main being Offline");
-                    guild.channels.cache.get(channelID_IDs).send({ content:`<@${userID}> ${text_haveBeenKicked}`});
+                if(AutoKick){
+
+                    if(mainInactive && inactiveIfMainOffline){
+                        await setUserAttribValue( userID, userUsername, attrib_Active, false);
+                        // And prevent him that he have been kicked
+                        const text_haveBeenKicked = localize("a été kick des rerollers actifs car son Main est Offline"," have been kicked out of active rerollers due to Main being Offline");
+                        guild.channels.cache.get(channelID_IDs).send({ content:`<@${userID}> ${text_haveBeenKicked}`});
+                    }
                 }
             }
         }
@@ -1171,15 +1193,16 @@ client.on("messageCreate", async (message) => {
                 const instances = countDigits(heartbeatDatas[1]);
                 const timeAndPacks = extractNumbers(heartbeatDatas[3]);
                 const time = timeAndPacks[0];
-                var packs = timeAndPacks[1];
+                var packs = parseInt(timeAndPacks[1]);
 
+                var sessionSubsystemPacks = parseInt(await getUserSubsystemAttribValue( client, userID, subSystemName, attrib_SessionPacksOpened, 0 ));
                 
                 if( time == "0" ){
                     var totalPacks = await getUserAttribValue( client, userID, attrib_TotalPacksOpened, 0 );
-                    var sessionSubsystemPacks = await getUserSubsystemAttribValue( client, userID, subSystemName, attrib_SessionPacksOpened, 0 );
                     await setUserAttribValue( userID, userUsername, attrib_TotalPacksOpened, parseInt(totalPacks) + parseInt(sessionSubsystemPacks));
                 }
                 
+                await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_DiffPacksSinceLastHB, Math.max(packs-sessionSubsystemPacks,0));
                 await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_SessionTime, time);
                 await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_SessionPacksOpened, packs);
                 await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_HBInstances, instances);
@@ -1187,11 +1210,14 @@ client.on("messageCreate", async (message) => {
                 
                 const mainInactive = heartbeatDatas[2].toLowerCase().includes("main");
                 
-                if(mainInactive && inactiveIfMainOffline && AutoKickInactive){
-                    await setUserAttribValue( userID, userUsername, attrib_Active, false);
-                    // And prevent him that he have been kicked
-                    const text_haveBeenKicked = localize("a été kick des rerollers actifs car son Main est Offline"," have been kicked out of active rerollers due to Main being Offline");
-                    guild.channels.cache.get(channelID_IDs).send({ content:`<@${userID}> ${text_haveBeenKicked}`});
+                if(AutoKick){
+                    
+                    if(mainInactive && inactiveIfMainOffline){
+                        await setUserAttribValue( userID, userUsername, attrib_Active, false);
+                        // And prevent him that he have been kicked
+                        const text_haveBeenKicked = localize("a été kick des rerollers actifs car son Main est Offline"," have been kicked out of active rerollers due to Main being Offline");
+                        guild.channels.cache.get(channelID_IDs).send({ content:`<@${userID}> ${text_haveBeenKicked}`});
+                    }
                 }
             }
         }

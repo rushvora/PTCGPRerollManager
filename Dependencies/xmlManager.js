@@ -14,6 +14,8 @@ import {
     attrib_SessionTime,
     attrib_TotalPacksOpened, 
     attrib_SessionPacksOpened,
+    attrib_DiffPacksSinceLastHB,
+    attrib_PacksPerMin,
     attrib_GodPackFound,
     attrib_LastActiveTime,
     attrib_LastHeartbeatTime,
@@ -112,6 +114,8 @@ async function createUserProfile( attribUserId, attribUserName ) {
             [attrib_SessionTime]: 0,
             [attrib_TotalPacksOpened]: 0,
             [attrib_SessionPacksOpened]: 0,
+            [attrib_DiffPacksSinceLastHB]: 0,
+            [attrib_PacksPerMin]: 0,
             [attrib_GodPackFound]: 0,
             [attrib_LastActiveTime]: new Date(),
             [attrib_LastHeartbeatTime]: new Date(),
@@ -296,6 +300,7 @@ async function setUserSubsystemAttribValue( attribUserId, attribUserName, subSys
                     [attrib_HBInstances]: 0,
                     [attrib_SessionTime]: 0,
                     [attrib_SessionPacksOpened]: 0,
+                    [attrib_DiffPacksSinceLastHB]: 0,
                     [attrib_LastHeartbeatTime]: new Date(),
                 });
                 subSystem = user[attrib_Subsystems][0][attrib_Subsystem].find(sub => cleanString(sub._) === subSystemName);
