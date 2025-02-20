@@ -1153,7 +1153,7 @@ client.on("messageCreate", async (message) => {
         if(firstLineSplit.length <= 1 ) { // If ID do not have underscore
 
             if(await doesUserProfileExists(userID, userUsername)){
-    
+
                 const instances = extractNumbers(heartbeatDatas[1]).length;
                 const timeAndPacks = extractNumbers(heartbeatDatas[3]);
                 const time = timeAndPacks[0];
@@ -1176,6 +1176,8 @@ client.on("messageCreate", async (message) => {
                 await setUserAttribValue( userID, userUsername, attrib_HBInstances, instances);
                 await setUserAttribValue( userID, userUsername, attrib_LastHeartbeatTime, new Date().toString());
 
+                console.log(`🔄 Refreshed ${userUsername} Heartbeat`);
+                
                 const mainInactive = heartbeatDatas[2].toLowerCase().includes("main");
                 
                 if(AutoKick){
@@ -1214,6 +1216,8 @@ client.on("messageCreate", async (message) => {
                 await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_HBInstances, instances);
                 await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_LastHeartbeatTime, new Date().toString());
                 
+                console.log(`🔄 Refreshed ${userUsername} subsystem ${subSystemName} Heartbeat`);
+
                 const mainInactive = heartbeatDatas[2].toLowerCase().includes("main");
                 
                 if(AutoKick){
