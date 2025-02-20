@@ -44,10 +44,13 @@ function text_lowTension(client){
         `C\'est rien c\'est rien il arrive après le GP`,
         `C\'est que le début`,
         `10% c\'est 100% ${emoji_Bedge}`,
+        `De toute manière il est pourri ce GP ${emoji_Bedge}`,
+        `Je suis sur que t'as déjà toutes les 2star ${emoji_Bedge}`,
         `T\'as pas le droit de nous faire perdre espoir comme ca...`,
         `MAIS C\'ÉTAIT SUR EN FAIT, C\'ÉTAIT SUUUUR`,
-        `La légende raconte que quelqu\’un, quelque part, a déjà vu un God Pack... Mais pas toi ${emoji_KEKW}`
-        `Raté... C'est comme chercher un Shiny sans Charme Chroma ${emoji_Sadge}`
+        `Avoir un gp, c\’est comme essayer de faire 3 fois pile avec Ondine, impossible. ${emoji_KEKWait}`,
+        `La légende raconte que quelqu\’un, quelque part, a déjà vu un God Pack... Mais pas toi ${emoji_KEKW}`,
+        `Raté... C'est comme chercher un Shiny sans Charme Chroma ${emoji_Sadge}`,
         `Y\'a R ${emoji_Copium}`]),
     getRandomStringFromArray([
         `It\'s fine, we just started`,
@@ -67,7 +70,7 @@ function text_mediumTension(client){
         `Plus rien ne va... ${emoji_Sadge}`,
         `Si c\'est vraiment dead on vire l\'host en même temps que son pack ${emoji_KEKW}`,
         `Qu\'est-ce qu\'on t\'a fait pour mériter ça ${emoji_KEKWait}`,
-        `À ce rythme, tu vas écrire un livre : 1001 façons de ne PAS choper un God Pack ${emoji_PeepoClown}`
+        `À ce rythme, tu vas écrire un livre : 1001 façons de ne PAS choper un God Pack ${emoji_PeepoClown}`,
         `Moi j\'y crois encore tkt ${emoji_Copium}`]),
     getRandomStringFromArray([
         `Forget about it, next one is GP ${emoji_Prayge}`,
@@ -85,12 +88,14 @@ function text_highTension(client){
         `Un GP de moins ici c\'est du karma en plus ${emoji_OkaygeBusiness}`,
         `Ca fait beaucoup là, non... ?`,
         `TU ES TILTÉ BOUBOU ! TU AS BESOIN DE BOL ! ${emoji_KEKW}`,
-        `It was at this moment that he knew... The gp was fucked up`,
+        `T'as mieux fait de perdre celui la que de rater le pick d'un 4/5`,
         `C'est ciao.`,
         `Tout espoir est perdu ${emoji_Sadge}`,
-        `"Quoient... Encore un gp dead...`
+        `Le prochain GP c'est le bon ${emoji_Copium}`,
+        `"Quoient... Encore un gp dead...`,
         `Rentrons il commence à pleuvoir...`]),
-    getRandomStringFromArray([
+        getRandomStringFromArray([
+        `It was at this moment that he knew... The gp was fucked up`,
         `EMOTIONAL DAMAGE`,
         `ALRIGHT EVERYBODY WAKE UP IT\'S NOT DEAD I PROMISE, RNJESUS TOLD ME ${emoji_Copium}`,
         `Let\'s just forget about it...`])
