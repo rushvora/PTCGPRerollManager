@@ -47,6 +47,11 @@ var inactiveIfMainOffline = false;
 // No need to modify it except you specifically changed the rate in yours ahk files
 var heartbeatRate = 30;
 
+// No need to modify it except you specifically changed the rate in yours ahk files
+const canPeopleAddOthers = true;
+// No need to modify it except you specifically changed the rate in yours ahk files
+const canPeopleRemoveOthers = false;
+
 // Icons of GP Validation
 const text_verifiedLogo = "✅";
 const text_deadLogo = "💀";
@@ -73,6 +78,8 @@ export {
     inactivePackPerMinCount,
     inactiveIfMainOffline,
     heartbeatRate,
+    canPeopleAddOthers,
+    canPeopleRemoveOthers,
     text_verifiedLogo,
     text_deadLogo,
     text_waitingLogo,

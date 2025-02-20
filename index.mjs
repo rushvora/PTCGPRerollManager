@@ -30,7 +30,6 @@ import {
     gitGistID,
     gitGistName,
     missBeforeDead,
-    EnglishLanguage,
     AutoKick,
     refreshInterval,
     inactiveTime,
@@ -38,6 +37,8 @@ import {
     inactivePackPerMinCount,
     inactiveIfMainOffline,
     heartbeatRate,
+    canPeopleAddOthers,
+    canPeopleRemoveOthers,
     text_verifiedLogo,
     text_deadLogo,
     text_waitingLogo,
@@ -368,15 +369,15 @@ async function inactivityCheck(myGuild){
         var text_haveBeenKicked = ""
         if( userActiveState == "inactive" ){
             text_haveBeenKicked = localize(`a été kick des rerollers actifs pour inactivité depuis plus de ${inactiveTime}mn`,` have been kicked out of active rerollers for inactivity for more than ${inactiveTime}mn`);
-            console.log(`➖ Kicked ${getUsernameFromUser(user)} - inactivity for more than ${inactiveTime}mn`);
+            console.log(`✖️ Kicked ${getUsernameFromUser(user)} - inactivity for more than ${inactiveTime}mn`);
         } 
         else if ( userInstances <= parseInt(inactiveInstanceCount) ){
             text_haveBeenKicked = localize(`a été kick des rerollers actifs pour car il a ${userInstances} instances en cours`,` have been kicked out of active rerollers for inactivity because he had ${userInstances} instances running`);
-            console.log(`➖ Kicked ${getUsernameFromUser(user)} - ${userInstances} instances running`);
+            console.log(`✖️ Kicked ${getUsernameFromUser(user)} - ${userInstances} instances running`);
         }
-        else if ( userPackPerMin < inactivePackPerMinCount && sessionTime > parseInt(heartbeatRate)+1 ){
+        else if ( userPackPerMin < inactivePackPerMinCount && userPackPerMin > 0 && sessionTime > parseInt(heartbeatRate)+1 ){
             text_haveBeenKicked = localize(`a été kick des rerollers actifs pour avoir fait ${userPackPerMin} packs/mn`,` have been kicked out of active rerollers for inactivity because made ${userPackPerMin} packs/mn`);
-            console.log(`➖ Kicked ${getUsernameFromUser(user)} - made ${userPackPerMin} packs/mn`);
+            console.log(`✖️ Kicked ${getUsernameFromUser(user)} - made ${userPackPerMin} packs/mn`);
         }
         else{
             continue;
@@ -410,13 +411,11 @@ async function createForumPost( guild, message, channelID, packName, titleName, 
     }
     var ownerUsername = (member).user.username;
     
-    const godPackFound = await getUserAttribValue( client, ownerID, attrib_GodPackFound );
-    if( godPackFound == undefined ) {
-        await setUserAttribValue( ownerID, ownerUsername, attrib_GodPackFound, 1);
-    } else {
+    if(packName == "GodPack"){
+        const godPackFound = await getUserAttribValue( client, ownerID, attrib_GodPackFound, 0 );
         await setUserAttribValue( ownerID, ownerUsername, attrib_GodPackFound, parseInt(godPackFound) + 1);
     }
-    
+        
     var imageUrl = message.attachments.first().url;
 
     var activeUsersID = getIDFromUsers(await getActiveUsers());
@@ -721,8 +720,11 @@ client.on(Events.InteractionCreate, async interaction => {
         const text_missingFriendCode = localize("Le Player ID est nécéssaire avant de vouloir s'add","The Player ID is needed before you can add yourself");
         const user = interaction.options.getUser(`user`);
         if( user != null ){
-            if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
-                return await sendReceivedMessage(interaction, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`);
+            if(!canPeopleAddOthers) {
+
+                if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
+                    return await sendReceivedMessage(interaction, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`);
+                }
             }
             interactionUserName = user.username;
             interactionUserID = user.id;
@@ -765,8 +767,11 @@ client.on(Events.InteractionCreate, async interaction => {
         
         const user = interaction.options.getUser(`user`);
         if( user != null){
-            if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
-                return await sendReceivedMessage(interaction, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`);
+            if(!canPeopleRemoveOthers) {
+
+                if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
+                    return await sendReceivedMessage(interaction, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`);
+                }
             }
             interactionUserName = user.username;
             interactionUserID = user.id;
@@ -782,6 +787,7 @@ client.on(Events.InteractionCreate, async interaction => {
         // Skip if player not active
         if(isPlayerActive == 1){
 
+            console.log(`➖ Removed ${interactionUserName}`);
             await setUserAttribValue( interactionUserID, interactionUserName, attrib_Active, false);
             await sendReceivedMessage(interaction, `\`\`\`diff\n-${interactionDisplayName}\n\`\`\``);
             // Send the list of IDs to an URL and who is Active is the IDs channel
@@ -1176,7 +1182,7 @@ client.on("messageCreate", async (message) => {
                 await setUserAttribValue( userID, userUsername, attrib_HBInstances, instances);
                 await setUserAttribValue( userID, userUsername, attrib_LastHeartbeatTime, new Date().toString());
 
-                console.log(`🔄 Refreshed ${userUsername} Heartbeat`);
+                console.log(`🔄 HB ${userUsername}`);
                 
                 const mainInactive = heartbeatDatas[2].toLowerCase().includes("main");
                 
@@ -1187,7 +1193,7 @@ client.on("messageCreate", async (message) => {
                         // And prevent him that he have been kicked
                         const text_haveBeenKicked = localize("a été kick des rerollers actifs car son Main est Offline"," have been kicked out of active rerollers due to Main being Offline");
                         guild.channels.cache.get(channelID_IDs).send({ content:`<@${userID}> ${text_haveBeenKicked}`});
-                        console.log(`➖ Kicked ${userUsername} - Main was Offline`);
+                        console.log(`✖️ Kicked ${userUsername} - Main was Offline`);
                     }
                 }
             }
@@ -1216,7 +1222,7 @@ client.on("messageCreate", async (message) => {
                 await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_HBInstances, instances);
                 await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_LastHeartbeatTime, new Date().toString());
                 
-                console.log(`🔄 Refreshed ${userUsername} subsystem ${subSystemName} Heartbeat`);
+                console.log(`🔄 HB ${userUsername} subsystem ${subSystemName}`);
 
                 const mainInactive = heartbeatDatas[2].toLowerCase().includes("main");
                 
@@ -1227,7 +1233,7 @@ client.on("messageCreate", async (message) => {
                         // And prevent him that he have been kicked
                         const text_haveBeenKicked = localize("a été kick des rerollers actifs car son Main est Offline"," have been kicked out of active rerollers due to Main being Offline");
                         guild.channels.cache.get(channelID_IDs).send({ content:`<@${userID}> ${text_haveBeenKicked}`});
-                        console.log(`➖ Kicked ${userUsername} - Main was Offline`);
+                        console.log(`✖️ Kicked ${userUsername} - Main was Offline`);
                     }
                 }
             }
