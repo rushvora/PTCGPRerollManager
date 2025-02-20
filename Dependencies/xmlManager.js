@@ -5,6 +5,8 @@ import AsyncLock from 'async-lock';
 
 const lock = new AsyncLock();
 
+const debugConsole = false; 
+
 import {
     attrib_PocketID,
     attrib_Active,
@@ -124,7 +126,7 @@ async function createUserProfile( attribUserId, attribUserName ) {
         const builder = new xml2js.Builder();
         const xmlOutput = builder.buildObject(result);
 
-        console.log(`Created user profile "${attribUserName}"`);
+        console.log(`✅ Created user profile "${attribUserName}"`);
 
         // ==== ASYNC LOCK WRITE ==== //
         await lock.acquire('fileLock', async () => {
@@ -166,7 +168,7 @@ async function doesUserProfileExists( attribUserId, attribUserName ) {
         if(result.root.user.find(user => cleanString(user._) === attribUserId)) {
             return true;
         } else {
-            console.log(`User "${attribUserName}" does not exist`);
+            console.log(`❗️ User "${attribUserName}" does not exist`);
             return false;
         }
     }
@@ -203,9 +205,9 @@ async function setUserAttribValue( attribUserId, attribUserName, subAttribName, 
 
         if (user) {
             user[subAttribName] = subAttribValue;
-            console.log(`Set ${subAttribName} to ${subAttribValue} for User ${attribUserName}`);
+            if(debugConsole) {console.log(`Set ${subAttribName} to ${subAttribValue} for User ${attribUserName}`);}
         } else {
-            console.log(`User ${attribUserName} not found.`);
+            console.log(`❗️ User ${attribUserName} not found.`);
         }
 
         const builder = new xml2js.Builder();
@@ -251,15 +253,15 @@ async function getUserAttribValue( client, attribUserId, subAttribName, fallback
 
             if (user && user[subAttribName][0]) {
                 const value = user[subAttribName][0];
-                // console.log(`Attribute ${subAttribName} found : ${value} for user ${attribUsername}`);
+                if(debugConsole) {console.log(`Attribute ${subAttribName} found : ${value} for user ${attribUsername}`);}
                 return value;
             } else {
-                // console.log(`Attribute ${subAttribName} not found for the user ${attribUsername}`);
+                if(debugConsole) {console.log(`Attribute ${subAttribName} not found for the user ${attribUsername}`);}
                 return fallbackValue
             }
         }
     } catch (err) {
-        console.log(`Try to get attribute ${subAttribName} but does not exist:`);
+        console.log(`❗️ Try to get attribute ${subAttribName} but does not exist:`);
         return fallbackValue
     }
 }
@@ -308,9 +310,9 @@ async function setUserSubsystemAttribValue( attribUserId, attribUserName, subSys
             
             subSystem[subAttribName] = subAttribValue;
 
-            console.log(`Set ${subAttribName} to ${subAttribValue} for User ${attribUserName} on Subsystem ${subSystemName}`);
+            if(debugConsole) {console.log(`Set ${subAttribName} to ${subAttribValue} for User ${attribUserName} on Subsystem ${subSystemName}`);}
         } else {
-            console.log(`User ${attribUserName} not found.`);
+            console.log(`❗️ User ${attribUserName} not found.`);
         }
 
         const builder = new xml2js.Builder();
@@ -355,21 +357,21 @@ async function getUserSubsystemAttribValue( client, attribUserId, subSystemName,
                 const subSystem = user[attrib_Subsystems][0][attrib_Subsystem].find(sub => cleanString(sub._) === subSystemName);
 
                 if(!subSystem){
-                    console.log(`Attribute ${subAttribName} not found for subsystem ${subSystemName} of user ${attribUserId}`);
+                    console.log(`❗️ Attribute ${subAttribName} not found for subsystem ${subSystemName} of user ${attribUserId}`);
                     return fallbackValue
                 }
 
                 const value = subSystem[subAttribName][0];
-                console.log(`Attribute ${subAttribName} found : ${value} for user ${attribUserId}`);
+                if(debugConsole) {console.log(`Attribute ${subAttribName} found : ${value} for user ${attribUserId}`);}
                 return value;
 
             } else {
-                console.log(`Attribute ${subAttribName} not found for subsystem ${subSystemName} of user ${attribUserId}`);
+                console.log(`❗️ Attribute ${subAttribName} not found for subsystem ${subSystemName} of user ${attribUserId}`);
                 return fallbackValue
             }
         }
     } catch (err) {
-        console.log(`Try to get attribute ${subAttribName} but does not exist:`);
+        console.log(`❗️ Try to get attribute ${subAttribName} but does not exist:`);
         return fallbackValue
     }
 }
@@ -488,7 +490,7 @@ function getAttribValueFromUserSubsystems( user, attrib, fallbackValue = undefin
             return fallbackValue;
         }
     } catch (err) {
-        console.log(`❌ ERROR gathering subsystems with attrib ${attrib}`);
+        if(debugConsole) {console.log(`❌ ERROR gathering subsystems with attrib ${attrib}`);}
         return fallbackValue;
     }
 }

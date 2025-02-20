@@ -293,7 +293,7 @@ async function getUsersStats( users, members ){
 
 async function sendUserStats( guild ){
 
-    console.log("================ Update Users Stats ================")
+    console.log("===== Update Users Stats =====")
 
     await bulkDeleteMessages(guild.channels.cache.get(channelID_UserStats), 20);
 
@@ -344,7 +344,7 @@ async function sendIDs( guild, updateServer = true ){
 
 async function inactivityCheck(myGuild){
 
-    console.log("================ Check inactivity ================")
+    console.log("===== Check inactivity =====")
     
     var inactiveCount = 0;
     
