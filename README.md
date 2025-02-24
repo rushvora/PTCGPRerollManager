@@ -15,7 +15,7 @@ Once that's done, they can join or leave the list by simply typing **/Active**, 
 
 The bot will also post a message every hour to change your status quicker
 <img align="left" width="450" height="124" src="https://github.com/user-attachments/assets/15c035f3-7e5a-44ab-a2b7-da76635a6041">
-<br/> <br/> <br/> <br/> <br/> <br/> 
+<br/> <br/> <br/> <br/> <br/> <br/> <br/>
 As i'm using GitGist, the refresh time can be up to a maximum of 5 minutes
 
 With **/SetAverageInstances**, players can also specify how many instances they are usually running and if the heartbeat is not received it will use this one waiting for the real number of instances
