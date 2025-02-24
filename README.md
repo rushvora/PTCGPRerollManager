@@ -14,7 +14,7 @@ Using **/SetPlayerID**, player are able to link their ID with their discord acco
 Once that's done, they can join or leave the list by simply typing **/Active**, **/Inactive**, **/Farm** or **/Leech** and it will **update a GitGist** that all players are linked with _(Note that you can disable leech or ask for specific requirements in config.json)_
 
 The bot will also post a message every hour to change your status quicker
-<img align="center" width="500" height="138" src="https://github.com/user-attachments/assets/15c035f3-7e5a-44ab-a2b7-da76635a6041">
+<img align="center" width="400" height="110" src="https://github.com/user-attachments/assets/15c035f3-7e5a-44ab-a2b7-da76635a6041">
 
 As i'm using GitGist, the refresh time can be up to a maximum of 5 minutes
 
@@ -56,9 +56,7 @@ Moreover, you can type **/miss** and after a specific amount of miss based on pa
 
 You can also use **/addgpfound** and **/removegpfound** to fix false positive godpacks from arturo's bot
 
-<img align="center" width="1049" height="332" src="https://github.com/user-attachments/assets/2a9abc8a-f578-434a-9bca-f13019188ee3">
-
-<br /> 
+![SmartGP](https://github.com/user-attachments/assets/474ce816-a479-4e86-bd51-8a56b2a69611)
 <br /> 
 
 ## Usernames generator :
