@@ -11,23 +11,26 @@ This repo is a Discord Bot written in javascript ES6 made to work with [Arturo P
 
 Using **/SetPlayerID**, player are able to link their ID with their discord account
 
-Once that's done, they can leave the pull by simply typing **/Add** or **/Remove** and it will **update a GitGist** that all players are linked with
+Once that's done, they can join or leave the list by simply typing **/Active**, **/Inactive**, **/Farm** or **/Leech** and it will **update a GitGist** that all players are linked with _(Note that you can disable leech or ask for specific requirements in config.json)_
+
+The bot will also post a message every hour to change your status quicker
+<img align="center" width="500" height="138" src="https://github.com/user-attachments/assets/15c035f3-7e5a-44ab-a2b7-da76635a6041">
 
 As i'm using GitGist, the refresh time can be up to a maximum of 5 minutes
 
 With **/SetAverageInstances**, players can also specify how many instances they are usually running and if the heartbeat is not received it will use this one waiting for the real number of instances
 <br /> 
 <br /> 
-<br /> 
-<br /> 
 
 ## Heartbeats implementation
 
-<img align="right" width="375" height="507" src="https://i.imgur.com/goZDtl9.png">
+<img align="right" width="438" height="513" src="https://github.com/user-attachments/assets/0217ac25-7b24-4727-b40f-e0bbc70b9649">
 
-You can ask your group to use heartbeat so everyone will know who's rerolling and who's not based on the webhook
+The bot display two different things, **server stats** and **user stats** for more details, it will auto update in a specific channel every 10 minutes
 
-It will auto update in a specific channel every 10 minutes and shows a lot of informations such as :
+Server stats can be used to determine the efficiency of your group, on later updates it'll also show GP stats
+
+And there's also the users stats who recaps more precise stats about all users that are either active, farming or leeching and it shows a lot of informations such as :
 - Amount of Packs per minute for the session
 - Total Amount of Packs
 - Total Amount of Godpacks
@@ -37,10 +40,8 @@ Color means something for the username :
 - ${\color{lightgreen}Green}$ : Heartbeat have been received in the last 30mn and the user is rerolling
 - ${\color{yellow}Yellow}$ : Heartbeat have not been received in the last 30mn and active for < 30mn
 - ${\color{red}Red}$ : Heartbeat have not been received in the last 30mn and active for > 30mn
-
-You can also use **/addgpfound** and **/removegpfound** to fix false positive godpacks from arturo's bot
-<br /> 
-<br /> 
+- ${\color{cyan}Cyan}$ : The user is farming (noMain)
+- ${\color{pink}Pink}$ : The user is leeching (onlyMain)
 <br /> 
 
 ## Better GP management :
@@ -53,7 +54,10 @@ In a forum post, peoples of your group can type **/Dead** or **/Verified** to ch
 
 Moreover, you can type **/miss** and after a specific amount of miss based on packs ammount, it will automatically switch it as **/dead**. There's a thread on our discord if you have some ideas of funny sentences that the bot could say (As i also implemented a system that make the bot different things based on the % of miss)
 
-![Auto Thread](https://i.imgur.com/iO4WDha.png)
+You can also use **/addgpfound** and **/removegpfound** to fix false positive godpacks from arturo's bot
+
+<img align="center" width="1049" height="332" src="https://github.com/user-attachments/assets/2a9abc8a-f578-434a-9bca-f13019188ee3">
+
 <br /> 
 <br /> 
 
@@ -118,7 +122,7 @@ After that [create a new fine-grained token](https://github.com/settings/tokens)
 
 Then, [create a GitGist](https://gist.github.com/) and get it's ID (the numbers in the URL). Now you're ready to fill out the last two variables in config.js and **modify the GitGistName variable in index.mjs** with your gist file name
 
-In Arturo's bot the url should be placed in Friend ID and look like this : "https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw"
+In Arturo's bot the url should be placed in Friend ID and look like this : "https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/PTCGPRerollGroupIDs"
 <br /> 
 <br /> 
 
