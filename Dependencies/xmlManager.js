@@ -589,6 +589,7 @@ async function refreshUserRealInstances( user, activeState, fallbackValue = 1 ){
         }
 
         var instances = "0";
+
         if(activeState == "active"){
             instances = parseInt(getAttribValueFromUser(user, attrib_HBInstances, fallbackValue));
             // Add Subsystems instances
@@ -597,6 +598,11 @@ async function refreshUserRealInstances( user, activeState, fallbackValue = 1 ){
         else if(activeState == "waiting"){
             instances = parseInt(getAttribValueFromUser(user, attrib_AverageInstances, fallbackValue));
         }
+
+        // Override real instances if leeching
+        const userState = getAttribValueFromUser(user, attrib_UserState, "inactive");
+        instances = userState == "leech" ? 0 : instances;
+
         await setUserAttribValue( getIDFromUser(user), getUsernameFromUser(user), attrib_RealInstances, instances );
         return instances
     }

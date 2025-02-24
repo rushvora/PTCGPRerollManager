@@ -423,6 +423,13 @@ client.on(Events.InteractionCreate, async interaction => {
         await interaction.deferReply();
         setUserState(client, interaction.user, "inactive", interaction)
     }
+    else if (interaction.customId === 'refreshUserStats') {
+        await interaction.deferReply();
+        const text_listForceRefreshed = localize(`**Stats des rerollers actifs rafraichies dans <#${channelID_UserStats}>**`, `**Active rerollers stats refreshed in <#${channelID_UserStats}>**`);
+
+        await sendReceivedMessage(client, text_listForceRefreshed, interaction, delayMsgDeleteState);
+        sendUserStats(client)
+    }
 
     if(!interaction.isChatInputCommand()) return;
 
@@ -554,8 +561,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
         const text_listRefreshed = `${text_IDsRefreshedIn} ${refreshTime}mn**, ${text_see} <#${channelID_UserStats}>`;
 
-        // Reading the current players file
-        await sendReceivedMessage(client, text_listRefreshed, interaction);
+        await sendReceivedMessage(client, text_listRefreshed, interaction, delayMsgDeleteState);
         sendIDs(client);
     }
 
@@ -565,8 +571,7 @@ client.on(Events.InteractionCreate, async interaction => {
         await interaction.deferReply();
         const text_listForceRefreshed = localize(`**Stats des rerollers actifs rafraichies dans <#${channelID_UserStats}>**`, `**Active rerollers stats refreshed in <#${channelID_UserStats}>**`);
 
-        // Reading the current players file
-        await sendReceivedMessage(client, text_listForceRefreshed, interaction);
+        await sendReceivedMessage(client, text_listForceRefreshed, interaction, delayMsgDeleteState);
         sendUserStats(client)
     }
     

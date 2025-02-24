@@ -224,7 +224,7 @@ async function getUsersStats(users, members){
         // Calculate packs/mn
         var diffPacksSinceLastHb = parseFloat(getAttribValueFromUser(user, attrib_DiffPacksSinceLastHB)) + total_diffPacksSinceLastHBSubsystems;
         var avgPackMn = roundToOneDecimal(diffPacksSinceLastHb/heartbeatRate);
-        avgPackMn = isNaN(avgPackMn) ? 0 : avgPackMn;
+        avgPackMn = isNaN(avgPackMn) || userState == "leech" ? 0 : avgPackMn;
         await setUserAttribValue( id, username, attrib_PacksPerMin, avgPackMn);
         const text_avgPackMn = colorText(avgPackMn, "blue");
 
@@ -364,8 +364,14 @@ async function sendStatusHeader(client){
         .setEmoji('💀')
         .setStyle(ButtonStyle.Danger);
 
-    const row1 = new ActionRowBuilder().addComponents(buttonActive, buttonInactive);
-    const row2 = new ActionRowBuilder().addComponents(buttonFarm, buttonLeech);
+    const buttonRefreshStats = new ButtonBuilder()
+        .setCustomId('refreshUserStats')
+        .setLabel('Refresh Stats')
+        .setEmoji('🔄')
+        .setStyle(ButtonStyle.Primary);
+
+    const row1 = new ActionRowBuilder().addComponents(buttonActive, buttonInactive, buttonFarm, buttonLeech);
+    const row2 = new ActionRowBuilder().addComponents(buttonRefreshStats);
 
     await channel_IDs.send({ embeds: [embedStatusChange], components: [row1, row2] });
 }
@@ -609,10 +615,15 @@ async function setUserState(client, user, state, interaction = undefined){
     }
     else if(state == "leech"){
         
+        if(!canPeopleLeech){
+            const text_noLeech = localize("Le leech est désactivé sur ce serveur","Leeching is disabled on this server");
+            return await sendReceivedMessage(client, `${text_noLeech}`,interaction ,delayMsgDeleteState);
+        }
+
         const text_noReqGP = localize("ne peut pas leech car il a moins de","can't leech because he got less than");
         const text_noReqPacks = localize("et moins de","and less than");
-        const gpGPCount = getAttribValueFromUser(user, attrib_GodPackFound, 0);
-        const gpPackCount = getAttribValueFromUser(user, attrib_TotalPacksOpened, 0);
+        const gpGPCount = await getUserAttribValue(client, userID, attrib_GodPackFound, 0);
+        const gpPackCount = await getUserAttribValue(client, userID, attrib_TotalPacksOpened, 0);
         
         if(gpGPCount < leechPermGPCount && gpPackCount < leechPermPackCount){
             return await sendReceivedMessage(client, `**<@${userID}>** ${text_noReqGP} ${leechPermGPCount}gp ${text_noReqPacks} ${leechPermPackCount}packs`,interaction ,delayMsgDeleteState);
