@@ -14,7 +14,7 @@ Using **/SetPlayerID**, player are able to link their ID with their discord acco
 Once that's done, they can join or leave the list by simply typing **/Active**, **/Inactive**, **/Farm** or **/Leech** and it will **update a GitGist** that all players are linked with _(Note that you can disable leech or ask for specific requirements in config.json)_
 
 The bot will also post a message every hour to change your status quicker
-<img align="left" width="500" height="138" src="https://github.com/user-attachments/assets/15c035f3-7e5a-44ab-a2b7-da76635a6041">
+<img align="left" width="490" height="135" src="https://github.com/user-attachments/assets/15c035f3-7e5a-44ab-a2b7-da76635a6041">
 <br/> <br/> <br/> <br/> <br/> <br/> 
 As i'm using GitGist, the refresh time can be up to a maximum of 5 minutes
 
