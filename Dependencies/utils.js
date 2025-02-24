@@ -2,6 +2,19 @@ import {
     EnglishLanguage,
 } from '../config.js';
 
+import {
+    channelID_IDs,
+    channelID_UserStats,
+    channelID_GPVerificationForum,
+    channelID_2StarVerificationForum,
+    channelID_Webhook,
+    channelID_Heartbeat,
+} from '../config.js';
+
+import {
+    getGuild,
+} from './coreUtils.js';
+
 function sumIntArray( arrayNumbers ) {
     return arrayNumbers.reduce((accumulator, currentValue) => parseInt(accumulator) + parseInt(currentValue), 0);
 }
@@ -65,10 +78,40 @@ function splitMulti(str, tokens){
     return str;
 }
 
-async function sendReceivedMessage(interaction, content) {
-    await interaction.editReply({ content: content });
+async function sendReceivedMessage(client, msgContent, interaction = undefined, timeout = 0, channelID = channelID_IDs) {
+    
+    var message = "";
+    
+    if(interaction != undefined) {
+        message = await interaction.editReply({ content: msgContent });
+        
+        if(parseFloat(timeout) > 0){
+            setTimeout(() => {
+                message.delete().catch(console.error);
+            }, parseFloat(timeout)*1000);
+        }
+    }
+    else{
+        sendChannelMessage(client, channelID, msgContent, timeout);
+    }
 }
 
+async function sendChannelMessage(client, channelID, msgContent, timeout = 0) {
+    
+    const guild = await getGuild(client);
+
+    if(timeout > 0){
+        guild.channels.cache.get(channelID).send({ content:`${msgContent}`})
+            .then(sentMessage => {
+                setTimeout(() => {
+                sentMessage.delete().catch(console.error);
+                }, timeout * 1000);
+            });
+    }
+    else{
+        guild.channels.cache.get(channelID).send({ content:`${msgContent}`});
+    }
+}
 
 async function bulkDeleteMessages(channel, numberOfMessages) {
     try {
@@ -173,8 +216,12 @@ async function getOldestMessage( channel ){
             return ""
         }
     } catch (error) {
-        console.log('ERROR TRYING TO ACCES OLDER MESSAGE');
+        console.log('❌ ERROR TRYING TO ACCES OLDER MESSAGE');
     }    
+}
+
+function wait(seconds) {
+    return new Promise(resolve => setTimeout(resolve, seconds * 1000));
 }
 
 export { 
@@ -190,10 +237,12 @@ export {
     replaceLastOccurrence,
     replaceMissCount,
     sendReceivedMessage, 
+    sendChannelMessage,
     bulkDeleteMessages, 
     colorText, 
     addTextBar,
     localize,
     getRandomStringFromArray,
     getOldestMessage,
+    wait,
 }

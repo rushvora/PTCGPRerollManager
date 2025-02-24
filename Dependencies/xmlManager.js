@@ -9,7 +9,7 @@ const debugConsole = false;
 
 import {
     attrib_PocketID,
-    attrib_Active,
+    attrib_UserState,
     attrib_AverageInstances,
     attrib_HBInstances,
     attrib_RealInstances,
@@ -30,10 +30,11 @@ import {
 
 import {
     inactiveTime,
-} from '.././config.js';
+} from '../config.js';
 
 const __dirname = import.meta.dirname;
 const pathUsersData = __dirname+'/../users/UsersData.xml';
+const pathServerData = __dirname+'/../users/ServerData.xml';
 
 function cleanString( inputString ){
     // Remove blank lines
@@ -43,10 +44,10 @@ function cleanString( inputString ){
     return inputString;
 }
 
-// Read the UserData.xml file
-async function readFileAsync() {
+// Read file
+async function readFileAsync(filepath) {
     try {
-        const data = await fs.promises.readFile(pathUsersData, 'utf8');
+        const data = await fs.promises.readFile(filepath, 'utf8');
         return new Promise((resolve, reject) => {
             xml2js.parseString(data, (err, result) => {
                 if (err) {
@@ -62,9 +63,9 @@ async function readFileAsync() {
 }
 
 // Read if UserData.xml exists, otherwise create it with "content"
-async function checkFileExistsOrCreate( content='' ) {
-    if (!fs.existsSync(pathUsersData)) {
-        const dir = path.dirname(pathUsersData);
+async function checkFileExistsOrCreate( filepath, content='' ) {
+    if (!fs.existsSync(filepath)) {
+        const dir = path.dirname(filepath);
         
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
@@ -73,7 +74,7 @@ async function checkFileExistsOrCreate( content='' ) {
         // ==== ASYNC LOCK WRITE ==== //
         await lock.acquire('fileLock', async () => {
             try {
-                await fs.promises.writeFile(pathUsersData, content);
+                await fs.promises.writeFile(filepath, content);
             } catch (error) {
                 console.log('❌ ERROR trying to write filesync with lock');
         }});
@@ -89,7 +90,7 @@ async function createUserProfile( attribUserId, attribUserName ) {
         var result = ""; 
         await lock.acquire('fileLock', async () => {
             try {
-                result = await readFileAsync();
+                result = await readFileAsync(pathUsersData);
             } catch (error) {
                 console.log('❌ ERROR trying to read filesync with lock');
         }});
@@ -109,7 +110,7 @@ async function createUserProfile( attribUserId, attribUserName ) {
             $: { username: attribUserName },
             _: attribUserId,
             // attrib_PocketID: "0000000000000000",
-            [attrib_Active]: false,
+            [attrib_UserState]: "inactive",
             [attrib_AverageInstances]: 0,
             [attrib_HBInstances]: 0,
             [attrib_RealInstances]: 0,
@@ -152,13 +153,13 @@ async function doesUserProfileExists( attribUserId, attribUserName ) {
     const builder = new xml2js.Builder();
     const xmlOutput = builder.buildObject(data);
 
-    await checkFileExistsOrCreate(xmlOutput)
+    await checkFileExistsOrCreate(pathUsersData, xmlOutput)
 
     // ==== ASYNC LOCK READ ==== //
     var result = "";
     await lock.acquire('fileLock', async () => {
         try {
-            result = await readFileAsync();
+            result = await readFileAsync(pathUsersData);
         } catch (error) {
             console.log('❌ ERROR trying to read filesync with lock');
     }});
@@ -195,7 +196,7 @@ async function setUserAttribValue( attribUserId, attribUserName, subAttribName, 
         var result = "";
         await lock.acquire('fileLock', async () => {
             try {
-                result = await readFileAsync();
+                result = await readFileAsync(pathUsersData);
             } catch (error) {
                 console.log('❌ ERROR trying to read filesync with lock');
         }});
@@ -242,7 +243,7 @@ async function getUserAttribValue( client, attribUserId, subAttribName, fallback
         var result = "";
         await lock.acquire('fileLock', async () => {
             try {
-                result = await readFileAsync();
+                result = await readFileAsync(pathUsersData);
             } catch (error) {
                 console.log('❌ ERROR trying to read filesync with lock');
         }});
@@ -268,6 +269,7 @@ async function getUserAttribValue( client, attribUserId, subAttribName, fallback
 
 
 
+// =============================================== Subsystems ===============================================
 
 
 
@@ -279,7 +281,7 @@ async function setUserSubsystemAttribValue( attribUserId, attribUserName, subSys
         var result = "";
         await lock.acquire('fileLock', async () => {
             try {
-                result = await readFileAsync();
+                result = await readFileAsync(pathUsersData);
             } catch (error) {
                 console.log('❌ ERROR trying to read filesync with lock');
         }});
@@ -343,7 +345,7 @@ async function getUserSubsystemAttribValue( client, attribUserId, subSystemName,
         var result = "";
         await lock.acquire('fileLock', async () => {
             try {
-                result = await readFileAsync();
+                result = await readFileAsync(pathUsersData);
             } catch (error) {
                 console.log('❌ ERROR trying to read filesync with lock');
         }});
@@ -378,24 +380,42 @@ async function getUserSubsystemAttribValue( client, attribUserId, subSystemName,
 
 
 
+// =============================================== Server ===============================================
 
 
 
-async function getActiveUsers( fallbackValue = "" ) {
+
+
+
+
+// =============================================== Others ===============================================
+
+
+
+async function getActiveUsers( includeFarmers = false, includeLeechers = false, fallbackValue = "" ) {
 
     try{
         // ==== ASYNC LOCK READ ==== //
         var result = "";
         await lock.acquire('fileLock', async () => {
             try {
-                result = await readFileAsync();
+                result = await readFileAsync(pathUsersData);
             } catch (error) {
                 console.log('❌ ERROR trying to read filesync with lock');
         }});
         ////////////////////////////////
 
         if (result.root && result.root.user && result.root.user.length > 0){
-            var ActiveUsers = result.root.user.filter(u => u.Active && u.Active[0] === 'true');
+            var ActiveUsers = result.root.user.filter( user => {
+
+                if(user[attrib_UserState]){
+
+                    const state = user[attrib_UserState][0];
+                    return state === 'active' ||
+                           (includeFarmers && state === 'farm') ||
+                           (includeLeechers && state === 'leech');        
+                }
+            });
         }
         
         return ActiveUsers;
@@ -403,12 +423,11 @@ async function getActiveUsers( fallbackValue = "" ) {
     catch {
         console.log('❌ ERROR trying to read users database, please add users');
         return fallbackValue;
-        
     }
 }
 
 async function getActiveIDs( joined = true ){
-    const activeUsers = await getActiveUsers();
+    const activeUsers = await getActiveUsers(false, true);
     const gitContent = getAttribValueFromUsers(activeUsers, attrib_PocketID, "");
     
     if(joined) {return gitContent.join('\n');}
@@ -421,7 +440,7 @@ async function getAllUsers() {
     var result = "";
     await lock.acquire('fileLock', async () => {
         try {
-            result = await readFileAsync();
+            result = await readFileAsync(pathUsersData);
         } catch (error) {
             console.log('❌ ERROR trying to read filesync with lock');
     }});

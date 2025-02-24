@@ -1,5 +1,5 @@
 const attrib_PocketID = "PocketID";
-const attrib_Active = "Active";
+const attrib_UserState = "UserState";
 const attrib_ActiveState = "ActiveState";
 const attrib_AverageInstances = "AverageInstances";
 const attrib_HBInstances = "HBInstances";
@@ -19,7 +19,7 @@ const attrib_Subsystem = "Subsystem";
 
 export{ 
     attrib_PocketID, 
-    attrib_Active,
+    attrib_UserState,
     attrib_ActiveState,
     attrib_AverageInstances, 
     attrib_HBInstances, 

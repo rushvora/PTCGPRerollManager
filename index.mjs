@@ -15,8 +15,6 @@
 
 // Imports
 
-import { Octokit } from '@octokit/core';
-
 import {
     token,
     guildID,
@@ -28,8 +26,10 @@ import {
     channelID_Heartbeat,
     gitToken,
     gitGistID,
-    gitGistName,
+    gitGistGroupName,
+    gitGistGPName,
     missBeforeDead,
+    EnglishLanguage,
     AutoKick,
     refreshInterval,
     inactiveTime,
@@ -37,8 +37,12 @@ import {
     inactivePackPerMinCount,
     inactiveIfMainOffline,
     heartbeatRate,
+    delayMsgDeleteState,
     canPeopleAddOthers,
     canPeopleRemoveOthers,
+    canPeopleLeech,
+    leechPermGPCount,
+    leechPermPackCount,
     text_verifiedLogo,
     text_deadLogo,
     text_waitingLogo,
@@ -62,7 +66,22 @@ import {
     addTextBar,
     localize,
     getOldestMessage,
+    wait,
 } from './Dependencies/utils.js';
+
+import {
+    getGuild, 
+    getMemberByID,
+    getUsersStats, 
+    sendUserStats, 
+    sendIDs,
+    sendStatusHeader,
+    inactivityCheck,
+    createForumPost,
+    markAsDead, 
+    getEligibleIDs,
+    setUserState,
+} from './Dependencies/coreUtils.js';
 
 import {
     doesUserProfileExists,
@@ -87,7 +106,7 @@ import {
 
 import {
     attrib_PocketID,
-    attrib_Active,
+    attrib_UserState,
     attrib_AverageInstances,
     attrib_HBInstances,
     attrib_RealInstances,
@@ -116,6 +135,10 @@ import {
     GatewayIntentBits,
     SlashCommandBuilder,
     REST,
+    ButtonBuilder, 
+    ButtonStyle,
+    ActionRowBuilder,
+    EmbedBuilder,
     PermissionsBitField,
 } from 'discord.js';
 
@@ -133,44 +156,6 @@ const client = new Client({
 var startIntervalTime = Date.now();    
 var evenTurnInterval = false;
 
-// ID GitGist Management
-
-const octokit = new Octokit({
-    auth: gitToken
-})
-
-async function updateGist(){
-
-    const gitContent = await getActiveIDs();
-
-    console.log("================ Update GistGit ================")
-
-    await octokit.request(`PATCH /gists/${gitGistID}`,{
-        gist_id: 'gitGistID',
-        description: '',
-        files:{
-            [gitGistName]:{
-                content: gitContent
-            }
-        },
-        headers: {
-            'X-GitHub-Api-Version': '2022-11-28'
-        }
-    })
-}
-
-// Functions
-
-async function getMemberByID( myGuild, id ){
-
-    try{
-        return await myGuild.members.fetch(cleanString(id));
-    }
-    catch{
-        return ""
-    }
-}
-
 function getNexIntervalRemainingTime() {
     const currentTime = Date.now();
     const elapsedTime = currentTime - startIntervalTime;
@@ -178,310 +163,12 @@ function getNexIntervalRemainingTime() {
     return timeRemaining;
 }
 
-async function getUsersStats( users, members ){
-
-    var usersStats = []
-
-    for (const user of users) {
-
-        var userOutput = `\`\`\`ansi\n`;
-
-        const currentTime = new Date();
-        const id = getIDFromUser(user);
-        const username = getUsernameFromUser(user);
-        var visibleUsername = username;
-
-        // Subsystems stats
-        const instancesSubsystems = getAttribValueFromUserSubsystems(user, attrib_HBInstances, 0);
-        const sessionTimeSubsystems = getAttribValueFromUserSubsystems(user, attrib_SessionTime, 0);
-        const sessionPacksSubsystems = getAttribValueFromUserSubsystems(user, attrib_SessionPacksOpened, 0);
-        const lastHBTimeSubsystems = getAttribValueFromUserSubsystems(user, attrib_LastHeartbeatTime, 0);
-        const diffPacksSinceLastHBSubsystems = getAttribValueFromUserSubsystems(user, attrib_DiffPacksSinceLastHB, 0);
-
-        var session_PacksSubsystems = 0;
-        var total_PacksSinceLastHbSubsystems = 0;
-        var total_PacksSubsystems = 0;
-        var total_diffPacksSinceLastHBSubsystems = 0;
-        var biggerSessionTimeSubsystems = 0;
-
-        for (let i = 0; i < lastHBTimeSubsystems.length; i++){
-
-            const diffHBSubsystem = (currentTime - new Date(lastHBTimeSubsystems[i])) / 60000;
-            
-            if(diffHBSubsystem < parseFloat(heartbeatRate+1)){ // If last HB less than Xmn then count instances and session time
-                biggerSessionTimeSubsystems = Math.max(biggerSessionTimeSubsystems, sessionTimeSubsystems[i]);
-                session_PacksSubsystems += parseFloat(sessionPacksSubsystems[i]);
-                total_diffPacksSinceLastHBSubsystems += parseFloat(diffPacksSinceLastHBSubsystems[i]);
-            }
-            total_PacksSubsystems += parseFloat(sessionPacksSubsystems[i]);
-        }
-
-        // Activity check
-        members.forEach( member =>{
-            if(username === member.user.username) {
-                visibleUsername = member.displayName;
-            }
-        });
-
-        const userActiveState = await refreshUserActiveState(user);
-        const activeState = userActiveState[0];
-        var inactiveTime = userActiveState[1];
-
-        var barOffset = 50;
-
-        if(activeState == "active")
-        {
-            userOutput += colorText(visibleUsername, "green");
-        }
-        else if (activeState == "waiting") {
-            userOutput += colorText(visibleUsername, "yellow") + " - started";
-        }
-        else{ // Inactive
-            inactiveTime = Math.round(parseFloat(inactiveTime));
-            userOutput += colorText(visibleUsername, "red") + ` - inactive for ${colorText(inactiveTime,"red")}mn`;
-            barOffset += 11; // 11 more because coloring the text adds 11 hidden characters
-        }
-
-        userOutput = addTextBar(userOutput, barOffset);
-
-        // Instances
-        
-        var instances = await refreshUserRealInstances(user, activeState);
-        userOutput += colorText(` ${instances} instances\n`, "gray");
-
-        // Session stats       
-
-        var sessionTime = getAttribValueFromUser(user, attrib_SessionTime)
-        sessionTime = roundToOneDecimal( parseFloat( Math.max(sessionTime, biggerSessionTimeSubsystems) ) );
-        var sessionPackF = parseFloat(getAttribValueFromUser(user, attrib_SessionPacksOpened)) + session_PacksSubsystems;
-
-        const text_Session = colorText("Session:", "gray");
-        const text_sessionTime = colorText("running " + sessionTime + "mn", "gray");
-        const text_sessionPackF = colorText("w/ " + sessionPackF + " packs", "gray");
-
-        // Calculate packs/mn
-        var diffPacksSinceLastHb = parseFloat(getAttribValueFromUser(user, attrib_DiffPacksSinceLastHB)) + total_diffPacksSinceLastHBSubsystems;
-        var avgPackMn = roundToOneDecimal(diffPacksSinceLastHb/heartbeatRate);
-        avgPackMn = isNaN(avgPackMn) ? 0 : avgPackMn;
-        await setUserAttribValue( id, username, attrib_PacksPerMin, avgPackMn);
-        const text_avgPackMn = colorText(avgPackMn, "blue");
-
-        userOutput += `    ${text_Session} ${text_avgPackMn} packs/mn  ${text_sessionTime} ${text_sessionPackF}\n`
-
-        // Pack stats
-        const totalPack = parseInt(getAttribValueFromUser(user, attrib_TotalPacksOpened));
-        var sessionPackI = parseInt(getAttribValueFromUser(user, attrib_SessionPacksOpened)) + total_PacksSubsystems;
-
-        const totalGodPack = parseInt(getAttribValueFromUser(user, attrib_GodPackFound));
-        const avgGodPack = roundToOneDecimal(totalGodPack >= 1 ? (totalPack+sessionPackI)/totalGodPack : (totalPack+sessionPackI));
-
-        const text_GPAvg = colorText("GP Avg:", "gray");
-        const text_Packs = colorText("Packs:", "gray");
-        const text_GP = colorText("GP:", "gray");
-        const text_TotalPack = colorText(totalPack + sessionPackI, "blue");
-        const text_TotalGodPack = colorText(totalGodPack, "blue");
-        const text_GPRatio = totalGodPack >= 1 ? '1/' : '0/';
-        const text_AvgGodPack = colorText(`${text_GPRatio}${avgGodPack}`, `blue`);
-
-        userOutput += `    ${text_Packs} ${text_TotalPack}  ${text_GP} ${text_TotalGodPack}  ${text_GPAvg} ${text_AvgGodPack} packs`
-        userOutput += `\n\`\`\``;
-
-        usersStats.push(userOutput);
-    };
-    
-    return usersStats;
-}
-
-async function sendUserStats( guild ){
-
-    console.log("===== Update Users Stats =====")
-
-    await bulkDeleteMessages(guild.channels.cache.get(channelID_UserStats), 20);
-
-    // CACHE MEMBERS
-    const m = await guild.members.fetch()
-
-    var activeUsers = await getActiveUsers();
-    // Exit if 0 activeUsers
-    if (activeUsers == "" || activeUsers.length == 0) {return};
-
-    var activeUsersInfos = await getUsersStats(activeUsers, m);
-
-    // Send users data message by message otherwise it gets over the 2k words limit
-    const text_ActiveList = localize("Liste des rerollers actifs", "List of actives rerollers");
-
-    guild.channels.cache.get(channelID_UserStats).send({content:`# ${text_ActiveList} :\n`})
-    activeUsersInfos.forEach( activeUserInfos =>{
-        guild.channels.cache.get(channelID_UserStats).send({content:activeUserInfos});
-    });
-
-    // Update Users (due to RealInstance attribute getting updated) 
-    activeUsers = await getActiveUsers();
-    const activeInstances = getAttribValueFromUsers(activeUsers, attrib_RealInstances, [0]);
-    const instancesAmount = sumIntArray(activeInstances);
-
-    const globalPacksPerMin = getAttribValueFromUsers(activeUsers, attrib_PacksPerMin, [0]);
-    const accumulatedPacksPerMin = roundToOneDecimal(sumFloatArray(globalPacksPerMin));
-
-    const text_avgInstances = localize("instances à environ", "instance that run at");
-    const text_activeInstances = `## ${instancesAmount} ${text_avgInstances} ${accumulatedPacksPerMin} packs/mn\n\n`;
-
-    // Send UserStats
-    guild.channels.cache.get(channelID_UserStats).send({ content:`${text_activeInstances}`});
-}
-
-async function sendIDs( guild, updateServer = true ){
-
-    const activePocketIDs = await getActiveIDs();
-
-    const text_contentOf = localize("Contenu de IDs.txt", "Content of IDs.txt");
-    const text_activePocketIDs = `*${text_contentOf} :*\n\`\`\`\n${activePocketIDs}\n\`\`\``;
-    // Send instances and IDs
-    guild.channels.cache.get(channelID_IDs).send({ content:`${text_activePocketIDs}`});
-    if(updateServer){
-        updateGist();
-    }
-}
-
-async function inactivityCheck(myGuild){
-
-    console.log("===== Check inactivity =====")
-    
-    var inactiveCount = 0;
-    
-    var activeUsers = await getActiveUsers(); // Get current active users
-    // Exit if 0 activeUsers
-    if (activeUsers == "" || activeUsers.length == 0) {return};
-
-    for ( var i = 0; i < activeUsers.length; i++ ) {
-        
-        const user = activeUsers[i];
-
-        // Check user active state
-        const userActiveState = await refreshUserActiveState(user);
-        // Check user instances count
-        const userInstances = await refreshUserRealInstances(user, userActiveState[0]);
-        // Check user pack per min & sessionTime
-        const userPackPerMin = await getAttribValueFromUser(user, attrib_PacksPerMin, 10);
-        const sessionTime = await getAttribValueFromUser(user, attrib_SessionTime, 0);
-        
-        // Check if kickable and prevent him if he have been kicked
-        var text_haveBeenKicked = ""
-        if( userActiveState == "inactive" ){
-            text_haveBeenKicked = localize(`a été kick des rerollers actifs pour inactivité depuis plus de ${inactiveTime}mn`,` have been kicked out of active rerollers for inactivity for more than ${inactiveTime}mn`);
-            console.log(`✖️ Kicked ${getUsernameFromUser(user)} - inactivity for more than ${inactiveTime}mn`);
-        } 
-        else if ( userInstances <= parseInt(inactiveInstanceCount) ){
-            text_haveBeenKicked = localize(`a été kick des rerollers actifs pour car il a ${userInstances} instances en cours`,` have been kicked out of active rerollers for inactivity because he had ${userInstances} instances running`);
-            console.log(`✖️ Kicked ${getUsernameFromUser(user)} - ${userInstances} instances running`);
-        }
-        else if ( userPackPerMin < inactivePackPerMinCount && userPackPerMin > 0 && sessionTime > parseInt(heartbeatRate)+1 ){
-            text_haveBeenKicked = localize(`a été kick des rerollers actifs pour avoir fait ${userPackPerMin} packs/mn`,` have been kicked out of active rerollers for inactivity because made ${userPackPerMin} packs/mn`);
-            console.log(`✖️ Kicked ${getUsernameFromUser(user)} - made ${userPackPerMin} packs/mn`);
-        }
-        else{
-            continue;
-        }
-
-        // Then we can kick the user if continue didn't triggered
-        await setUserAttribValue( getIDFromUser(user), getUsernameFromUser(user), attrib_Active, false);
-        myGuild.channels.cache.get(channelID_IDs).send({ content:`<@${getIDFromUser(user)}> ${text_haveBeenKicked}`});
-    };
-
-    if(inactiveCount >= 1){
-        updateGist();
-    }
-}
-
-async function createForumPost( guild, message, channelID, packName, titleName, ownerID, accountID, packAmount) {
-
-    const text_verificationRedirect = localize("Verification ici :","Verification link here :");
-    const text_godpackFoundBy = localize(`${packName} trouvé par`,`${packName} found by`);
-    const text_commandTooltip = localize(
-        "Écrivez **/miss** si un autre est apparu ou que vous ne l'avez pas\n**/verified** ou **/dead** pour changer l'état du post",
-        "Write **/miss** if another one appeared or you didn't saw it\n**/verified** or **/dead** to change post state");
-    const text_eligible = localize("**Éligibles :**","**Eligible :**");
-    
-    const member = await getMemberByID(guild, ownerID);
-
-    // Skip if member do not exist
-    if (member == "") {
-        console.log(`Heartbeat from ID ${userID} is no registered on this server`)
-        return;
-    }
-    var ownerUsername = (member).user.username;
-    
-    if(packName == "GodPack"){
-        const godPackFound = await getUserAttribValue( client, ownerID, attrib_GodPackFound, 0 );
-        await setUserAttribValue( ownerID, ownerUsername, attrib_GodPackFound, parseInt(godPackFound) + 1);
-    }
-        
-    var imageUrl = message.attachments.first().url;
-
-    var activeUsersID = getIDFromUsers(await getActiveUsers());
-    var tagActiveUsernames = "";
-
-    activeUsersID.forEach((id) =>{
-            tagActiveUsernames += `<@${id}>`
-    });
-
-    // Create thread in Webhook channel
-    const thread = await message.startThread({
-        name: text_verificationRedirect,
-    }).then( async thread =>{
-        // First line
-        const text_foundbyLine = `${text_godpackFoundBy} **<@${ownerID}>**\n`;
-        
-        // Second line
-        packAmount = extractNumbers(packAmount);
-        packAmount = Math.max(Math.min(packAmount,3),1); // Ensure that it is only 1 to 3
-        const text_miss = `## [ 0 miss / ${missBeforeDead[packAmount-1]} ]`
-        const text_missLine = `${text_miss}\n\n`;
-        
-        // Third line
-        const text_eligibleLine = `${text_eligible} ${tagActiveUsernames}\n\n`;
-        
-        // Fourth line
-        const text_metadataLine = `Source: ${message.url}\n${imageUrl}\n\n`;
-
-        // Create forum post for verification
-        const forum = client.channels.cache.get(channelID);
-        const forumPost = forum.threads.create({
-        name: `⌛ ${titleName}`,
-        message: {
-            content: text_foundbyLine + text_missLine + text_eligibleLine + text_metadataLine + text_commandTooltip,
-        },
-        }).then ( async forum =>{
-
-            // Post forum link in webhook thread
-            await thread.send(text_verificationRedirect + ` ${forum}`);
-            // Lock thread
-            await thread.setLocked(true);
-
-            guild.channels.cache.get(await forum.id).send({content:`${accountID} is the id of the account\n`})
-        })
-    });
-} 
-
-async function markAsDead( interaction, optionalText = "" ){
-
-    const text_markAsDead = localize("Godpack marqué comme mort et fermé","Godpack marked as dud and closed");
-        
-    const forumPost = client.channels.cache.get(interaction.channelId);
-    // Edit a thread
-    forumPost.edit({ name: `${forumPost.name.replace(text_waitingLogo, text_deadLogo)}` });
-
-    await sendReceivedMessage(interaction, optionalText + text_deadLogo + ` ` + text_markAsDead);
-    
-    // forumPost.setArchived(true);
-}
-
 // Events
 
 client.once(Events.ClientReady, async c => {
-    console.log(`Logged in as ${c.user.tag}`);
+    console.log(`✅ Logged in as ${c.user.tag}`);
 
-    const guild = client.guilds.cache.get(guildID);
+    const guild = await getGuild(client);
 
     // Every "refreshInterval/2" mn it will alternate from sendUserStat to inactivityCheck
     setInterval(() =>{
@@ -489,17 +176,26 @@ client.once(Events.ClientReady, async c => {
         evenTurnInterval = !evenTurnInterval;
 
         if (evenTurnInterval) {
-            sendUserStats(guild);
+            sendUserStats(client);
         } 
         else if(AutoKick) {
-            inactivityCheck(guild);
+            inactivityCheck(client);
         }
 
     }, convertMnToMs(refreshInterval/2));
 
-    // // Clear all guild commands (Warning : also clear channels restrictions set on discord)
-    // const guild = await client.guilds.fetch(guildID);
+    sendStatusHeader(client)
+
+    setInterval(() =>{
+        sendStatusHeader(client)
+    }, convertMnToMs(60));
+
+    // Clear all guild commands (Warning : also clear channels restrictions set on discord)
     // guild.commands.set([]);
+
+    // TO REMOVE A SPECIFIC GUILD COMMAND
+    // const commandId = 'XXXXXXXXXXXXXXXXXXX';
+    // await guild.commands.delete(commandId);
 
     // Commands Creation
 
@@ -527,27 +223,51 @@ client.once(Events.ClientReady, async c => {
                 .setRequired(true)
         );
 
-    const addDesc = localize("Vous ajoute dans le doc d'ID", "Add yourself to the active rerollers list");
-    const addDescUser = localize("ADMIN ONLY : pour forcer l'ajout de quelqu'un d'autre", "ADMIN ONLY : Only usefull so force add someone else than yourself");
-    const addSCB = new SlashCommandBuilder()
-        .setName(`add`)
-        .setDescription(`${addDesc}`)
+    const activeDesc = localize("Vous ajoute dans le doc d'ID", "Add yourself to the active rerollers list");
+    const activeDescUser = localize("ADMIN ONLY : pour forcer l'ajout de quelqu'un d'autre", "ADMIN ONLY : Only usefull so force add someone else than yourself");
+    const activeSCB = new SlashCommandBuilder()
+        .setName(`active`)
+        .setDescription(`${activeDesc}`)
         .addUserOption(option =>
             option
                 .setName("user")
-                .setDescription(`${addDescUser}`)
+                .setDescription(`${activeDescUser}`)
                 .setRequired(false)
         );
     
-    const removeDesc = localize("Vous retire du doc d'ID"," Withdraw yourself from the active rerollers list");
-    const removeDescUser = localize("ADMIN ONLY : pour forcer le retrait de quelqu'un d'autre", "ADMIN ONLY : Only usefull so force remove someone else than yourself");
-    const removeSCB = new SlashCommandBuilder()
-        .setName(`remove`)
-        .setDescription(`${removeDesc}`)
+    const inactiveDesc = localize("Vous retire du doc d'ID"," Withdraw yourself from the active rerollers list");
+    const inactiveDescUser = localize("ADMIN ONLY : pour forcer le retrait de quelqu'un d'autre", "ADMIN ONLY : Only usefull so force remove someone else than yourself");
+    const inactiveSCB = new SlashCommandBuilder()
+        .setName(`inactive`)
+        .setDescription(`${inactiveDesc}`)
         .addUserOption(option =>
             option
                 .setName("user")
-                .setDescription(`${removeDescUser}`)
+                .setDescription(`${inactiveDescUser}`)
+                .setRequired(false)
+        );
+        
+    const farmDesc = localize("Vous ajoute dans le doc d'ID comme farmer (noMain)", "Add yourself to the active rerollers list as farmer (noMain)");
+    const farmDescUser = localize("ADMIN ONLY : pour forcer l'ajout' de quelqu'un d'autre", "ADMIN ONLY : Only usefull so force add someone else than yourself");
+    const farmSCB = new SlashCommandBuilder()
+        .setName(`farm`)
+        .setDescription(`${farmDesc}`)
+        .addUserOption(option =>
+            option
+                .setName("user")
+                .setDescription(`${farmDescUser}`)
+                .setRequired(false)
+        );
+
+    const leechDesc = localize("Vous ajoute dans le doc d'ID comme leecher (onlyMain)", "Add yourself to the active rerollers list as leecher (onlyMain)");
+    const leechDescUser = localize("ADMIN ONLY : pour forcer l'ajout' de quelqu'un d'autre", "ADMIN ONLY : Only usefull so force add someone else than yourself");
+    const leechSCB = new SlashCommandBuilder()
+        .setName(`leech`)
+        .setDescription(`${leechDesc}`)
+        .addUserOption(option =>
+            option
+                .setName("user")
+                .setDescription(`${leechDescUser}`)
                 .setRequired(false)
         );
     
@@ -634,11 +354,17 @@ client.once(Events.ClientReady, async c => {
     const instancesCommand = instancesSCB.toJSON();
     client.application.commands.create(instancesCommand, guildID);
 
-    const addCommand = addSCB.toJSON();
-    client.application.commands.create(addCommand, guildID);
+    const activeCommand = activeSCB.toJSON();
+    client.application.commands.create(activeCommand, guildID);
 
-    const removeCommand = removeSCB.toJSON();
-    client.application.commands.create(removeCommand, guildID);
+    const inactiveCommand = inactiveSCB.toJSON();
+    client.application.commands.create(inactiveCommand, guildID);
+
+    const farmCommand = farmSCB.toJSON();
+    client.application.commands.create(farmCommand, guildID);
+
+    const leechCommand = leechSCB.toJSON();
+    client.application.commands.create(leechCommand, guildID);
 
     const refreshCommand = refreshSCB.toJSON();
     client.application.commands.create(refreshCommand, guildID);
@@ -677,7 +403,26 @@ client.on(Events.InteractionCreate, async interaction => {
     var interactionUserID = interaction.user.id;
     var interactionDisplayName = interaction.user.displayName;
 
-    const guild = client.guilds.cache.get(guildID);
+    const guild = await getGuild(client);
+
+    // ======================= Buttons =======================
+        
+    if (interaction.customId === 'active') {
+        await interaction.deferReply();
+        setUserState(client, interaction.user, "active", interaction)
+    } 
+    else if (interaction.customId === 'farm') {
+        await interaction.deferReply();
+        setUserState(client, interaction.user, "farm", interaction)
+    }
+    else if (interaction.customId === 'leech') {
+        await interaction.deferReply();
+        setUserState(client, interaction.user, "leech", interaction)
+    }
+    else if (interaction.customId === 'inactive') {
+        await interaction.deferReply();
+        setUserState(client, interaction.user, "inactive", interaction)
+    }
 
     if(!interaction.isChatInputCommand()) return;
 
@@ -694,7 +439,7 @@ client.on(Events.InteractionCreate, async interaction => {
         const text_set = localize("set pour","set for user");
 
         if(id.length != 16 || !isNumbers(id)){
-            await sendReceivedMessage(interaction, text_incorrectID + ` **<@${interactionUserID}>**, ` + text_incorrectReason);
+            await sendReceivedMessage(client, text_incorrectID + ` **<@${interactionUserID}>**, ` + text_incorrectReaso, interaction);
         }
         else{
             const userPocketID = await getUserAttribValue( client, interactionUserID, attrib_PocketID);
@@ -702,100 +447,101 @@ client.on(Events.InteractionCreate, async interaction => {
             if( userPocketID != undefined ){
 
                 await setUserAttribValue( interactionUserID, interactionUserName, attrib_PocketID, cleanString(id));
-                await sendReceivedMessage(interaction, `Code **${userPocketID}** ` + text_replace + ` **${id}** ` + text_for + ` **<@${interactionUserID}>**`);
+                await sendReceivedMessage(client, `Code **${userPocketID}** ` + text_replace + ` **${id}** ` + text_for + ` **<@${interactionUserID}>**`, interaction);
             }
             else{
                 await setUserAttribValue( interactionUserID, interactionUserName, attrib_PocketID, cleanString(id));
-                await sendReceivedMessage(interaction, `Code **${id}** ` + text_set + ` **<@${interactionUserID}>**`);
+                await sendReceivedMessage(client, `Code **${id}** ` + text_set + ` **<@${interactionUserID}>**`, interaction);
             }
         }
     }
 
-    // ADD COMMAND
-    if(interaction.commandName === `add`){
+    // ACTIVE COMMAND
+    if(interaction.commandName === `active`){
 
         await interaction.deferReply();
-        const text_alreadyIn = localize("est déjà présent dans la liste des rerollers actifs","is already in the active rerollers pool");
         const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit other user");
-        const text_missingFriendCode = localize("Le Player ID est nécéssaire avant de vouloir s'add","The Player ID is needed before you can add yourself");
-        const user = interaction.options.getUser(`user`);
-        if( user != null ){
+        
+        var user = interaction.user;
+        const userArg = interaction.options.getUser(`user`);
+        
+        if( userArg != null ){
             if(!canPeopleAddOthers) {
-
+                
                 if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
-                    return await sendReceivedMessage(interaction, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`);
+                    return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, interaction);
                 }
             }
-            interactionUserName = user.username;
-            interactionUserID = user.id;
-            interactionDisplayName = user.displayName;
+            var user = userArg;
         }
 
-        if(await doesUserProfileExists(interactionUserID, interactionUserName)){
-            if( await getUserAttribValue(client, interactionUserID, attrib_PocketID) == undefined){
-                return await sendReceivedMessage(interaction, text_missingFriendCode);
-            }
-        }
-        else{
-            return await sendReceivedMessage(interaction, text_missingFriendCode);
-        }
-
-        var isPlayerActive = await getUserAttribValue( client, interactionUserID, attrib_Active) === "true";
-        
-        // Skip if player already active
-        if(isPlayerActive == 0){
-
-            console.log(`➕ Added ${interactionUserName}`);
-            await setUserAttribValue( interactionUserID, interactionUserName, attrib_Active, true);
-            await setUserAttribValue( interactionUserID, interactionUserName, attrib_LastActiveTime, new Date().toString());
-            await sendReceivedMessage(interaction, `\`\`\`diff\n+${interactionDisplayName}\n\`\`\``);
-            // Send the list of IDs to an URL and who is Active is the IDs channel
-            sendIDs(guild);
-        }
-        else{
-            await sendReceivedMessage(interaction, `**<@${interactionUserID}>** ` + text_alreadyIn);
-        }
+        setUserState(client, user, "active", interaction)
     }
 
-    // REMOVE COMMAND
-    if(interaction.commandName === `remove`){
+    // INACTIVE COMMAND
+    if(interaction.commandName === `inactive`){
 
         await interaction.deferReply();
-        const text_alreadyOut = localize("est déjà absent de la liste des rerollers actifs","is already out of the active rerollers pool");
         const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit the other user");
-        const text_missingFriendCode = localize("Le Player ID est nécéssaire avant de vouloir se remove","The Player ID is needed before you can remove yourself");
         
-        const user = interaction.options.getUser(`user`);
-        if( user != null){
+        var user = interaction.user;
+        const userArg = interaction.options.getUser(`user`);
+
+        if( userArg != null){
             if(!canPeopleRemoveOthers) {
 
                 if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
-                    return await sendReceivedMessage(interaction, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`);
+                    return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, interaction);
                 }
             }
-            interactionUserName = user.username;
-            interactionUserID = user.id;
-            interactionDisplayName = user.displayName;
+            var user = userArg;
         }
 
-        if( await getUserAttribValue(client, interactionUserID, attrib_PocketID) == undefined){
-            return await sendReceivedMessage(interaction, text_missingFriendCode);
-        }
+        setUserState(client, user, "inactive", interaction)
+    }
+
+    // FARM COMMAND
+    if(interaction.commandName === `farm`){
+
+        await interaction.deferReply();
+        const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit the other user");
         
-        var isPlayerActive = await getUserAttribValue( client, interactionUserID, attrib_Active) === "true";
+        var user = interaction.user;
+        const userArg = interaction.options.getUser(`user`);
 
-        // Skip if player not active
-        if(isPlayerActive == 1){
+        if( userArg != null){
+            if(!canPeopleRemoveOthers) {
 
-            console.log(`➖ Removed ${interactionUserName}`);
-            await setUserAttribValue( interactionUserID, interactionUserName, attrib_Active, false);
-            await sendReceivedMessage(interaction, `\`\`\`diff\n-${interactionDisplayName}\n\`\`\``);
-            // Send the list of IDs to an URL and who is Active is the IDs channel
-            sendIDs(guild);
+                if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
+                    return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, interaction);
+                }
+            }
+            var user = userArg;
         }
-        else{
-            await sendReceivedMessage(interaction, `**<@${interactionUserID}>** ` + text_alreadyOut);
+
+        setUserState(client, user, "farm", interaction)
+    }
+
+    // LEECH COMMAND
+    if(interaction.commandName === `leech`){
+
+        await interaction.deferReply();
+        const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit the other user");
+        
+        var user = interaction.user;
+        const userArg = interaction.options.getUser(`user`);
+
+        if( userArg != null){
+            if(!canPeopleRemoveOthers) {
+
+                if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
+                    return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, interaction);
+                }
+            }
+            var user = userArg;
         }
+
+        setUserState(client, user, "leech", interaction)
     }
 
     // REFRESH COMMAND
@@ -809,8 +555,8 @@ client.on(Events.InteractionCreate, async interaction => {
         const text_listRefreshed = `${text_IDsRefreshedIn} ${refreshTime}mn**, ${text_see} <#${channelID_UserStats}>`;
 
         // Reading the current players file
-        await sendReceivedMessage(interaction, text_listRefreshed);
-        sendIDs(guild);
+        await sendReceivedMessage(client, text_listRefreshed, interaction);
+        sendIDs(client);
     }
 
     // FORCE REFRESH COMMAND
@@ -820,8 +566,8 @@ client.on(Events.InteractionCreate, async interaction => {
         const text_listForceRefreshed = localize(`**Stats des rerollers actifs rafraichies dans <#${channelID_UserStats}>**`, `**Active rerollers stats refreshed in <#${channelID_UserStats}>**`);
 
         // Reading the current players file
-        await sendReceivedMessage(interaction, text_listForceRefreshed);
-        sendUserStats(guild)
+        await sendReceivedMessage(client, text_listForceRefreshed, interaction);
+        sendUserStats(client)
     }
     
     // VERIFIED COMMAND
@@ -834,14 +580,14 @@ client.on(Events.InteractionCreate, async interaction => {
         // Edit a thread
         forumPost.edit({ name: `${forumPost.name.replace(text_waitingLogo, text_verifiedLogo)}` });
 
-        await sendReceivedMessage(interaction, text_verifiedLogo + ` ` + text_markAsVerified + ` ${forumPost}`);
+        await sendReceivedMessage(client, text_verifiedLogo + ` ` + text_markAsVerified + ` ${forumPost}`, interaction);
     }
 
     // DEAD COMMAND
     if(interaction.commandName === `dead`){
 
         await interaction.deferReply();
-        markAsDead(interaction);
+        markAsDead(client, interaction);
     }
 
     // MISS COMMAND
@@ -871,18 +617,18 @@ client.on(Events.InteractionCreate, async interaction => {
                 await initialMessage.edit( `${replaceMissCount(initialMessage.content, newMissAmount)}`);
 
                 const text_failed = localize(`C'est finito\n`,`Well rip,`) + ` **[ ${newMissAmount} miss / ${missNeeded} ]**\n`;
-                markAsDead(interaction, text_failed);
+                markAsDead(client, interaction, text_failed);
             }
             else{
                 await initialMessage.edit( `${replaceMissCount(initialMessage.content, newMissAmount)}`);
                 
                 // If miss is <= 50% the amount sentences are """encouraging""" then it gets worst and even more after 75% 
                 const text_fitTension = newMissAmount <= missNeeded*0.5 ? text_lowTension(client) : newMissAmount <= missNeeded*0.75 ? text_mediumTension(client) : text_highTension(client);
-                await sendReceivedMessage(interaction, `${text_fitTension}\n**[ ${newMissAmount} miss / ${missNeeded} ]**`);            
+                await sendReceivedMessage(client, `${text_fitTension}\n**[ ${newMissAmount} miss / ${missNeeded} ]**`, interaction);            
             }
         }
         else{
-            await sendReceivedMessage(interaction, text_notCompatible);
+            await sendReceivedMessage(client, text_notCompatible, interaction);
         }
     }
 
@@ -901,11 +647,11 @@ client.on(Events.InteractionCreate, async interaction => {
             var user = allUsers[i];
             var userID = getIDFromUser(user);
             
-            const member = await getMemberByID(guild, userID);
+            const member = await getMemberByID(client, userID);
 
             // Skip if member do not exist
             if (member == "") {
-                console.log(`Heartbeat from ID ${userID} is no registered on this server`)
+                console.log(`❗️ Heartbeat from ID ${userID} is no registered on this server`)
                 continue;
             }
 
@@ -922,7 +668,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
         activityOutput+="\`\`\`";
 
-        await sendReceivedMessage(interaction, activityOutput);
+        await sendReceivedMessage(client, activityOutput, interaction);
     }
 
     // LAST ACTIVITY COMMAND
@@ -938,11 +684,11 @@ client.on(Events.InteractionCreate, async interaction => {
         for( var i = 0; i < allUsers.length; i++ ) {
             
             var userID = getIDFromUser(allUsers[i]);
-            const member = await getMemberByID(guild, userID);
+            const member = await getMemberByID(client, userID);
 
             // Skip if member do not exist
             if (member == "") {
-                console.log(`Heartbeat from ID ${userID} is no registered on this server`)
+                console.log(`❗️ Heartbeat from ID ${userID} is no registered on this server`)
                 continue;
             }
 
@@ -957,7 +703,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
         activityOutput+="\`\`\`";
 
-        await sendReceivedMessage(interaction, activityOutput);
+        await sendReceivedMessage(client, activityOutput, interaction);
     }
 
     // GENERATE USERNAMES COMMAND
@@ -972,7 +718,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
         if(suffix == null || keyWords == null)
         {
-            return await sendReceivedMessage(interaction, text_incorrectParameters);
+            return await sendReceivedMessage(client, text_incorrectParameters, interaction);
         }
         
         keyWords = keyWords.replaceAll(`,`,` `).split(' ');
@@ -1006,7 +752,7 @@ client.on(Events.InteractionCreate, async interaction => {
         }
         
 
-        await sendReceivedMessage(interaction, text_listGenerated);
+        await sendReceivedMessage(client, text_listGenerated, interaction);
         await interaction.channel.send({
             files: [{
                 attachment: Buffer.from(content),
@@ -1026,11 +772,11 @@ client.on(Events.InteractionCreate, async interaction => {
         const text_for = localize("pour","for");
 
         if(amount < 1 || amount > 100){
-            await sendReceivedMessage(interaction, text_incorrectAmount);
+            await sendReceivedMessage(client, text_incorrectAmount, interaction);
         }
         else{
             await setUserAttribValue( interactionUserID, interactionUserName, attrib_AverageInstances, amount);
-            await sendReceivedMessage(interaction, text_instancesSetTo + ` **${amount}** ` + text_for + ` **<@${interactionUserID}>**`);
+            await sendReceivedMessage(client, text_instancesSetTo + ` **${amount}** ` + text_for + ` **<@${interactionUserID}>**`, interaction);
         }
     }
 
@@ -1042,7 +788,7 @@ client.on(Events.InteractionCreate, async interaction => {
         const text_missingPerm = localize("n\'a pas les permissions d\'Admin","do not have Admin permissions");
         
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            return await sendReceivedMessage(interaction, `<@${interactionUserID}> ${text_missingPerm}`);
+            return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm}`, interaction);
         }
 
         const user = interaction.options.getUser(`user`);
@@ -1053,7 +799,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
         var GPCount = parseInt(await getUserAttribValue( client, interactionUserID, attrib_GodPackFound));
         await setUserAttribValue( interactionUserID, interactionUserName, attrib_GodPackFound, GPCount+1);
-        await sendReceivedMessage(interaction, `${text_addGP} **<@${interactionUserID}>**`);
+        await sendReceivedMessage(client, `${text_addGP} **<@${interactionUserID}>**`, interaction);
     }
 
     // REMOVE GP FOUND COMMAND
@@ -1065,7 +811,7 @@ client.on(Events.InteractionCreate, async interaction => {
         const text_missingPerm = localize("n\'a pas les permissions d\'Admin","do not have Admin permissions");
 
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            return await sendReceivedMessage(interaction, `<@${interactionUserID}> ${text_missingPerm}`);
+            return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm}`, interaction);
         }
 
         const user = interaction.options.getUser(`user`);
@@ -1077,17 +823,17 @@ client.on(Events.InteractionCreate, async interaction => {
         var GPCount = parseInt(await getUserAttribValue( client, interactionUserID, attrib_GodPackFound));
         if (GPCount > 0){
             await setUserAttribValue( interactionUserID, interactionUserName, attrib_GodPackFound, GPCount-1);
-            await sendReceivedMessage(interaction, `${text_removeGP} **<@${interactionUserID}>**`);
+            await sendReceivedMessage(client, `${text_removeGP} **<@${interactionUserID}>**`, interaction);
         }
         else{
-            await sendReceivedMessage(interaction, `${text_minimumGP} **<@${interactionUserID}>**`);
+            await sendReceivedMessage(client, `${text_minimumGP} **<@${interactionUserID}>**`, interaction);
         }
-    }        
+    }  
 });
 
 client.on("messageCreate", async (message) => {
 
-    const guild = await client.guilds.fetch(guildID);
+    const guild = await getGuild(client);
 
     // Do never continue if the author is the bot, that should not filter webhooks
     if (message.author.id === client.user.id) return;
@@ -1107,7 +853,7 @@ client.on("messageCreate", async (message) => {
 
             var titleName = `${accountName}[${packAmount}][${twoStarsRatio}]`;
 
-            await createForumPost(guild, message, channelID_GPVerificationForum, "GodPack", titleName, ownerID, accountID, packAmount);
+            await createForumPost(client, message, channelID_GPVerificationForum, "GodPack", titleName, ownerID, accountID, packAmount);
         }
 
         //Execute when screen is posted
@@ -1124,7 +870,7 @@ client.on("messageCreate", async (message) => {
 
             var titleName = `${accountName}[${packAmount}]`;
 
-            await createForumPost(guild, message, channelID_2StarVerificationForum, "Double 2Star", titleName, ownerID, accountID, packAmount);
+            await createForumPost(client, message, channelID_2StarVerificationForum, "Double 2Star", titleName, ownerID, accountID, packAmount);
         }
     }
 
@@ -1146,11 +892,11 @@ client.on("messageCreate", async (message) => {
             return await message.reply(`${text_WrongHB} **( ${userID} )**\n${text_CorrectInput}`);
         }
 
-        const member = await getMemberByID(guild, userID);
+        const member = await getMemberByID(client, userID);
 
         // Skip if member do not exist
         if (member == "") {
-            console.log(`Heartbeat from ID ${userID} is no registered on this server`)
+            console.log(`❗️ Heartbeat from ID ${userID} is no registered on this server`)
             return;
         }
 
@@ -1189,10 +935,11 @@ client.on("messageCreate", async (message) => {
                 if(AutoKick){
 
                     if(mainInactive && inactiveIfMainOffline){
-                        await setUserAttribValue( userID, userUsername, attrib_Active, false);
+                        await setUserAttribValue( userID, userUsername, attrib_UserState, "inactive");
+                        sendIDs(client);
                         // And prevent him that he have been kicked
                         const text_haveBeenKicked = localize("a été kick des rerollers actifs car son Main est Offline"," have been kicked out of active rerollers due to Main being Offline");
-                        guild.channels.cache.get(channelID_IDs).send({ content:`<@${userID}> ${text_haveBeenKicked}`});
+                        sendChannelMessage(client, channelID_IDs, `<@${userID}> ${text_haveBeenKicked}`)
                         console.log(`✖️ Kicked ${userUsername} - Main was Offline`);
                     }
                 }
@@ -1229,10 +976,11 @@ client.on("messageCreate", async (message) => {
                 if(AutoKick){
                     
                     if(mainInactive && inactiveIfMainOffline){
-                        await setUserAttribValue( userID, userUsername, attrib_Active, false);
+                        await setUserAttribValue( userID, userUsername, attrib_UserState, "inactive");
+                        sendIDs(client);
                         // And prevent him that he have been kicked
                         const text_haveBeenKicked = localize("a été kick des rerollers actifs car son Main est Offline"," have been kicked out of active rerollers due to Main being Offline");
-                        guild.channels.cache.get(channelID_IDs).send({ content:`<@${userID}> ${text_haveBeenKicked}`});
+                        sendChannelMessage(client, channelID_IDs, `<@${userID}> ${text_haveBeenKicked}`)
                         console.log(`✖️ Kicked ${userUsername} - Main was Offline`);
                     }
                 }

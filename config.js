@@ -22,7 +22,9 @@ const gitToken = "github_pat_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // Then, create a GitGist : https://gist.github.com/ and get its ID (the numbers in the URL).
 const gitGistID = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
 // And the GitGist Name based on the name you gave it
-const gitGistName = "PTCGPRerollGroupIDs.txt";
+const gitGistGroupName = "PTCGPRerollGroupIDs";
+// And the GitGist Name based on the name you gave it
+const gitGistGPName = "EligibleGPs";
 
 // Number of /miss needed before a post is marked as dead, here it means 1pack=4miss, 2packs=6miss, 3packs=8miss
 const missBeforeDead = [4,6,8];
@@ -47,10 +49,21 @@ var inactiveIfMainOffline = false;
 // No need to modify it except you specifically changed the rate in yours ahk files
 var heartbeatRate = 30;
 
+// Delete state messages after X seconds (/add /remove /refresh /forcerefresh) 0 = no delete
+var delayMsgDeleteState = 10;
+
 // No need to modify it except you specifically changed the rate in yours ahk files
 const canPeopleAddOthers = true;
 // No need to modify it except you specifically changed the rate in yours ahk files
 const canPeopleRemoveOthers = false;
+
+// LEECHING
+// Decide wether or not ppl can leech
+const canPeopleLeech = true;
+// Decide after how many GP found ppl can be able to leech
+const leechPermGPCount = 20;
+// Decide after how many packs opened ppl can be able to leech
+const leechPermPackCount = 50000;
 
 // Icons of GP Validation
 const text_verifiedLogo = "✅";
@@ -68,7 +81,8 @@ export {
     channelID_Heartbeat,
     gitToken,
     gitGistID,
-    gitGistName,
+    gitGistGroupName,
+    gitGistGPName,
     missBeforeDead,
     EnglishLanguage,
     AutoKick,
@@ -78,8 +92,12 @@ export {
     inactivePackPerMinCount,
     inactiveIfMainOffline,
     heartbeatRate,
+    delayMsgDeleteState,
     canPeopleAddOthers,
     canPeopleRemoveOthers,
+    canPeopleLeech,
+    leechPermGPCount,
+    leechPermPackCount,
     text_verifiedLogo,
     text_deadLogo,
     text_waitingLogo,

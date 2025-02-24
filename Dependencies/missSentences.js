@@ -48,9 +48,11 @@ function text_lowTension(client){
         `Je suis sur que t'as déjà toutes les 2star ${emoji_Bedge}`,
         `T\'as pas le droit de nous faire perdre espoir comme ca...`,
         `MAIS C\'ÉTAIT SUR EN FAIT, C\'ÉTAIT SUUUUR`,
-        `Avoir un gp, c\’est comme essayer de faire 3 fois pile avec Ondine, impossible. ${emoji_KEKWait}`,
+        `Pas de bras, pas de chocolat ${emoji_KEKWait}`,
+        `Avoir un gp, c\’est comme essayer de faire 3 fois face avec Ondine, impossible. ${emoji_KEKWait}`,
         `La légende raconte que quelqu\’un, quelque part, a déjà vu un God Pack... Mais pas toi ${emoji_KEKW}`,
         `Raté... C'est comme chercher un Shiny sans Charme Chroma ${emoji_Sadge}`,
+        `Aïe aïe aïe`,
         `Y\'a R ${emoji_Copium}`]),
     getRandomStringFromArray([
         `It\'s fine, we just started`,
@@ -70,6 +72,7 @@ function text_mediumTension(client){
         `Plus rien ne va... ${emoji_Sadge}`,
         `Si c\'est vraiment dead on vire l\'host en même temps que son pack ${emoji_KEKW}`,
         `Qu\'est-ce qu\'on t\'a fait pour mériter ça ${emoji_KEKWait}`,
+        `Attendre d'avoir un gp alive, c'est comme attendre avec l'envie de caguer sans jamais pouvoir y aller ${emoji_KEKWait}`,
         `À ce rythme, tu vas écrire un livre : 1001 façons de ne PAS choper un God Pack ${emoji_PeepoClown}`,
         `Moi j\'y crois encore tkt ${emoji_Copium}`]),
     getRandomStringFromArray([
@@ -90,6 +93,7 @@ function text_highTension(client){
         `TU ES TILTÉ BOUBOU ! TU AS BESOIN DE BOL ! ${emoji_KEKW}`,
         `T'as mieux fait de perdre celui la que de rater le pick d'un 4/5`,
         `C'est ciao.`,
+        `Oh pinaise un gp invalide Marge fourre moi le donut sucré au sucre`,
         `Tout espoir est perdu ${emoji_Sadge}`,
         `Le prochain GP c'est le bon ${emoji_Copium}`,
         `"Quoient... Encore un gp dead...`,
