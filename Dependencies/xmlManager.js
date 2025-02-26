@@ -472,7 +472,7 @@ function getIDFromUser( user ){
 function getAttribValueFromUsers( user, attrib, fallbackValue = undefined ){
     try{
         return user.map(u => {
-            if(u[attrib][0]){
+            if(u[attrib]){
                 return u[attrib][0];
             }
         });

@@ -15,9 +15,27 @@ import {
     getGuild,
 } from './coreUtils.js';
 
-function sumIntArray( arrayNumbers ) {
-    return arrayNumbers.reduce((accumulator, currentValue) => parseInt(accumulator) + parseInt(currentValue), 0);
+function formatNumbertoK(num) {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'k';
+    } else {
+      return num.toString();
+    }
 }
+
+function formatMinutesToDays(minutes) {
+    const days = minutes / (24 * 60); // 1 day = 24 hours * 60 minutes
+    return days.toFixed(1) + ' days';
+  }
+
+function sumIntArray( arrayNumbers ) {
+    return arrayNumbers
+      .filter(item => item !== undefined) // Filtrer les valeurs undefined
+      .map(Number) // Convertir les chaînes en nombres
+      .reduce((acc, curr) => acc + curr, 0); // Additionner les nombres
+  }
 
 function sumFloatArray( arrayNumbers ) {
     return arrayNumbers.reduce((accumulator, currentValue) => parseFloat(accumulator) + parseFloat(currentValue), 0);
@@ -115,7 +133,6 @@ async function sendChannelMessage(client, channelID, msgContent, timeout = 0) {
 
 async function bulkDeleteMessages(channel, numberOfMessages) {
     try {
-        let messagesToDelete = [];
         let totalDeleted = 0;
 
         // Fetch messages in batches of 100
@@ -123,12 +140,20 @@ async function bulkDeleteMessages(channel, numberOfMessages) {
             const messages = await channel.messages.fetch({ limit: 100 });
             const messagesToDelete = messages.filter(msg => !msg.pinned);
 
-            if (messagesToDelete.length === 0) {
+            if (messagesToDelete.size === 0) {
                 break;
             }
 
-            await channel.bulkDelete(messagesToDelete);
-            totalDeleted += messagesToDelete.length;
+            // Check if the messages still exist before attempting to delete them
+            const messagesToDeleteIds = messagesToDelete.map(msg => msg.id);
+            const existingMessages = await channel.messages.fetch({ message: messagesToDeleteIds });
+
+            if (existingMessages.size > 0) {
+                await channel.bulkDelete(existingMessages);
+                totalDeleted += existingMessages.size;
+            } else {
+                break;
+            }
         }
     } catch (error) {
         console.error('Error deleting messages:', error);
@@ -224,7 +249,9 @@ function wait(seconds) {
     return new Promise(resolve => setTimeout(resolve, seconds * 1000));
 }
 
-export { 
+export {
+    formatMinutesToDays,
+    formatNumbertoK,
     sumIntArray, 
     sumFloatArray, 
     roundToOneDecimal, 

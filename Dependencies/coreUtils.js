@@ -32,6 +32,8 @@ import {
 } from '../config.js';
 
 import {
+    formatMinutesToDays,
+    formatNumbertoK,
     sumIntArray, 
     sumFloatArray, 
     roundToOneDecimal, 
@@ -260,7 +262,7 @@ async function sendUserStats(client){
     
     const guild = await getGuild(client);
 
-    await bulkDeleteMessages(guild.channels.cache.get(channelID_UserStats), 50);
+    await bulkDeleteMessages(guild.channels.cache.get(channelID_UserStats), 20);
 
     // CACHE MEMBERS
     const m = await guild.members.fetch()
@@ -287,6 +289,10 @@ async function sendUserStats(client){
 
     // const text_activeInstances = `## ${instancesAmount} ${text_avgInstances} ${accumulatedPacksPerMin} packs/mn\n\n`;
 
+    const allUsers = await getAllUsers();
+    const totalServerPacks = sumIntArray(getAttribValueFromUsers(allUsers, attrib_TotalPacksOpened, [0]));
+    const totalServerTime = sumIntArray(getAttribValueFromUsers(allUsers, attrib_TotalTime, [0]));
+    
     const embedUserStats = new EmbedBuilder()
         .setColor('#f02f7e') // Couleur en hexadécimal
         .setTitle('Summary')
@@ -301,6 +307,9 @@ async function sendUserStats(client){
             { name: `📊 Avg Instance/Ppl :     ‎`, value: `${avginstances}`, inline: true },
             { name: `📊 Avg PPM/Ppl :`, value: `${avgPacksPerMin}`, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
+            { name: `🃏 Total Packs :          ‎`, value: `${formatNumbertoK(totalServerPacks)}`, inline: true },
+            { name: `🕓 Total Time :`, value: `${formatMinutesToDays(totalServerTime)}`, inline: true },
+            { name: '\u200B', value: '\u200B', inline: true },
         );
 
     // Send UserStats
@@ -308,9 +317,12 @@ async function sendUserStats(client){
     guild.channels.cache.get(channelID_UserStats).send({ embeds: [embedUserStats] });
     guild.channels.cache.get(channelID_UserStats).send({content:`## ${text_UserStats} :\n`})
     
-    activeUsersInfos.forEach( activeUserInfos =>{
-        guild.channels.cache.get(channelID_UserStats).send({content:activeUserInfos});
-    });
+    for(var i = 0; i<activeUsersInfos.length; i++){
+        const activeUsersInfo = activeUsersInfos[i];
+        guild.channels.cache.get(channelID_UserStats).send({content:activeUsersInfo});
+        // Avoid user stats spawning by stacks of 4 but instead one by one
+        await wait(1.5)
+    }
 }
 
 async function sendIDs(client, updateServer = true){
@@ -319,9 +331,7 @@ async function sendIDs(client, updateServer = true){
 
     const text_contentOf = localize("Contenu de IDs.txt", "Content of IDs.txt");
     const text_activePocketIDs = `*${text_contentOf} :*\n\`\`\`\n${activePocketIDs}\n\`\`\``;
-    // Send instances and IDs
-    const sentMessage = 
-    
+    // Send instances and IDs    
     sendChannelMessage(client, channelID_IDs, text_activePocketIDs, delayMsgDeleteState);
     
     if(updateServer){
@@ -337,7 +347,7 @@ async function sendStatusHeader(client){
     const embedStatusChange = new EmbedBuilder()
         .setColor('#f02f7e')
         .setTitle('Click to change your status')
-        .setDescription('It works similar to /add /remove /farm or /leech');
+        .setDescription('It works similar to /active /inactive /farm or /leech');
 
     const buttonActive = new ButtonBuilder()
         .setCustomId('active')
@@ -400,23 +410,35 @@ async function inactivityCheck(client){
         const userPackPerMin = await getAttribValueFromUser(user, attrib_PacksPerMin, 10);
         const sessionTime = await getAttribValueFromUser(user, attrib_SessionTime, 0);
         
+        const lastActiveTime = new Date(await getAttribValueFromUser(user, attrib_LastActiveTime, 0));
+        const currentTime = Date.now();
+        const diffActiveTime = (currentTime - lastActiveTime) / 60000;
+        
         // Check if kickable and prevent him if he have been kicked
         var text_haveBeenKicked = ""
         if( userActiveState == "inactive" ){
             text_haveBeenKicked = localize(`a été kick des rerollers actifs pour inactivité depuis plus de ${inactiveTime}mn`,` have been kicked out of active rerollers for inactivity for more than ${inactiveTime}mn`);
             console.log(`✖️ Kicked ${getUsernameFromUser(user)} - inactivity for more than ${inactiveTime}mn`);
-        } 
-        else if ( userInstances <= parseInt(inactiveInstanceCount) ){
-            text_haveBeenKicked = localize(`a été kick des rerollers actifs pour car il a ${userInstances} instances en cours`,` have been kicked out of active rerollers for inactivity because he had ${userInstances} instances running`);
-            console.log(`✖️ Kicked ${getUsernameFromUser(user)} - ${userInstances} instances running`);
         }
         else if ( 
-            parseFloat(userPackPerMin) < parseFloat(inactivePackPerMinCount) && 
-            parseFloat(userPackPerMin) > 0 && 
-            parseFloat(sessionTime) > parseInt(heartbeatRate)+1 ){
+            parseFloat(diffActiveTime) > parseInt(heartbeatRate)+1 && 
+            parseFloat(sessionTime) > parseInt(heartbeatRate)+1) {
             
-            text_haveBeenKicked = localize(`a été kick des rerollers actifs pour avoir fait ${userPackPerMin} packs/mn`,` have been kicked out of active rerollers for inactivity because made ${userPackPerMin} packs/mn`);
-            console.log(`✖️ Kicked ${getUsernameFromUser(user)} - made ${userPackPerMin} packs/mn`);
+            if( userInstances <= parseInt(inactiveInstanceCount) ){
+            
+                text_haveBeenKicked = localize(`a été kick des rerollers actifs pour car il a ${userInstances} instances en cours`,` have been kicked out of active rerollers for inactivity because he had ${userInstances} instances running`);
+                console.log(`✖️ Kicked ${getUsernameFromUser(user)} - ${userInstances} instances running`);
+            }
+            else if ( 
+                parseFloat(userPackPerMin) < parseFloat(inactivePackPerMinCount) && 
+                parseFloat(userPackPerMin) > 0) {
+    
+                text_haveBeenKicked = localize(`a été kick des rerollers actifs pour avoir fait ${userPackPerMin} packs/mn`,` have been kicked out of active rerollers for inactivity because made ${userPackPerMin} packs/mn`);
+                console.log(`✖️ Kicked ${getUsernameFromUser(user)} - made ${userPackPerMin} packs/mn`);
+            }
+            else{
+                continue;
+            }
         }
         else{
             continue;
@@ -534,10 +556,14 @@ async function getEligibleIDs(client){
             
             const initialMessage = await getOldestMessage(nestedThread);
             const contentSplit = initialMessage.content.split('\n');
+            var gpPocketName = nestedThread.name
+            gpPocketName = gpPocketName.replace(text_waitingLogo,"").replace(text_deadLogo,"").replace(text_verifiedLogo,"");
+            gpPocketName = gpPocketName.split(" ")[1];
+            
             const gpPocketID = contentSplit.find(line => line.includes('ID:'));
             
             if(gpPocketID != undefined){
-                idList += `${gpPocketID.replace("ID:","")}\n`;
+                idList += `${gpPocketName},${gpPocketID.replace("ID:","")}\n`;
             }
         }
     }
