@@ -96,7 +96,6 @@ You can easily know how everyone's performing in term of GP verification and als
 <br /> 
 <br /> 
 <br /> 
-<br /> 
 
 ## Usernames generator :
 
@@ -184,8 +183,8 @@ Heartbeat also supports users farming with multiples PCs, to know how to setup i
 - **/SetPlayerID** - _Use for automatic IDs_
 - **/SetAverageInstances** - _Use if Heartbeats instances not received yet_
 - **/Add /Remove** - _Change availability_
-- **/Refresh** - _Refresh the IDs & upload (usefull when changing PlayerID)_
-- **/ForceRefresh** - _Refresh the UserStats instantly_
+- **/Refresh** - _Refresh the UserStats_
+- **/ForceRefresh** - _Refresh the IDs & upload instantly (usefull when changing PlayerID, otherwise it's done automatically)_
 - **/Verified /Dead** - _Change GP state_
 - **/Miss** - _Increase GP miss counter on a GP verification post_
 - **/MissCount** - _List of peoples miss per hour_
