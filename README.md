@@ -117,7 +117,7 @@ It helps tracking usernamers easily and brings joy to ppl in your group clearing
 
 # Install
 
-- First, create your discord application (the bot), there's plenty of youtube videos explaining how to do [such as this one](https://www.youtube.com/watch?v=Oy5HGvrxM4o&t=134s)
+- First, create your discord application, there's plenty of youtube videos explaining how to do [such as this one](https://www.youtube.com/watch?v=Oy5HGvrxM4o&t=134s)
 
 Be sure to enable all Privileged Gateway Intents in the app settings
 
