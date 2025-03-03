@@ -76,8 +76,8 @@ You'll have plenty of stuff to tweak in config.json include an **AutoKick inacti
 
 You can easily know how everyone's performing in term of GP verification and also how long have they been inactive using those two commands
 
-<img align="left" width="366" height="430" src="https://github.com/user-attachments/assets/0e78f765-1c61-434b-9c7c-e20fd6a60849">
-<img align="right" width="428" height="425" src="https://github.com/user-attachments/assets/b7c2855b-0c60-45c0-a04b-942377359a1f">
+<img align="left" width="361" height="425" src="https://github.com/user-attachments/assets/0e78f765-1c61-434b-9c7c-e20fd6a60849">
+<img align="right" width="423" height="420" src="https://github.com/user-attachments/assets/b7c2855b-0c60-45c0-a04b-942377359a1f">
 <br /> 
 <br /> 
 <br /> 
