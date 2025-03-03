@@ -20,7 +20,6 @@ As i'm using GitGist, the refresh time can be up to a maximum of 5 minutes
 
 With **/SetAverageInstances**, players can also specify how many instances they are usually running and if the heartbeat is not received it will use this one waiting for the real number of instances
 <br /> 
-<br /> 
 
 ## Heartbeats implementation
 
@@ -42,7 +41,6 @@ Color means something for the username :
 - ${\color{red}Red}$ : Heartbeat have not been received in the last 30mn and active for > 30mn
 - ${\color{cyan}Cyan}$ : The user is farming (noMain)
 - ${\color{pink}Pink}$ : The user is leeching (onlyMain)
-<br /> 
 
 ## Better GP management :
 
@@ -59,6 +57,50 @@ You can also use **/addgpfound** and **/removegpfound** to fix false positive go
 ![SmartGP](https://github.com/user-attachments/assets/474ce816-a479-4e86-bd51-8a56b2a69611)
 <br /> 
 
+## VIP ListID / Eligible GPs
+
+The bot will output a second GitGist file in case you want to use fully automated smart friend remove such as [Hoytdj's Pokemon Trading Card Game Pocket Bot](https://github.com/hoytdj/PTCGPB) or (include simg bot) that both use OCR
+
+It will retrieve all GP that are currently listed as waiting to be verified (⌛) or verified/live (✅) and everyone can use it to remove friends that are not GPs, do know that it don't work with Double 2 Star at this time
+
+The link to this document will be something like "https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/EligibleGPs"
+
+## Auto Kick inactive/low efficient peoples
+
+You'll have plenty of stuff to tweak in config.json include an **AutoKick inactive rerollers** which can automatically exclude peoples from the actives rerollers based on multiple factors :
+- if they have less than X instances running
+- if their pack/mn is lower than a specific amount
+- If they've been detected as inactive for not sending heartbeat within the last X minutes
+
+## Misscount and LastActivity
+
+You can easily know how everyone's performing in term of GP verification and also how long have they been inactive using those two commands
+
+<img align="left" width="446" height="515" src="https://github.com/user-attachments/assets/0e78f765-1c61-434b-9c7c-e20fd6a60849">
+<img align="right" width="521" height="517" src="https://github.com/user-attachments/assets/b7c2855b-0c60-45c0-a04b-942377359a1f">
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+<br /> 
+
 ## Usernames generator :
 
 In order to know who's rerolling and who's not, the bot let you generate a list of usernames based on a suffix and keywords
@@ -69,15 +111,10 @@ Will generate things like : "UwUstoopidTOBI", "pweasehalpTOBI", etc...
 
 It helps tracking usernamers easily and brings joy to ppl in your group clearing their friendlist and seeing GP with funny names. With the arrival of the new Heartbeat system, it might become obsolete for presence check but it'll still be a small fun feature anyway
 <br /> 
-<br /> 
 
-## Others features :
+## Other stuff :
 
 - The bot sentences can be switched from **English to French** only by changing a variable from ```true``` to ```false``` in config.json
-
-- You'll have plenty of stuff to tweak in config.json include an **AutoKick inactive rerollers** which automatically exclude peoples that did /add more than 30mn ago and are not sending any heartbeat (disabled by default)
-
-- There is also another command named **/lastactivity** which shows of list of all users in the database and how old was the last HeartBeat and another one named **/misscount** to show how often people contribute to check packs validity, showing their /miss per hour rerolling.
 
 - If you wish to easily set up the bot for your server, i created a **Discord server template** based on our main server where we run the bot, here it is : https://discord.new/zXx8avYs85wk
 <br /> 
@@ -106,27 +143,20 @@ And press Ctrl+C to stop it.
 
 You can upload it on a server easily, I personnaly use discloud and it should work great once set up
 
-Now place the repo in your project folder if you haven't alrdy done it and edit config.json
-
-- *token* is you Discord App token
-- *guildID* is your Server ID
-- For all *channelID_NameOfTheChannel* variable, you can link them wherever you want
-
-Only for those ones you need to set them in different channels both linked with Arturo's webhooks
-- *channelID_Webhook* is the channel ID were your group have their gp webhook linked to
-- *channelID_Heartbeat* is the channel ID were your group have their hearbeat webhook linked to
+Now place the repo in your project folder if you haven't alrdy done it and edit config.json and fill every fill with your bot infos and how do you want to run it, comments will explain everything
 
 After that [create a new fine-grained token](https://github.com/settings/tokens) for your GitHub account, and make sure to only check to read/write your Gists
 
 Then, [create a GitGist](https://gist.github.com/) and get it's ID (the numbers in the URL). Now you're ready to fill out the last two variables in config.js and **modify the GitGistName variable in index.mjs** with your gist file name
 
 In Arturo's bot the url should be placed in Friend ID and look like this : "https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/PTCGPRerollGroupIDs"
+And for the VIP IdList / Eligible GP, it should look like this  : "https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/EligibleGPs"
 <br /> 
 <br /> 
 
 ## Heartbeat Setup :
 
-**For the heartbeat to work**, you need to tell your group to input their **Discord ID in the left field** in Arturo's bot
+**For the heartbeat to work**, you need to tell your group to input their **Discord ID in the name field** in Arturo's bot
 
 Heartbeat also supports users farming with multiples PCs, to know how to setup it up, [read the v1.4 patch note](https://github.com/TheThobi/PTCGPRerollManager/releases/tag/v1.4)
 <br /> 
