@@ -26,9 +26,13 @@ import {
     canPeopleLeech,
     leechPermGPCount,
     leechPermPackCount,
+    resetServerDataFrequently,
+    resetServerDataTime,
     text_verifiedLogo,
     text_deadLogo,
     text_waitingLogo,
+    useNizuyaTool,
+    useSimGTool,
 } from '../config.js';
 
 import {
@@ -57,6 +61,8 @@ import {
 } from './utils.js';
 
 import {
+    checkFileExistsOrCreate,
+    checkFileExists,
     doesUserProfileExists,
     setUserAttribValue,
     getUserAttribValue,
@@ -68,31 +74,46 @@ import {
     getUsernameFromUsers, 
     getUsernameFromUser, 
     getIDFromUsers, 
-    getIDFromUser, 
+    getIDFromUser,
+    getTimeFromGP,
     getAttribValueFromUsers,
     getAttribValueFromUser,
     getAttribValueFromUserSubsystems,
     refreshUserActiveState,
     refreshUserRealInstances,
     cleanString,
+    addServerGP,
+    getServerDataGPs,
 } from './xmlManager.js';
 
 import {
-    attrib_PocketID,
+    attrib_PocketID, 
     attrib_UserState,
-    attrib_AverageInstances,
-    attrib_HBInstances,
-    attrib_RealInstances,
-    attrib_SessionTime,
+    attrib_ActiveState,
+    attrib_AverageInstances, 
+    attrib_HBInstances, 
+    attrib_RealInstances, 
+    attrib_SessionTime, 
     attrib_TotalPacksOpened, 
     attrib_SessionPacksOpened,
     attrib_DiffPacksSinceLastHB,
+    attrib_DiffTimeSinceLastHB,
     attrib_PacksPerMin,
-    attrib_GodPackFound,
-    attrib_LastActiveTime,
+    attrib_GodPackFound, 
+    attrib_LastActiveTime, 
     attrib_LastHeartbeatTime,
     attrib_TotalTime,
     attrib_TotalMiss,
+    attrib_Subsystems,
+    attrib_Subsystem,
+    attrib_eligibleGPs,
+    attrib_eligibleGP,
+    attrib_liveGPs,
+    attrib_liveGP,
+    attrib_ineligibleGPs,
+    attrib_ineligibleGP,
+    pathUsersData,
+    pathServerData,
 } from './xmlConfig.js';
 
 import {
@@ -111,6 +132,9 @@ import {
 import {
     updateGist,
 } from './uploadUtils.js';
+
+import fs from 'fs';
+import xml2js from 'xml2js';
 
 // Core Functions
 
@@ -225,7 +249,8 @@ async function getUsersStats(users, members){
 
         // Calculate packs/mn
         var diffPacksSinceLastHb = parseFloat(getAttribValueFromUser(user, attrib_DiffPacksSinceLastHB)) + total_diffPacksSinceLastHBSubsystems;
-        var avgPackMn = roundToOneDecimal(diffPacksSinceLastHb/heartbeatRate);
+        var diffTimeSinceLastHb = parseFloat(getAttribValueFromUser(user, attrib_DiffTimeSinceLastHB, heartbeatRate));
+        var avgPackMn = roundToOneDecimal(diffPacksSinceLastHb/diffTimeSinceLastHb);
         avgPackMn = isNaN(avgPackMn) || userState == "leech" ? 0 : avgPackMn;
         await setUserAttribValue( id, username, attrib_PacksPerMin, avgPackMn);
         const text_avgPackMn = colorText(avgPackMn, "blue");
@@ -258,11 +283,13 @@ async function getUsersStats(users, members){
 
 async function sendUserStats(client){
 
-    console.log("===== Update Users Stats =====")
+    console.log("📝 Updating Users Stats...")
     
     const guild = await getGuild(client);
 
-    await bulkDeleteMessages(guild.channels.cache.get(channelID_UserStats), 20);
+    await bulkDeleteMessages(guild.channels.cache.get(channelID_UserStats), 50);
+
+    // await wait(2);
 
     // CACHE MEMBERS
     const m = await guild.members.fetch()
@@ -287,12 +314,31 @@ async function sendUserStats(client){
     const accumulatedPacksPerMin = sumFloatArray(globalPacksPerMin);
     const avgPacksPerMin = roundToOneDecimal(accumulatedPacksPerMin/activeUsers.length)
 
-    // const text_activeInstances = `## ${instancesAmount} ${text_avgInstances} ${accumulatedPacksPerMin} packs/mn\n\n`;
-
     const allUsers = await getAllUsers();
     const totalServerPacks = sumIntArray(getAttribValueFromUsers(allUsers, attrib_TotalPacksOpened, [0]));
     const totalServerTime = sumIntArray(getAttribValueFromUsers(allUsers, attrib_TotalTime, [0]));
     
+    // Calculate GP stats based on ServerData
+    const eligibleGPs = await getServerDataGPs(attrib_eligibleGPs);
+    const ineligibleGPs = await getServerDataGPs(attrib_ineligibleGPs);
+    const liveGPs = await getServerDataGPs(attrib_liveGPs);
+    const eligibleGPCount = parseInt(eligibleGPs.length);
+    const ineligibleGPCount = parseInt(ineligibleGPs.length);
+    const liveGPCount = parseInt(liveGPs.length);
+
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    var weekEligibleGPCount = 0;
+    var weekLiveGPCount = 0;
+
+    eligibleGPs.forEach( eligibleGP =>{
+        if (getTimeFromGP(eligibleGP) > oneWeekAgo) weekEligibleGPCount++;
+    })
+    liveGPs.forEach( liveGP =>{
+        if (getTimeFromGP(liveGP) > oneWeekAgo) weekLiveGPCount++;
+    })
+
     const embedUserStats = new EmbedBuilder()
         .setColor('#f02f7e') // Couleur en hexadécimal
         .setTitle('Summary')
@@ -303,12 +349,21 @@ async function sendUserStats(client){
             { name: `🔥 PackPerMin :           ‎`, value: `${roundToOneDecimal(accumulatedPacksPerMin)}`, inline: true },
             { name: `🔥 PackPerHour :`, value: `${roundToOneDecimal(accumulatedPacksPerMin*60)}`, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
-            { name: '\u200B', value: '\u200B' },
             { name: `📊 Avg Instance/Ppl :     ‎`, value: `${avginstances}`, inline: true },
             { name: `📊 Avg PPM/Ppl :`, value: `${avgPacksPerMin}`, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
+            { name: '\u200B', value: '\u200B' },
             { name: `🃏 Total Packs :          ‎`, value: `${formatNumbertoK(totalServerPacks)}`, inline: true },
             { name: `🕓 Total Time :`, value: `${formatMinutesToDays(totalServerTime)}`, inline: true },
+            { name: '\u200B', value: '\u200B', inline: true },
+            { name: `✅ Week Live :              ‎`, value: `${weekLiveGPCount}`, inline: true },
+            { name: `🔴 Week Eligibles :         ‎`, value: `${weekEligibleGPCount}`, inline: true },
+            { name: `🍀 Week Luck :`, value: `${roundToOneDecimal(weekLiveGPCount / weekEligibleGPCount * 100) + " %"}`, inline: true },
+            { name: `✅ Total Live :              ‎`, value: `${liveGPCount}`, inline: true },
+            { name: `🔴 Total Eligibles :         ‎`, value: `${eligibleGPCount}`, inline: true },
+            { name: `🍀 Total Luck :`, value: `${roundToOneDecimal(liveGPCount / eligibleGPCount * 100) + " %"}`, inline: true },
+            { name: '\u200B', value: '\u200B', inline: true },
+            { name: `📊 Total GP :`, value: `${eligibleGPCount + ineligibleGPCount}`, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
         );
 
@@ -388,7 +443,7 @@ async function sendStatusHeader(client){
 
 async function inactivityCheck(client){
 
-    console.log("===== Check inactivity =====")
+    console.log("👀 Checking inactivity...")
 
     const guild = await getGuild(client);
     
@@ -424,21 +479,21 @@ async function inactivityCheck(client){
             parseFloat(diffActiveTime) > parseInt(heartbeatRate)+1 && 
             parseFloat(sessionTime) > parseInt(heartbeatRate)+1) {
             
-            if( userInstances <= parseInt(inactiveInstanceCount) ){
-            
-                text_haveBeenKicked = localize(`a été kick des rerollers actifs pour car il a ${userInstances} instances en cours`,` have been kicked out of active rerollers for inactivity because he had ${userInstances} instances running`);
-                console.log(`✖️ Kicked ${getUsernameFromUser(user)} - ${userInstances} instances running`);
-            }
-            else if ( 
-                parseFloat(userPackPerMin) < parseFloat(inactivePackPerMinCount) && 
-                parseFloat(userPackPerMin) > 0) {
-    
-                text_haveBeenKicked = localize(`a été kick des rerollers actifs pour avoir fait ${userPackPerMin} packs/mn`,` have been kicked out of active rerollers for inactivity because made ${userPackPerMin} packs/mn`);
-                console.log(`✖️ Kicked ${getUsernameFromUser(user)} - made ${userPackPerMin} packs/mn`);
-            }
-            else{
-                continue;
-            }
+                if( userInstances <= parseInt(inactiveInstanceCount) ){
+                
+                    text_haveBeenKicked = localize(`a été kick des rerollers actifs pour car il a ${userInstances} instances en cours`,` have been kicked out of active rerollers for inactivity because he had ${userInstances} instances running`);
+                    console.log(`✖️ Kicked ${getUsernameFromUser(user)} - ${userInstances} instances running`);
+                }
+                else if ( 
+                    parseFloat(userPackPerMin) < parseFloat(inactivePackPerMinCount) && 
+                    parseFloat(userPackPerMin) > 0) {
+        
+                    text_haveBeenKicked = localize(`a été kick des rerollers actifs pour avoir fait ${userPackPerMin} packs/mn`,` have been kicked out of active rerollers for inactivity because made ${userPackPerMin} packs/mn`);
+                    console.log(`✖️ Kicked ${getUsernameFromUser(user)} - made ${userPackPerMin} packs/mn`);
+                }
+                else{
+                    continue;
+                }
         }
         else{
             continue;
@@ -446,12 +501,11 @@ async function inactivityCheck(client){
 
         // Then we can kick the user if continue didn't triggered
         await setUserAttribValue( getIDFromUser(user), getUsernameFromUser(user), attrib_UserState, "inactive");
-        sendIDs(client);
         guild.channels.cache.get(channelID_IDs).send({ content:`<@${getIDFromUser(user)}> ${text_haveBeenKicked}`});
     };
 
     if(inactiveCount >= 1){
-        updateGist(await getActiveIDs());
+        sendIDs(client);
     }
 }
 
@@ -526,6 +580,7 @@ async function createForumPost(client, message, channelID, packName, titleName, 
             
             await wait(1);
             await getEligibleIDs(client)
+            await addServerGP(attrib_eligibleGP, forum);
         })
     });
 } 
@@ -534,9 +589,9 @@ async function markAsDead(client, interaction, optionalText = ""){
 
     const text_markAsDead = localize("Godpack marqué comme mort et fermé","Godpack marked as dud and closed");
     
-    const forumPost = client.channels.cache.get(interaction.channelId);
+    const thread = client.channels.cache.get(interaction.channelId);
 
-    forumPost.edit({ name: `${forumPost.name.replace(text_waitingLogo, text_deadLogo)}` });
+    thread.edit({ name: `${thread.name.replace(text_waitingLogo, text_deadLogo)}` });
 
     await sendReceivedMessage(client, optionalText + text_deadLogo + ` ` + text_markAsDead, interaction);
 }
@@ -556,14 +611,21 @@ async function getEligibleIDs(client){
             
             const initialMessage = await getOldestMessage(nestedThread);
             const contentSplit = initialMessage.content.split('\n');
-            var gpPocketName = nestedThread.name
-            gpPocketName = gpPocketName.replace(text_waitingLogo,"").replace(text_deadLogo,"").replace(text_verifiedLogo,"");
-            gpPocketName = gpPocketName.split(" ")[1];
+            
+            var cleanThreadName = nestedThread.name.replace(text_waitingLogo,"").replace(text_deadLogo,"").replace(text_verifiedLogo,"");
+            var gpPocketName = cleanThreadName.split(" ")[1];
+            var gpTwoStarCount = cleanThreadName.match(/\[(\d+\/\d+)\]/)[1];
             
             const gpPocketID = contentSplit.find(line => line.includes('ID:'));
             
             if(gpPocketID != undefined){
-                idList += `${gpPocketName},${gpPocketID.replace("ID:","")}\n`;
+
+                if(useNizuyaTool){
+                    idList += `${gpPocketID.replace("ID:","")} | ${gpPocketName} | ${gpTwoStarCount}\n`;
+                }
+                else if(useSimGTool){
+                    idList += `${gpPocketName},${gpPocketID.replace("ID:","")}\n`;
+                }
             }
         }
     }
@@ -671,6 +733,145 @@ async function setUserState(client, user, state, interaction = undefined){
     }
 }
 
+async function updateServerData(client){
+
+    const serverDataExist = checkFileExists(pathServerData);
+
+    // If file have been created more than X hours ago
+    if(serverDataExist){
+
+        const { mtime } = fs.statSync(pathServerData)
+        const fileModificationDate = mtime;
+        const dateLimit = new Date(Date.now() - resetServerDataTime * 60000);
+
+        // If file modified less than X minutes ago, return
+        if (fileModificationDate > dateLimit) {
+            const text_Skipping = `☑️  Skipping GP stats reset, already fresh`;
+            console.log(text_Skipping);
+            return;
+        }
+    }
+
+    if( !serverDataExist || resetServerDataFrequently ) {
+        
+        const text_Warning = `⌛ Resetting all GP stats to ServerData.xml...`;
+        const text_Success = `☑️  All GP stats have been successfully saved`;
+        console.log(text_Warning);
+
+        // Default XML Structure
+        const data = {
+            root: {
+              [attrib_liveGPs]: [{
+                [attrib_liveGP]: []
+              }],
+              [attrib_eligibleGPs]: [{
+                [attrib_eligibleGP]: []
+              }],
+              [attrib_ineligibleGPs]: [{
+                [attrib_ineligibleGP]: []
+              }]
+            }
+          };
+        
+        // Get all forum threads and adds them to eligible & live
+        
+        const forum_channel = await client.channels.cache.get(channelID_GPVerificationForum);
+        
+        const activeThreads = await forum_channel.threads.fetchActive();
+        var archivedThreads = [];
+
+        var before = undefined;
+        var hasMore = true;
+
+        while (hasMore) {
+            const fetched = await forum_channel.threads.fetchArchived({ limit: 100, before });
+            archivedThreads = archivedThreads.concat(Array.from(fetched.threads.values()));
+            hasMore = fetched.threads.size === 100;
+            if (hasMore) {
+                before = fetched.threads.last().id;
+            }
+        }
+
+        const allThreads = [
+            ...activeThreads.threads.values(),
+            ...archivedThreads
+        ];
+
+        var i = 0;
+
+        for (let thread of allThreads) {
+
+            if(!thread.name.includes(text_verifiedLogo) && !thread.name.includes(text_waitingLogo) && !thread.name.includes(text_deadLogo)) {
+                continue;
+            }
+
+            data.root[attrib_eligibleGPs][0][attrib_eligibleGP].push({
+                $: { 
+                    time: new Date(thread.createdTimestamp), 
+                    name: thread.name,
+                },
+                _: thread.id,
+            });
+
+            if(thread.name.includes(text_verifiedLogo)){
+                data.root[attrib_liveGPs][0][attrib_liveGP].push({
+                    $: { 
+                        time: new Date(thread.createdTimestamp), 
+                        name: thread.name,
+                    },
+                    _: thread.id,
+                });
+            }
+        }
+
+        // Get all ineligible post in Webhook channel and adds them
+
+        const webhook_channel = await client.channels.cache.get(channelID_Webhook);
+          
+        let lastMessageID;
+        let fetchMore = true;
+      
+        while (fetchMore) {
+          const options = { limit: 100 };
+          if (lastMessageID) {
+            options.before = lastMessageID;
+          }
+      
+          const messages = await webhook_channel.messages.fetch(options);
+      
+          if (messages.size === 0) {
+            break;
+          }
+      
+          messages.forEach(message => {
+            if (message.author.bot && message.content.toLowerCase().includes("invalid")) {
+                data.root[attrib_ineligibleGPs][0][attrib_ineligibleGP].push({
+                    $: { 
+                        time: new Date(message.createdTimestamp), 
+                        name: message.content,
+                    },
+                    _: message.id,
+                });
+            }
+          });
+      
+          // Update the last message ID to fetch the next batch
+          lastMessageID = messages.last().id;
+      
+          // Stop fetching if fewer than 100 messages are returned
+          if (messages.size < 100) {
+            fetchMore = false;
+          }
+        }
+
+        const builder = new xml2js.Builder();
+        const xmlOutput = builder.buildObject(data);
+        
+        checkFileExistsOrCreate(pathServerData, xmlOutput)
+        console.log(text_Success);
+    }
+}
+
 export { 
     getGuild, 
     getMemberByID,
@@ -683,4 +884,5 @@ export {
     markAsDead, 
     getEligibleIDs,
     setUserState,
+    updateServerData,
 }

@@ -1,3 +1,4 @@
+// Users attribs
 const attrib_PocketID = "PocketID";
 const attrib_UserState = "UserState";
 const attrib_ActiveState = "ActiveState";
@@ -8,6 +9,7 @@ const attrib_SessionTime = "SessionTime";
 const attrib_TotalPacksOpened = "TotalPacksOpened";
 const attrib_SessionPacksOpened = "SessionPacksOpened";
 const attrib_DiffPacksSinceLastHB = "DiffPacksSinceLastHB";
+const attrib_DiffTimeSinceLastHB = "DiffTimeSinceLastHB";
 const attrib_PacksPerMin = "PacksPerMin"
 const attrib_GodPackFound = "GodPackFound";
 const attrib_LastActiveTime = "LastActiveTime";
@@ -16,6 +18,19 @@ const attrib_TotalTime = "TotalTime";
 const attrib_TotalMiss = "TotalMiss";
 const attrib_Subsystems = "Subsystems";
 const attrib_Subsystem = "Subsystem";
+
+// Server attribs
+const attrib_eligibleGPs = "eligibleGPs";
+const attrib_eligibleGP = "eligibleGP";
+const attrib_liveGPs = "liveGPs";
+const attrib_liveGP = "liveGP";
+const attrib_ineligibleGPs = "ineligibleGPs";
+const attrib_ineligibleGP = "ineligibleGP";
+
+// Path to datas
+const __dirname = import.meta.dirname;
+const pathUsersData = __dirname+'/../data/UsersData.xml';
+const pathServerData = __dirname+'/../data/ServerData.xml';
 
 export{ 
     attrib_PocketID, 
@@ -28,6 +43,7 @@ export{
     attrib_TotalPacksOpened, 
     attrib_SessionPacksOpened,
     attrib_DiffPacksSinceLastHB,
+    attrib_DiffTimeSinceLastHB,
     attrib_PacksPerMin,
     attrib_GodPackFound, 
     attrib_LastActiveTime, 
@@ -36,4 +52,12 @@ export{
     attrib_TotalMiss,
     attrib_Subsystems,
     attrib_Subsystem,
+    attrib_eligibleGPs,
+    attrib_eligibleGP,
+    attrib_liveGPs,
+    attrib_liveGP,
+    attrib_ineligibleGPs,
+    attrib_ineligibleGP,
+    pathUsersData,
+    pathServerData,
 }

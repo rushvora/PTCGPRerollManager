@@ -98,14 +98,22 @@ function splitMulti(str, tokens){
 
 async function sendReceivedMessage(client, msgContent, interaction = undefined, timeout = 0, channelID = channelID_IDs) {
     
-    var message = "";
-    
     if(interaction != undefined) {
-        message = await interaction.editReply({ content: msgContent });
+        var message = await interaction.editReply({ content: msgContent });
         
         if(parseFloat(timeout) > 0){
-            setTimeout(() => {
-                message.delete().catch(console.error);
+            setTimeout(async () => {
+                try {
+                    // Fetch the message to check if it still exists
+                    const fetchedMessage = await message.fetch();
+                    if (fetchedMessage) {
+                        await fetchedMessage.delete();
+                    } else {
+                        console.log('❗️ Tried to delete inexistant message');
+                    }
+                } catch {
+                    console.log('❗️ Tried to delete inexistant message');
+                }
             }, parseFloat(timeout)*1000);
         }
     }
@@ -121,8 +129,18 @@ async function sendChannelMessage(client, channelID, msgContent, timeout = 0) {
     if(timeout > 0){
         guild.channels.cache.get(channelID).send({ content:`${msgContent}`})
             .then(sentMessage => {
-                setTimeout(() => {
-                sentMessage.delete().catch(console.error);
+                setTimeout(async () => {
+                    try {
+                        // Fetch the message to check if it still exists
+                        const fetchedMessage = await sentMessage.fetch();
+                        if (fetchedMessage) {
+                            await fetchedMessage.delete();
+                        } else {
+                            console.log('❗️ Tried to delete inexistant message');
+                        }
+                    } catch {
+                        console.log('❗️ Tried to delete inexistant message');
+                    }
                 }, timeout * 1000);
             });
     }
@@ -144,13 +162,23 @@ async function bulkDeleteMessages(channel, numberOfMessages) {
                 break;
             }
 
-            // Check if the messages still exist before attempting to delete them
-            const messagesToDeleteIds = messagesToDelete.map(msg => msg.id);
-            const existingMessages = await channel.messages.fetch({ message: messagesToDeleteIds });
+            // Check if each message still exists before attempting to delete it
+            const messagesToDeleteIds = [];
+            for (const msg of messagesToDelete.values()) {
+                try {
+                    await msg.fetch();
+                    messagesToDeleteIds.push(msg.id);
+                } catch (fetchError) {
+                    if (fetchError.code != 10008) {
+                        console.error(`❗️ Error fetching message with ID ${msg.id} :`, fetchError);
+                    }
+                    // else the message does not exist anymore
+                }
+            }
 
-            if (existingMessages.size > 0) {
-                await channel.bulkDelete(existingMessages);
-                totalDeleted += existingMessages.size;
+            if (messagesToDeleteIds.length > 0) {
+                await channel.bulkDelete(messagesToDeleteIds);
+                totalDeleted += messagesToDeleteIds.length;
             } else {
                 break;
             }

@@ -65,10 +65,20 @@ const leechPermGPCount = 20;
 // Decide after how many packs opened ppl can be able to leech
 const leechPermPackCount = 50000;
 
+// Decide if you want your Servers Stats (GP stats) to be reset every 4hours which could prevent some duplicated stuff in ServerData.xml 
+const resetServerDataFrequently = true;
+// Decide how frequently you want to reset it, default to 4 hours (240mn)
+const resetServerDataTime = 240;
+
 // Icons of GP Validation
 const text_verifiedLogo = "✅";
 const text_deadLogo = "💀";
 const text_waitingLogo = "⌛";
+
+// VIP / Eligible Ids to filter GP that are verified or in verification to clean friend list automatically
+// Choose which format you want to use based on the tool
+const useNizuyaTool = true // https://github.com/hoytdj/PTCGPB/releases/tag/v1.2beta
+const useSimGTool = false // Not implemented at this time
 
 export {
     token,
@@ -98,7 +108,11 @@ export {
     canPeopleLeech,
     leechPermGPCount,
     leechPermPackCount,
+    resetServerDataFrequently,
+    resetServerDataTime,
     text_verifiedLogo,
     text_deadLogo,
     text_waitingLogo,
+    useNizuyaTool,
+    useSimGTool,
 };

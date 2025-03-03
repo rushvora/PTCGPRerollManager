@@ -43,6 +43,8 @@ import {
     canPeopleLeech,
     leechPermGPCount,
     leechPermPackCount,
+    resetServerDataFrequently,
+    resetServerDataTime,
     text_verifiedLogo,
     text_deadLogo,
     text_waitingLogo,
@@ -81,6 +83,7 @@ import {
     markAsDead, 
     getEligibleIDs,
     setUserState,
+    updateServerData,
 } from './Dependencies/coreUtils.js';
 
 import {
@@ -102,25 +105,37 @@ import {
     refreshUserActiveState,
     refreshUserRealInstances,
     cleanString,
+    addServerGP,
 } from './Dependencies/xmlManager.js';
 
 import {
-    attrib_PocketID,
+    attrib_PocketID, 
     attrib_UserState,
-    attrib_AverageInstances,
-    attrib_HBInstances,
-    attrib_RealInstances,
-    attrib_SessionTime,
+    attrib_ActiveState,
+    attrib_AverageInstances, 
+    attrib_HBInstances, 
+    attrib_RealInstances, 
+    attrib_SessionTime, 
     attrib_TotalPacksOpened, 
     attrib_SessionPacksOpened,
     attrib_DiffPacksSinceLastHB,
+    attrib_DiffTimeSinceLastHB,
     attrib_PacksPerMin,
-    attrib_GodPackFound,
-    attrib_LastActiveTime,
+    attrib_GodPackFound, 
+    attrib_LastActiveTime, 
     attrib_LastHeartbeatTime,
     attrib_TotalTime,
     attrib_TotalMiss,
-    attrib_ActiveState,
+    attrib_Subsystems,
+    attrib_Subsystem,
+    attrib_eligibleGPs,
+    attrib_eligibleGP,
+    attrib_liveGPs,
+    attrib_liveGP,
+    attrib_ineligibleGPs,
+    attrib_ineligibleGP,
+    pathUsersData,
+    pathServerData,
 } from './Dependencies/xmlConfig.js';
 
 import {
@@ -163,6 +178,8 @@ function getNexIntervalRemainingTime() {
     return timeRemaining;
 }
 
+
+
 // Events
 
 client.once(Events.ClientReady, async c => {
@@ -184,11 +201,19 @@ client.once(Events.ClientReady, async c => {
 
     }, convertMnToMs(refreshInterval/2));
 
+    // Send back the messages with buttons so ppl can switch states easily
     sendStatusHeader(client)
-
     setInterval(() =>{
         sendStatusHeader(client)
     }, convertMnToMs(60));
+
+    // Reset and Update ServerData every X hours (might disable the loop it if you have over 10k gp or it'll take a while)
+    updateServerData(client);
+    setInterval(() =>{
+        updateServerData(client);
+    }, convertMnToMs(resetServerDataTime+1));
+
+    await getEligibleIDs(client);
 
     // Clear all guild commands (Warning : also clear channels restrictions set on discord)
     // guild.commands.set([]);
@@ -271,12 +296,12 @@ client.once(Events.ClientReady, async c => {
                 .setRequired(false)
         );
     
-    const refreshDesc = localize("Rafraichit la liste des ids et les envois au server","Refresh the ids.txt and sent them to servers");
+    const refreshDesc = localize("Rafraichit la liste des Stats instantanément","Refresh the user stats instantly");
     const refreshSCB = new SlashCommandBuilder()
         .setName(`refresh`)
         .setDescription(`${refreshDesc}`);
 
-    const forcerefreshDesc = localize("Rafraichit la liste des Stats instantanément","Refresh the user stats instantly");
+    const forcerefreshDesc = localize("Rafraichit la liste des ids et les envois au server","Refresh the ids.txt and sent them to servers");
     const forcerefreshSCB = new SlashCommandBuilder()
         .setName(`forcerefresh`)
         .setDescription(`${forcerefreshDesc}`);
@@ -555,6 +580,16 @@ client.on(Events.InteractionCreate, async interaction => {
     if(interaction.commandName === `refresh`){
         
         await interaction.deferReply();
+        const text_listForceRefreshed = localize(`**Stats des rerollers actifs rafraichies dans <#${channelID_UserStats}>**`, `**Active rerollers stats refreshed in <#${channelID_UserStats}>**`);
+
+        await sendReceivedMessage(client, text_listForceRefreshed, interaction, delayMsgDeleteState);
+        sendUserStats(client)
+    }
+
+    // FORCE REFRESH COMMAND
+    if(interaction.commandName === `forcerefresh`){
+        
+        await interaction.deferReply();
         const refreshTime = roundToOneDecimal(getNexIntervalRemainingTime());
         const text_IDsRefreshedIn = localize("**IDs rafraichis**, rafraichissment des **Stats dans","**IDs refreshed**, reshing the **Stats in");
         const text_see = localize("voir","see");
@@ -564,16 +599,6 @@ client.on(Events.InteractionCreate, async interaction => {
         await sendReceivedMessage(client, text_listRefreshed, interaction, delayMsgDeleteState);
         sendIDs(client);
     }
-
-    // FORCE REFRESH COMMAND
-    if(interaction.commandName === `forcerefresh`){
-
-        await interaction.deferReply();
-        const text_listForceRefreshed = localize(`**Stats des rerollers actifs rafraichies dans <#${channelID_UserStats}>**`, `**Active rerollers stats refreshed in <#${channelID_UserStats}>**`);
-
-        await sendReceivedMessage(client, text_listForceRefreshed, interaction, delayMsgDeleteState);
-        sendUserStats(client)
-    }
     
     // VERIFIED COMMAND
     if(interaction.commandName === `verified`){
@@ -582,8 +607,11 @@ client.on(Events.InteractionCreate, async interaction => {
         const text_markAsVerified = localize("Godpack marqué comme live","Godpack marked as live");
 
         const forumPost = client.channels.cache.get(interaction.channelId);
+
         // Edit a thread
         forumPost.edit({ name: `${forumPost.name.replace(text_waitingLogo, text_verifiedLogo)}` });
+        
+        await addServerGP(attrib_liveGP, forumPost);
 
         await sendReceivedMessage(client, text_verifiedLogo + ` ` + text_markAsVerified + ` ${forumPost}`, interaction);
     }
@@ -668,7 +696,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
             missPer24Hour = isNaN(missPer24Hour) || missPer24Hour == Infinity ? 0 : missPer24Hour;
 
-            activityOutput += addTextBar(`${userDisplayName} `, 20, false) + ` ${missPer24Hour} miss per 24h\n`
+            activityOutput += addTextBar(`${userDisplayName} `, 20, false) + ` ${missPer24Hour} miss / 24h over ${roundToOneDecimal(totalTimeHour)}h\n`
         };
 
         activityOutput+="\`\`\`";
@@ -857,12 +885,12 @@ client.on("messageCreate", async (message) => {
             var packAmount = arrayGodpackMessage[9];
 
             var titleName = `${accountName}[${packAmount}][${twoStarsRatio}]`;
-
+            
             await createForumPost(client, message, channelID_GPVerificationForum, "GodPack", titleName, ownerID, accountID, packAmount);
         }
 
         //Execute when screen is posted
-        if (message.attachments.first() != undefined && !message.content.toLowerCase().includes("invalid") && message.content.toLowerCase().includes("double") ) {
+        else if (message.attachments.first() != undefined && !message.content.toLowerCase().includes("invalid") && message.content.toLowerCase().includes("double") ) {
 
             if(channelID_2StarVerificationForum == ""){return;}
 
@@ -876,6 +904,10 @@ client.on("messageCreate", async (message) => {
             var titleName = `${accountName}[${packAmount}]`;
 
             await createForumPost(client, message, channelID_2StarVerificationForum, "Double 2Star", titleName, ownerID, accountID, packAmount);
+        }
+
+        else if (message.author.bot && message.content.toLowerCase().includes("invalid")) {
+            await addServerGP(attrib_ineligibleGP, message);
         }
     }
 
@@ -922,17 +954,21 @@ client.on("messageCreate", async (message) => {
                     var totalTime = await getUserAttribValue( client, userID, attrib_TotalTime, 0 );
                     var sessionTime = await getUserAttribValue( client, userID, attrib_SessionTime, 0 );
                     await setUserAttribValue( userID, userUsername, attrib_TotalTime, parseFloat(totalTime) + parseFloat(sessionTime));
-
+                    
                     var totalPacks = await getUserAttribValue( client, userID, attrib_TotalPacksOpened, 0 );
                     await setUserAttribValue( userID, userUsername, attrib_TotalPacksOpened, parseInt(totalPacks) + sessionPacks);
                 }
+                
+                const lastHBTime = new Date(await getUserAttribValue( client, userID, attrib_LastHeartbeatTime, 0 ));
+                var diffTime = (Date.now() - lastHBTime) / 60000;
+                await setUserAttribValue( userID, userUsername, attrib_DiffTimeSinceLastHB, diffTime);
 
                 await setUserAttribValue( userID, userUsername, attrib_DiffPacksSinceLastHB, Math.max(packs-sessionPacks,0));
                 await setUserAttribValue( userID, userUsername, attrib_SessionTime, time);
                 await setUserAttribValue( userID, userUsername, attrib_SessionPacksOpened, packs);
                 await setUserAttribValue( userID, userUsername, attrib_HBInstances, instances);
                 await setUserAttribValue( userID, userUsername, attrib_LastHeartbeatTime, new Date().toString());
-
+                
                 console.log(`🔄 HB ${userUsername}`);
                 
                 const mainInactive = heartbeatDatas[2].toLowerCase().includes("main");

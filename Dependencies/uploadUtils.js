@@ -14,21 +14,25 @@ const octokit = new Octokit({
 })
 
 async function updateGist( gitContent, gitName = gitGistGroupName ){
-    
-    console.log(`================ Update GistGit - ${gitName} ================`)
 
-    await octokit.request(`PATCH /gists/${gitGistID}`,{
-        gist_id: 'gitGistID',
-        description: '',
-        files:{
-            [gitName]:{
-                content: gitContent
+    try{
+        await octokit.request(`PATCH /gists/${gitGistID}`,{
+            gist_id: 'gitGistID',
+            description: '',
+            files:{
+                [gitName]:{
+                    content: gitContent
+                }
+            },
+            headers: {
+                'X-GitHub-Api-Version': '2022-11-28'
             }
-        },
-        headers: {
-            'X-GitHub-Api-Version': '2022-11-28'
-        }
-    })
+        })
+        console.log(`🌐 Updating GistGit... - ${gitName}`)
+    }
+    catch{
+        console.log("❌ ERROR trying to upload GistGit - ${gitName}");
+    }
 }
 
 export{
