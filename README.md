@@ -57,7 +57,7 @@ You can also use **/addgpfound** and **/removegpfound** to fix false positive go
 ![SmartGP](https://github.com/user-attachments/assets/474ce816-a479-4e86-bd51-8a56b2a69611)
 <br /> 
 
-## VIP ListID / Eligible GPs
+## Eligible GPs aka VIP IDs
 
 The bot will output a second GitGist file in case you want to use fully automated smart friend remove such as [Hoytdj's Pokemon Trading Card Game Pocket Bot](https://github.com/hoytdj/PTCGPB) or (include simg bot) that both use OCR
 
