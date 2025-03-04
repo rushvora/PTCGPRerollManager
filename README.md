@@ -62,11 +62,11 @@ You can also use **/addgpfound** and **/removegpfound** to fix false positive go
 This feature have been designed to work with [Hoytdj's Pokemon Trading Card Game Pocket Bot](https://github.com/hoytdj/PTCGPB) or [gmisSe's Automation-mod-for-PTCFPB](https://github.com/gmisSe/Automation-mod-for-PTCFPB) that both use OCR
 
 The goal is to fully automate friend removal based on the GPs that are currently listed as waiting to be verified ⌛ or verified/live ✅
+
 Every account that are marked as dead 💀 or not present in the list will be deleted, do know that it won't keep Double 2 Star at this time.
 
 In order for that to work, the bot will output a second GitGist file in your GistGit files where the link your be something like :
-"https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/EligibleGPs"
-You can share this document for your group so everyone can use it
+```https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/EligibleGPs```, You can share this document for your group so everyone can use it
 
 ## Auto Kick inactive/low efficient peoples
 
@@ -147,8 +147,9 @@ After that [create a new fine-grained token](https://github.com/settings/tokens)
 
 Then, [create a GitGist](https://gist.github.com/) and get it's ID (the numbers in the URL). Now you're ready to fill out the last two variables in config.js and **modify the GitGistName variable in index.mjs** with your gist file name
 
-In Arturo's bot the url should be placed in Friend ID and look like this : "https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/PTCGPRerollGroupIDs"
-And for the VIP IdList / Eligible GP, it should look like this  : "https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/EligibleGPs"
+In Arturo's bot the url should be placed in Friend ID and look like this : ```https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/PTCGPRerollGroupIDs```
+
+And for the Eligible GPs aka VIP IDs, it should look like this  : ```https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/EligibleGPs```
 <br /> 
 <br /> 
 
