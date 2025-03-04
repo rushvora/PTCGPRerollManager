@@ -59,11 +59,14 @@ You can also use **/addgpfound** and **/removegpfound** to fix false positive go
 
 ## Eligible GPs aka VIP IDs
 
-The bot will output a second GitGist file in case you want to use fully automated smart friend remove such as [Hoytdj's Pokemon Trading Card Game Pocket Bot](https://github.com/hoytdj/PTCGPB) or [gmisSe's Automation-mod-for-PTCFPB](https://github.com/gmisSe/Automation-mod-for-PTCFPB) that both use OCR
+This feature have been designed to work with [Hoytdj's Pokemon Trading Card Game Pocket Bot](https://github.com/hoytdj/PTCGPB) or [gmisSe's Automation-mod-for-PTCFPB](https://github.com/gmisSe/Automation-mod-for-PTCFPB) that both use OCR
 
-It will retrieve all GP that are currently listed as waiting to be verified (⌛) or verified/live (✅) and everyone can use a link to filter and remove friends that are not GPs, do know that it don't work with Double 2 Star at this time
+The goal is to fully automate friend removal based on the GPs that are currently listed as waiting to be verified ⌛ or verified/live ✅
+Every account that are marked as dead 💀 or not present in the list will be deleted, do know that it won't keep Double 2 Star at this time.
 
-The link to this document will be something like "https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/EligibleGPs"
+In order for that to work, the bot will output a second GitGist file in your GistGit files where the link your be something like :
+"https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/EligibleGPs"
+You can share this document for your group so everyone can use it
 
 ## Auto Kick inactive/low efficient peoples
 
