@@ -81,7 +81,7 @@ import {
     inactivityCheck,
     createForumPost,
     markAsDead, 
-    getEligibleIDs,
+    updateEligibleIDs,
     setUserState,
     updateServerData,
 } from './Dependencies/coreUtils.js';
@@ -213,7 +213,7 @@ client.once(Events.ClientReady, async c => {
         updateServerData(client);
     }, convertMnToMs(resetServerDataTime+1));
 
-    await getEligibleIDs(client);
+    await updateEligibleIDs(client);
 
     // Clear all guild commands (Warning : also clear channels restrictions set on discord)
     // guild.commands.set([]);
@@ -620,7 +620,7 @@ client.on(Events.InteractionCreate, async interaction => {
     if(interaction.commandName === `dead`){
 
         await interaction.deferReply();
-        markAsDead(client, interaction);
+        await markAsDead(client, interaction);
     }
 
     // MISS COMMAND
@@ -688,7 +688,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 continue;
             }
 
-            var userDisplayName = (member).user.displayName;
+            var userDisplayName = member.displayName;
             const totalMiss = getAttribValueFromUser(user, attrib_TotalMiss, 0);
             const totalTime = getAttribValueFromUser(user, attrib_TotalTime, 0);
             const totalTimeHour = parseFloat(totalTime)/60;
@@ -725,13 +725,13 @@ client.on(Events.InteractionCreate, async interaction => {
                 continue;
             }
 
-            var userDisplayName = (member).user.displayName;
+            var userDisplayName = member.displayName;
 
             const lastHBTime = new Date(getAttribValueFromUser(allUsers[i], attrib_LastHeartbeatTime));
             var diffTime = (Date.now() - lastHBTime) / 60000 / 60;
             diffTime = roundToOneDecimal(diffTime);
 
-            activityOutput += addTextBar(`${userDisplayName} `, 20, false) + ` ${diffTime} h\n`
+            activityOutput += addTextBar(`${userDisplayName} `, 20, false) + ` ${diffTime} h since last hb\n`
         };
 
         activityOutput+="\`\`\`";

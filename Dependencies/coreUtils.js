@@ -579,7 +579,7 @@ async function createForumPost(client, message, channelID, packName, titleName, 
             guild.channels.cache.get(await forum.id).send({content:`${accountID} is the id of the account\n`})
             
             await wait(1);
-            await getEligibleIDs(client)
+            await updateEligibleIDs(client)
             await addServerGP(attrib_eligibleGP, forum);
         })
     });
@@ -594,9 +594,11 @@ async function markAsDead(client, interaction, optionalText = ""){
     thread.edit({ name: `${thread.name.replace(text_waitingLogo, text_deadLogo)}` });
 
     await sendReceivedMessage(client, optionalText + text_deadLogo + ` ` + text_markAsDead, interaction);
+
+    await updateEligibleIDs(client);
 }
 
-async function getEligibleIDs(client){
+async function updateEligibleIDs(client){
 
     const forum = await client.channels.cache.get(channelID_GPVerificationForum);
     const activeThreads = await forum.threads.fetchActive();
@@ -882,7 +884,7 @@ export {
     inactivityCheck,
     createForumPost,
     markAsDead, 
-    getEligibleIDs,
+    updateEligibleIDs,
     setUserState,
     updateServerData,
 }
