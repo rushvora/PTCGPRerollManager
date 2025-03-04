@@ -113,7 +113,6 @@ It helps tracking usernamers easily and brings joy to ppl in your group clearing
 - The bot sentences can be switched from **English to French** only by changing a variable from ```true``` to ```false``` in config.json
 
 - If you wish to easily set up the bot for your server, i created a **Discord server template** based on our main server where we run the bot, here it is : https://discord.new/zXx8avYs85wk
-<br /> 
 
 # Install
 
@@ -164,12 +163,6 @@ Heartbeat also supports users farming with multiples PCs, to know how to setup i
 <br /> 
 
 # TODO :
-
-- Wait for a better 2 star filter from Arturo'bot to create forum post in another or the same forum channel as for gp when a 2 Star appears in webhook
-
-- Help to remove friends easily by exporting a list of all the GP account id you're eligible
-
-- Make a command to remove you from the eligibles in a gp in case you were active but verifying gp at this time ( :'( dw it happened to all of us )
 
 - Filter out all the potentiel banwords from the user generated list and remove then, at this time it only filters special characters
 
