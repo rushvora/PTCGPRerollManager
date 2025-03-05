@@ -63,7 +63,7 @@ async function readFileAsync(filepath) {
             });
         });
     } catch (err) {
-        console.error('❌ Error reading the XML file:', err);
+        console.log(`❌ Error reading the XML file, ${filepath} does not exist`);
     }
 }
 

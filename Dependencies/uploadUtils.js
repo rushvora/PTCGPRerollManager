@@ -15,6 +15,8 @@ const octokit = new Octokit({
 
 async function updateGist( gitContent, gitName = gitGistGroupName ){
 
+    if(gitContent == "") {gitContent = "empty"};
+
     try{
         await octokit.request(`PATCH /gists/${gitGistID}`,{
             gist_id: 'gitGistID',
@@ -31,7 +33,7 @@ async function updateGist( gitContent, gitName = gitGistGroupName ){
         console.log(`🌐 Updating GistGit... - ${gitName}`)
     }
     catch{
-        console.log("❌ ERROR trying to upload GistGit - ${gitName}");
+        console.log(`❌ ERROR trying to upload GistGit - ${gitName}`);
     }
 }
 

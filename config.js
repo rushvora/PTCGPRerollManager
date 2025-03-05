@@ -27,7 +27,7 @@ const gitGistGroupName = "PTCGPRerollGroupIDs";
 const gitGistGPName = "EligibleGPs";
 
 // Number of /miss needed before a post is marked as dead, here it means 1pack=4miss, 2packs=6miss, 3packs=8miss
-const missBeforeDead = [4,6,8];
+const missBeforeDead = [4,6,8,10,12];
 
 // Choose language
 const EnglishLanguage = true;
@@ -75,11 +75,6 @@ const text_verifiedLogo = "✅";
 const text_deadLogo = "💀";
 const text_waitingLogo = "⌛";
 
-// VIP / Eligible Ids to filter GP that are verified or in verification to clean friend list automatically
-// Choose which format you want to use based on the tool
-const useNizuyaTool = true // https://github.com/hoytdj/PTCGPB/releases/tag/v1.2beta
-const useSimGTool = false // Not implemented at this time
-
 export {
     token,
     guildID,
@@ -113,6 +108,4 @@ export {
     text_verifiedLogo,
     text_deadLogo,
     text_waitingLogo,
-    useNizuyaTool,
-    useSimGTool,
 };

@@ -31,8 +31,6 @@ import {
     text_verifiedLogo,
     text_deadLogo,
     text_waitingLogo,
-    useNizuyaTool,
-    useSimGTool,
 } from '../config.js';
 
 import {
@@ -308,11 +306,11 @@ async function sendUserStats(client){
     activeUsers = await getActiveUsers( true, false);
     const activeInstances = getAttribValueFromUsers(activeUsers, attrib_RealInstances, [0]);
     const instancesAmount = sumIntArray(activeInstances);
-    const avginstances = roundToOneDecimal(instancesAmount/activeUsers.length)
+    const avginstances = roundToOneDecimal(instancesAmount/activeUsers.length);
     
     const globalPacksPerMin = getAttribValueFromUsers(activeUsers, attrib_PacksPerMin, [0]);
     const accumulatedPacksPerMin = sumFloatArray(globalPacksPerMin);
-    const avgPacksPerMin = roundToOneDecimal(accumulatedPacksPerMin/activeUsers.length)
+    const avgPacksPerMin = roundToOneDecimal(accumulatedPacksPerMin/activeUsers.length);
 
     const allUsers = await getAllUsers();
     const totalServerPacks = sumIntArray(getAttribValueFromUsers(allUsers, attrib_TotalPacksOpened, [0]));
@@ -322,22 +320,28 @@ async function sendUserStats(client){
     const eligibleGPs = await getServerDataGPs(attrib_eligibleGPs);
     const ineligibleGPs = await getServerDataGPs(attrib_ineligibleGPs);
     const liveGPs = await getServerDataGPs(attrib_liveGPs);
-    const eligibleGPCount = parseInt(eligibleGPs.length);
-    const ineligibleGPCount = parseInt(ineligibleGPs.length);
-    const liveGPCount = parseInt(liveGPs.length);
 
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
+    const eligibleGPCount = 0;
+    const ineligibleGPCount = 0;
+    const liveGPCount = 0;
     var weekEligibleGPCount = 0;
     var weekLiveGPCount = 0;
 
-    eligibleGPs.forEach( eligibleGP =>{
-        if (getTimeFromGP(eligibleGP) > oneWeekAgo) weekEligibleGPCount++;
-    })
-    liveGPs.forEach( liveGP =>{
-        if (getTimeFromGP(liveGP) > oneWeekAgo) weekLiveGPCount++;
-    })
+    if (eligibleGPs != undefined && ineligibleGPs != undefined && liveGPs != undefined) {
+        eligibleGPCount = parseInt(eligibleGPs.length);
+        ineligibleGPCount = parseInt(ineligibleGPs.length);
+        liveGPCount = parseInt(liveGPs.length);
+
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    
+        eligibleGPs.forEach( eligibleGP =>{
+            if (getTimeFromGP(eligibleGP) > oneWeekAgo) weekEligibleGPCount++;
+        })
+        liveGPs.forEach( liveGP =>{
+            if (getTimeFromGP(liveGP) > oneWeekAgo) weekLiveGPCount++;
+        })
+    }
 
     const embedUserStats = new EmbedBuilder()
         .setColor('#f02f7e') // Couleur en hexadécimal
@@ -616,18 +620,14 @@ async function updateEligibleIDs(client){
             
             var cleanThreadName = nestedThread.name.replace(text_waitingLogo,"").replace(text_deadLogo,"").replace(text_verifiedLogo,"");
             var gpPocketName = cleanThreadName.split(" ")[1];
-            var gpTwoStarCount = cleanThreadName.match(/\[(\d+\/\d+)\]/)[1];
+            var gpTwoStarCountArray = cleanThreadName.match(/\[(\d+\/\d+)\]/);
+            var gpTwoStarCount = gpTwoStarCountArray.length > 1 ? gpTwoStarCountArray[1] : 5; // Consider as a 5/5 in case it's not found to avoid filtering it 
             
             const gpPocketID = contentSplit.find(line => line.includes('ID:'));
             
             if(gpPocketID != undefined){
-
-                if(useNizuyaTool){
-                    idList += `${gpPocketID.replace("ID:","")} | ${gpPocketName} | ${gpTwoStarCount}\n`;
-                }
-                else if(useSimGTool){
-                    idList += `${gpPocketName},${gpPocketID.replace("ID:","")}\n`;
-                }
+                
+                idList += `${gpPocketID.replace("ID:","")} | ${gpPocketName} | ${gpTwoStarCount}\n`;
             }
         }
     }
