@@ -142,11 +142,11 @@ And press Ctrl+C to stop it.
 
 You can upload it on a server easily, I personnaly use discloud and it should work great once set up
 
-Now place the repo in your project folder if you haven't alrdy done it and edit config.json and fill every fill with your bot infos and how do you want to run it, comments will explain everything
+Now place the repo in your project folder if you haven't alrdy done it and edit config.json and fill everything with your bot infos and how do you want to run it, comments will explain everything
 
 After that [create a new fine-grained token](https://github.com/settings/tokens) for your GitHub account, and make sure to only check to read/write your Gists
 
-Then, [create a GitGist](https://gist.github.com/) and get it's ID (the numbers in the URL). Now you're ready to fill out the last two variables in config.js and **modify the GitGistName variable in index.mjs** with your gist file name
+Then, [create a GitGist](https://gist.github.com/) and get it's ID (the numbers in the URL). Now you're ready to fill out the GitGist variables in config.js
 
 In Arturo's bot the url should be placed in Friend ID and look like this : ```https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/PTCGPRerollGroupIDs```
 
