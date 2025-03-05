@@ -48,6 +48,7 @@ Instead of using only the webhook channel which is a nightmare to navigate, the 
 - The Name and the Pack amount as title
 - A **quote to all rerollers** that **were active** at the time of the GP pull
 - The image and a link to the source (the webhook post)
+
 In a forum post, peoples of your group can type **/Dead** or **/Verified** to change instantly the icon from ⌛ to 💀 or ✅
 
 Moreover, you can type **/miss** and after a specific amount of miss based on packs ammount, it will automatically switch it as **/dead**. There's a thread on our discord if you have some ideas of funny sentences that the bot could say (As i also implemented a system that make the bot different things based on the % of miss)
