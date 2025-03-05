@@ -321,9 +321,9 @@ async function sendUserStats(client){
     const ineligibleGPs = await getServerDataGPs(attrib_ineligibleGPs);
     const liveGPs = await getServerDataGPs(attrib_liveGPs);
 
-    const eligibleGPCount = 0;
-    const ineligibleGPCount = 0;
-    const liveGPCount = 0;
+    var eligibleGPCount = 0;
+    var ineligibleGPCount = 0;
+    var liveGPCount = 0;
     var weekEligibleGPCount = 0;
     var weekLiveGPCount = 0;
 
@@ -556,7 +556,7 @@ async function createForumPost(client, message, channelID, packName, titleName, 
         
         // Second line
         packAmount = extractNumbers(packAmount);
-        packAmount = Math.max(Math.min(packAmount,3),1); // Ensure that it is only 1 to 3
+        packAmount = Math.max(Math.min(packAmount,5),1); // Ensure that it is only 1 to 5
         const text_miss = `## [ 0 miss / ${missBeforeDead[packAmount-1]} ]`
         const text_missLine = `${text_miss}\n\n`;
         
