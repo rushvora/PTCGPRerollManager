@@ -48,6 +48,7 @@ Instead of using only the webhook channel which is a nightmare to navigate, the 
 - The Name and the Pack amount as title
 - A **quote to all rerollers** that **were active** at the time of the GP pull
 - The image and a link to the source (the webhook post)
+
 In a forum post, peoples of your group can type **/Dead** or **/Verified** to change instantly the icon from ⌛ to 💀 or ✅
 
 Moreover, you can type **/miss** and after a specific amount of miss based on packs ammount, it will automatically switch it as **/dead**. There's a thread on our discord if you have some ideas of funny sentences that the bot could say (As i also implemented a system that make the bot different things based on the % of miss)
@@ -59,11 +60,14 @@ You can also use **/addgpfound** and **/removegpfound** to fix false positive go
 
 ## Eligible GPs aka VIP IDs
 
-The bot will output a second GitGist file in case you want to use fully automated smart friend remove such as [Hoytdj's Pokemon Trading Card Game Pocket Bot](https://github.com/hoytdj/PTCGPB) or (include simg bot) that both use OCR
+This feature have been designed to work with [Hoytdj's Pokemon Trading Card Game Pocket Bot](https://github.com/hoytdj/PTCGPB) or [gmisSe's Automation-mod-for-PTCFPB](https://github.com/gmisSe/Automation-mod-for-PTCFPB) that both use OCR
 
-It will retrieve all GP that are currently listed as waiting to be verified (⌛) or verified/live (✅) and everyone can use a link to filter and remove friends that are not GPs, do know that it don't work with Double 2 Star at this time
+The goal is to fully automate friend removal based on the GPs that are currently listed as waiting to be verified ⌛ or verified/live ✅
 
-The link to this document will be something like "https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/EligibleGPs"
+Every account that are marked as dead 💀, closed or not present in the list will be deleted, do know that it won't keep Double 2 Star at this time.
+
+In order for that to work, the bot will output a second GitGist file in your GistGit files where the link your be something like :
+```https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/EligibleGPs```, You can share this document for your group so everyone can use it
 
 ## Auto Kick inactive/low efficient peoples
 
@@ -138,14 +142,15 @@ And press Ctrl+C to stop it.
 
 You can upload it on a server easily, I personnaly use discloud and it should work great once set up
 
-Now place the repo in your project folder if you haven't alrdy done it and edit config.json and fill every fill with your bot infos and how do you want to run it, comments will explain everything
+Now place the repo in your project folder if you haven't alrdy done it and edit config.json and fill everything with your bot infos and how do you want to run it, comments will explain everything
 
 After that [create a new fine-grained token](https://github.com/settings/tokens) for your GitHub account, and make sure to only check to read/write your Gists
 
-Then, [create a GitGist](https://gist.github.com/) and get it's ID (the numbers in the URL). Now you're ready to fill out the last two variables in config.js and **modify the GitGistName variable in index.mjs** with your gist file name
+Then, [create a GitGist](https://gist.github.com/) and get it's ID (the numbers in the URL). Now you're ready to fill out the GitGist variables in config.js
 
-In Arturo's bot the url should be placed in Friend ID and look like this : "https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/PTCGPRerollGroupIDs"
-And for the VIP IdList / Eligible GP, it should look like this  : "https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/EligibleGPs"
+In Arturo's bot the url should be placed in Friend ID and look like this : ```https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/PTCGPRerollGroupIDs```
+
+And for the Eligible GPs aka VIP IDs, it should look like this  : ```https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/EligibleGPs```
 <br /> 
 <br /> 
 
