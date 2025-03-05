@@ -64,7 +64,7 @@ This feature have been designed to work with [Hoytdj's Pokemon Trading Card Game
 
 The goal is to fully automate friend removal based on the GPs that are currently listed as waiting to be verified ⌛ or verified/live ✅
 
-Every account that are marked as dead 💀 or not present in the list will be deleted, do know that it won't keep Double 2 Star at this time.
+Every account that are marked as dead 💀, closed or not present in the list will be deleted, do know that it won't keep Double 2 Star at this time.
 
 In order for that to work, the bot will output a second GitGist file in your GistGit files where the link your be something like :
 ```https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/EligibleGPs```, You can share this document for your group so everyone can use it
