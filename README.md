@@ -180,7 +180,7 @@ Heartbeat also supports users farming with multiples PCs, to know how to setup i
 
 - **/SetPlayerID** - _Use for automatic IDs_
 - **/SetAverageInstances** - _Use if Heartbeats instances not received yet_
-- **/Add /Remove /Farm /Leech** - _Change your status_
+- **/Active /Inactive /Farm /Leech** - _Change your status_
 - **/Refresh** - _Refresh the UserStats_
 - **/ForceRefresh** - _Refresh the IDs & upload instantly (usefull when changing PlayerID, otherwise it's done automatically)_
 - **/Verified /Dead** - _Change GP state_
