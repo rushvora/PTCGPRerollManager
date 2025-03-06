@@ -27,9 +27,9 @@ With **/SetAverageInstances**, players can also specify how many instances they 
 
 The bot display two different things, **server stats** and **user stats** for more details, it will auto update in a specific channel every 10 minutes
 
-Server stats can be used to determine the efficiency of your group
+Server stats can be used to determine the efficiency of your group, it's the top block which is saying how many ppl are rerolling, how many instances, how many GP live etc
 
-And there's also the users stats who recaps more precise stats about all users that are either active, farming or leeching and it shows a lot of informations such as :
+And there's also the users stats who detail all stats about each user that are either active, farming or leeching such as :
 - Amount of Packs per minute for the session
 - Total Amount of Packs
 - Total Amount of Godpacks
