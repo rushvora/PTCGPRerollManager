@@ -23,7 +23,7 @@ With **/SetAverageInstances**, players can also specify how many instances they 
 
 ## Heartbeats implementation
 
-<img align="right" width="438" height="513" src="https://github.com/user-attachments/assets/0217ac25-7b24-4727-b40f-e0bbc70b9649">
+<img align="right" width="373" height="606" src="https://github.com/user-attachments/assets/b1d800ae-8daf-44d8-b397-eae5fb8fecbb">
 
 The bot display two different things, **server stats** and **user stats** for more details, it will auto update in a specific channel every 10 minutes
 
