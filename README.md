@@ -9,7 +9,7 @@ This repo is a Discord Bot written in javascript ES6 made to work with [Arturo P
 ## Automated IDs from Discord commands 
 <img align="right" width="311" height="347" src="https://i.imgur.com/BamGht5.png">
 
-Using **/SetPlayerID**, player are able to link their ID with their discord account
+Using **/SetPlayerID**, player are able to link their Pocket ID with their discord account
 
 Once that's done, they can join or leave the list by simply typing **/Active**, **/Inactive**, **/Farm** or **/Leech** and it will **update a GitGist** that all players are linked with _(Note that you can disable leech or ask for specific requirements in config.json)_
 
@@ -18,7 +18,7 @@ The bot will also post a message every hour to change your status quicker
 <br/> <br/> <br/> <br/> <br/> <br/> <br/>
 As i'm using GitGist, the refresh time can be up to a maximum of 5 minutes
 
-With **/SetAverageInstances**, players can also specify how many instances they are usually running and if the heartbeat is not received it will use this one waiting for the real number of instances
+With **/SetAverageInstances**, players can also specify how many instances they are usually running but uses heartbeats instances most of the time to get the real number of instances
 <br /> 
 
 ## Heartbeats implementation
@@ -27,7 +27,7 @@ With **/SetAverageInstances**, players can also specify how many instances they 
 
 The bot display two different things, **server stats** and **user stats** for more details, it will auto update in a specific channel every 10 minutes
 
-Server stats can be used to determine the efficiency of your group, on later updates it'll also show GP stats
+Server stats can be used to determine the efficiency of your group
 
 And there's also the users stats who recaps more precise stats about all users that are either active, farming or leeching and it shows a lot of informations such as :
 - Amount of Packs per minute for the session
