@@ -21,6 +21,7 @@ import {
     inactiveIfMainOffline,
     heartbeatRate,
     delayMsgDeleteState,
+    min2Stars,
     canPeopleAddOthers,
     canPeopleRemoveOthers,
     canPeopleLeech,
@@ -216,8 +217,15 @@ async function getUsersStats(users, members){
                 userOutput += colorText(visibleUsername, "yellow") + " - started";
             }
             else{ // Inactive
-                inactiveTime = Math.round(parseFloat(inactiveTime));
-                userOutput += colorText(visibleUsername, "red") + ` - inactive for ${colorText(inactiveTime,"red")}mn`;
+
+                const lastHBTime = getAttribValueFromUser(user, attrib_LastHeartbeatTime);
+                if( lastHBTime == "" || lastHBTime == undefined ){
+                    userOutput += colorText(visibleUsername, "red") + ` - ${colorText("Heartbeat issue","red")}`;
+                }
+                else{
+                    inactiveTime = Math.round(parseFloat(inactiveTime));
+                    userOutput += colorText(visibleUsername, "red") + ` - inactive for ${colorText(inactiveTime,"red")}mn`;
+                }
                 barOffset += 11; // 11 more because coloring the text adds 11 hidden characters
             }
         }
@@ -279,7 +287,7 @@ async function getUsersStats(users, members){
     return usersStats;
 }
 
-async function sendUserStats(client){
+async function sendStats(client){
 
     console.log("📝 Updating Users Stats...")
     
@@ -327,6 +335,12 @@ async function sendUserStats(client){
     var weekEligibleGPCount = 0;
     var weekLiveGPCount = 0;
 
+    var totalGPCount = 0;
+    var potentialLiveGPCount = 0;
+
+    var weekLuck = 0;
+    var totalLuck = 0;
+
     if (eligibleGPs != undefined && ineligibleGPs != undefined && liveGPs != undefined) {
         eligibleGPCount = parseInt(eligibleGPs.length);
         ineligibleGPCount = parseInt(ineligibleGPs.length);
@@ -341,6 +355,20 @@ async function sendUserStats(client){
         liveGPs.forEach( liveGP =>{
             if (getTimeFromGP(liveGP) > oneWeekAgo) weekLiveGPCount++;
         })
+        
+        if(weekLiveGPCount > 0){
+            weekLuck = roundToOneDecimal(weekLiveGPCount / weekEligibleGPCount * 100);
+        }
+        if(liveGPCount > 0){
+            totalLuck = roundToOneDecimal(liveGPCount / eligibleGPCount * 100);
+        }
+
+        totalGPCount = eligibleGPCount + ineligibleGPCount;
+
+        if( !isNaN(totalLuck) && totalLuck > 0 && totalGPCount > 0){
+            var potentialEligibleGPCount = eligibleGPCount + (ineligibleGPCount * min2Stars * 0.1) // 0.1 = 1 chance out of 10 for an invalid to not be a gold or immersive (for every Min2Stars)
+            potentialLiveGPCount = Math.round(potentialEligibleGPCount * (totalLuck/100));
+        }
     }
 
     const embedUserStats = new EmbedBuilder()
@@ -360,14 +388,14 @@ async function sendUserStats(client){
             { name: `🃏 Total Packs :          ‎`, value: `${formatNumbertoK(totalServerPacks)}`, inline: true },
             { name: `🕓 Total Time :`, value: `${formatMinutesToDays(totalServerTime)}`, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
-            { name: `✅ Week Live :              ‎`, value: `${weekLiveGPCount}`, inline: true },
-            { name: `🔴 Week Eligibles :         ‎`, value: `${weekEligibleGPCount}`, inline: true },
-            { name: `🍀 Week Luck :`, value: `${roundToOneDecimal(weekLiveGPCount / weekEligibleGPCount * 100) + " %"}`, inline: true },
-            { name: `✅ Total Live :              ‎`, value: `${liveGPCount}`, inline: true },
-            { name: `🔴 Total Eligibles :         ‎`, value: `${eligibleGPCount}`, inline: true },
-            { name: `🍀 Total Luck :`, value: `${roundToOneDecimal(liveGPCount / eligibleGPCount * 100) + " %"}`, inline: true },
-            { name: '\u200B', value: '\u200B', inline: true },
-            { name: `📊 Total GP :`, value: `${eligibleGPCount + ineligibleGPCount}`, inline: true },
+            { name: `✅ Week Live :            ‎`, value: `${weekLiveGPCount}`, inline: true },
+            { name: `🔴 Week Eligibles :       ‎`, value: `${weekEligibleGPCount}`, inline: true },
+            { name: `🍀 Week Luck :`, value: `${ weekLuck + " %"}`, inline: true },
+            { name: `✅ Total Live :           ‎`, value: `${liveGPCount}`, inline: true },
+            { name: `🔴 Total Eligibles :      ‎`, value: `${eligibleGPCount}`, inline: true },
+            { name: `🍀 Total Luck :`, value: `${ totalLuck + " %"}`, inline: true },
+            { name: `☑️ Potential Live         ‎`, value: `${potentialLiveGPCount}`, inline: true },
+            { name: `📊 Total GP :`, value: `${totalGPCount}`, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
         );
 
@@ -485,7 +513,7 @@ async function inactivityCheck(client){
             
                 if( userInstances <= parseInt(inactiveInstanceCount) ){
                 
-                    text_haveBeenKicked = localize(`a été kick des rerollers actifs pour car il a ${userInstances} instances en cours`,` have been kicked out of active rerollers for inactivity because he had ${userInstances} instances running`);
+                    text_haveBeenKicked = localize(`a été kick des rerollers actifs car il a ${userInstances} instances en cours`,` have been kicked out of active rerollers for inactivity because he had ${userInstances} instances running`);
                     console.log(`✖️ Kicked ${getUsernameFromUser(user)} - ${userInstances} instances running`);
                 }
                 else if ( 
@@ -756,8 +784,8 @@ async function updateServerData(client){
 
     if( !serverDataExist || resetServerDataFrequently ) {
         
-        const text_Warning = `⌛ Resetting all GP stats to ServerData.xml...`;
-        const text_Success = `☑️  All GP stats have been successfully saved`;
+        const text_Warning = `⌛ Analyzing & reset all GP stats to ServerData.xml...`;
+        const text_Success = `☑️ All GP stats have been successfully saved`;
         console.log(text_Warning);
 
         // Default XML Structure
@@ -878,7 +906,7 @@ export {
     getGuild, 
     getMemberByID,
     getUsersStats, 
-    sendUserStats, 
+    sendStats, 
     sendIDs,
     sendStatusHeader,
     inactivityCheck,

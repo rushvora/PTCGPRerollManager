@@ -75,7 +75,7 @@ import {
     getGuild, 
     getMemberByID,
     getUsersStats, 
-    sendUserStats, 
+    sendStats, 
     sendIDs,
     sendStatusHeader,
     inactivityCheck,
@@ -193,7 +193,7 @@ client.once(Events.ClientReady, async c => {
         evenTurnInterval = !evenTurnInterval;
 
         if (evenTurnInterval) {
-            sendUserStats(client);
+            sendStats(client);
         } 
         else if(AutoKick) {
             inactivityCheck(client);
@@ -453,7 +453,7 @@ client.on(Events.InteractionCreate, async interaction => {
         const text_listForceRefreshed = localize(`**Stats des rerollers actifs rafraichies dans <#${channelID_UserStats}>**`, `**Active rerollers stats refreshed in <#${channelID_UserStats}>**`);
 
         await sendReceivedMessage(client, text_listForceRefreshed, interaction, delayMsgDeleteState);
-        sendUserStats(client)
+        sendStats(client)
     }
 
     if(!interaction.isChatInputCommand()) return;
@@ -471,7 +471,7 @@ client.on(Events.InteractionCreate, async interaction => {
         const text_set = localize("set pour","set for user");
 
         if(id.length != 16 || !isNumbers(id)){
-            await sendReceivedMessage(client, text_incorrectID + ` **<@${interactionUserID}>**, ` + text_incorrectReaso, interaction);
+            await sendReceivedMessage(client, text_incorrectID + ` **<@${interactionUserID}>**, ` + text_incorrectReason, interaction);
         }
         else{
             const userPocketID = await getUserAttribValue( client, interactionUserID, attrib_PocketID);
@@ -583,7 +583,7 @@ client.on(Events.InteractionCreate, async interaction => {
         const text_listForceRefreshed = localize(`**Stats des rerollers actifs rafraichies dans <#${channelID_UserStats}>**`, `**Active rerollers stats refreshed in <#${channelID_UserStats}>**`);
 
         await sendReceivedMessage(client, text_listForceRefreshed, interaction, delayMsgDeleteState);
-        sendUserStats(client)
+        sendStats(client)
     }
 
     // FORCE REFRESH COMMAND

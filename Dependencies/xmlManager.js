@@ -421,13 +421,19 @@ async function addServerGP( type, threadOrMessage ){
 
     if(type == attrib_eligibleGP){
 
+        if ( result.root[attrib_eligibleGPs][0].length < 1 ){ result.root[attrib_eligibleGPs] = [{ [attrib_eligibleGP]: [] }]; }
+
         result.root[attrib_eligibleGPs][0][attrib_eligibleGP].push(newGPElement);
     }
     else if(type == attrib_liveGP){
 
+        if ( result.root[attrib_liveGPs][0].length < 1 ){ result.root[attrib_liveGPs] = [{ [attrib_liveGP]: [] }]; }
+
         result.root[attrib_liveGPs][0][attrib_liveGP].push(newGPElement);
     }
     else if(type == attrib_ineligibleGP){
+
+        if ( result.root[attrib_ineligibleGPs][0].length < 1 ){ result.root[attrib_ineligibleGPs] = [{ [attrib_ineligibleGP]: [] }]; }
 
         result.root[attrib_ineligibleGPs][0][attrib_ineligibleGP].push(newGPElement);
     }    
@@ -649,7 +655,7 @@ async function refreshUserActiveState( user, fallbackValue = ["waiting",0] ){
         }
         //Set activity type
         await setUserAttribValue( getIDFromUser(user), getUsernameFromUser(user), attrib_ActiveState, activeState );
-    
+
         return [activeState, diffHBTime];
     }
     catch{
