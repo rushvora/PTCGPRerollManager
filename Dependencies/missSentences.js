@@ -12,12 +12,12 @@ var emoji_PeepoClown = ``;
 var emoji_Prayge = ``;
 var emoji_Sadge = ``;
 
-function findEmoji( myClient, name){
+function findEmoji(myClient, name, fallback = ""){
 
     const emoji = myClient.emojis.cache.find(emoji => emoji.name == name)
 
     if (emoji == undefined){
-        return ``;
+        return fallback;
     }
 
     return emoji
@@ -113,4 +113,5 @@ export{
     text_lowTension,
     text_mediumTension,
     text_highTension,
+    findEmoji,
 }

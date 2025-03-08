@@ -75,7 +75,7 @@ function checkFileExists( filepath ) {
     return false;
 }
 
-// Read if UserData.xml exists, otherwise create it with "content"
+// Read if filepath.xml exists, otherwise create it with "content"
 async function checkFileExistsOrCreate(filepath, content='', lock = lockServerData) {
     if (!fs.existsSync(filepath)) {
         const dir = path.dirname(filepath);
@@ -96,6 +96,26 @@ async function checkFileExistsOrCreate(filepath, content='', lock = lockServerDa
     }
     return true;
 }
+
+// Create filepath.xml with "content"
+async function writeFile(filepath, content='', lock = lockServerData) {
+        
+    const dir = path.dirname(filepath);
+        
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+
+    // ==== ASYNC LOCK WRITE ==== //
+    await lock.acquire('fileLock', async () => {
+        try {
+            await fs.promises.writeFile(filepath, content);
+        } catch (error) {
+            console.log('❌ ERROR trying to write filesync with lock');
+    }});
+    ////////////////////////////////
+}
+
 
 // Create the user profile because none was existing
 async function createUserProfile( attribUserId, attribUserName ) {
@@ -277,7 +297,7 @@ async function getUserAttribValue( client, attribUserId, subAttribName, fallback
             }
         }
     } catch (err) {
-        console.log(`❗️ Try to get attribute ${subAttribName} but does not exist:`);
+        console.log(`❗️ Try to get attribute ${subAttribName} but does not exist`);
         return fallbackValue
     }
 }
@@ -388,7 +408,7 @@ async function getUserSubsystemAttribValue( client, attribUserId, subSystemName,
             }
         }
     } catch (err) {
-        console.log(`❗️ Try to get attribute ${subAttribName} but does not exist:`);
+        console.log(`❗️ Try to get attribute ${subAttribName} but does not exist`);
         return fallbackValue
     }
 }
@@ -709,8 +729,9 @@ async function refreshUserRealInstances( user, activeState, fallbackValue = 1 ){
 }
 
 export {
-    checkFileExistsOrCreate,
     checkFileExists,
+    checkFileExistsOrCreate,
+    writeFile,
     doesUserProfileExists, 
     setUserAttribValue, 
     getUserAttribValue, 

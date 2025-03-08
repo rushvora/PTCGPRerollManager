@@ -26,12 +26,13 @@ const gitGistGroupName = "PTCGPRerollGroupIDs";
 // And the GitGist Name based on the name you gave it
 const gitGistGPName = "EligibleGPs";
 
-// Number of /miss needed before a post is marked as dead, here it means 1pack=4miss, 2packs=6miss, 3packs=8miss
-const missBeforeDead = [4,6,8,10,12];
+// =========================================== RULES ===========================================
+// If you want your group to be able to add other ppl than themselves using /active @user 
+const canPeopleAddOthers = true;
+// If you want your group to be able to remove other ppl than themselves using /inactive @user 
+const canPeopleRemoveOthers = true;
 
-// Choose language
-const EnglishLanguage = true;
-
+// =========================================== AUTO KICK ===========================================
 // Setting this to true will enable auto kick and kick players based on the others factors below
 const AutoKick = false;
 // Every X minute divided by 2 it will alternate between sending user stats and checking for inactive peoples
@@ -46,38 +47,58 @@ var inactivePackPerMinCount = 1;
 // Kick instantly if it detects that Main is On AND Offline /!\ At this time there are false positive where Main could be considered offline but it have no issue in reality
 var inactiveIfMainOffline = false;
 
-// No need to modify it except you specifically changed the rate in yours ahk files
-var heartbeatRate = 30;
-
-// Delete state messages after X seconds (/add /remove /refresh /forcerefresh) 0 = no delete
-var delayMsgDeleteState = 10;
-
-// The average Min2Stars of the group on Arturo's bot, used to calculate the Potential Lives GP
-// Considering that at a value of 2, 1 invalid pack out of 10 will be invalidated by stars and not gold / immersive
-var min2Stars = 2;
-
-// No need to modify it except you specifically changed the rate in yours ahk files
-const canPeopleAddOthers = true;
-// No need to modify it except you specifically changed the rate in yours ahk files
-const canPeopleRemoveOthers = false;
-
-// LEECHING
+// =========================================== LEECHING ===========================================
 // Decide wether or not ppl can leech
-const canPeopleLeech = true;
+const canPeopleLeech = false;
 // Decide after how many GP found ppl can be able to leech
 const leechPermGPCount = 20;
 // Decide after how many packs opened ppl can be able to leech
 const leechPermPackCount = 50000;
 
+// =========================================== GP STATS ===========================================
 // Decide if you want your Servers Stats (GP stats) to be reset every 4hours which could prevent some duplicated stuff in ServerData.xml 
 const resetServerDataFrequently = true;
-// Decide how frequently you want to reset it, default to 4 hours (240mn)
+// Decide how frequently you want to Reset GP Stats, default to 4 hours (240mn)
 const resetServerDataTime = 240;
 
+// =========================================== ELIGIBLES IDs ===========================================
+// If some ppl in your group are running Min2Stars : 2 and some others 3, that flags all the GPs as 5/5 in the list to avoid to auto remove bot from kicking 2/5 for those who are at Min2Stars : 3
+var safeEligibleIDsFiltering = true; // true = all flagged as 5/5
+
+// =========================================== OTHER SETTINGS ===========================================
+// Choose language
+const EnglishLanguage = false;
+
+// Number of /miss needed before a post is marked as dead, here it means 1pack=4miss, 2packs=6miss, 3packs=8miss
+const missBeforeDead = [4,6,8,10,12];
+
+// The average Min2Stars of the group on Arturo's bot, used to calculate the Potential Lives GP
+// Considering that at a value of 2, 1 invalid pack out of 10 will be invalidated by stars and not gold / immersive
+var min2Stars = 2;//can be a floating number ex:2.5
+
+// No need to modify it except you specifically changed the rate in yours ahk files
+var heartbeatRate = 30;//minutes
+
+// Delete some messages after X seconds (/active /inactive /refresh /forcerefresh) 0 = no delete
+var delayMsgDeleteState = 10;//seconds
+
+// =========================================== AESTHETICS ===========================================
 // Icons of GP Validation
 const text_verifiedLogo = "✅";
 const text_deadLogo = "💀";
 const text_waitingLogo = "⌛";
+
+const leaderboardBestFarm1_CustomEmojiName = "Chadge"; // 🌟 if not found
+const leaderboardBestFarm2_CustomEmojiName = "PeepoLove"; // ⭐️ if not found
+const leaderboardBestFarm3_CustomEmojiName = "PeepoShy"; // ✨ if not found
+
+const leaderboardBestVerifier1_CustomEmojiName = "Wicked"; // 🥇 if not found
+const leaderboardBestVerifier2_CustomEmojiName = "PeepoSunglasses"; // 🥈 if not found
+const leaderboardBestVerifier3_CustomEmojiName = "PeepoHappy"; // 🥉 if not found
+
+const leaderboardWorstVerifier1_CustomEmojiName = "Bedge"; // 😈 if not found
+const leaderboardWorstVerifier2_CustomEmojiName = "PeepoClown"; // 👿 if not found
+const leaderboardWorstVerifier3_CustomEmojiName = "DinkDonk"; // 💀 if not found /!\ This one the worst one, it should be at the top but that helps for readability 
 
 export {
     token,
@@ -110,7 +131,17 @@ export {
     leechPermPackCount,
     resetServerDataFrequently,
     resetServerDataTime,
+    safeEligibleIDsFiltering,
     text_verifiedLogo,
     text_deadLogo,
     text_waitingLogo,
+    leaderboardBestFarm1_CustomEmojiName,
+    leaderboardBestFarm2_CustomEmojiName,
+    leaderboardBestFarm3_CustomEmojiName,
+    leaderboardBestVerifier1_CustomEmojiName,
+    leaderboardBestVerifier2_CustomEmojiName,
+    leaderboardBestVerifier3_CustomEmojiName,
+    leaderboardWorstVerifier1_CustomEmojiName,
+    leaderboardWorstVerifier2_CustomEmojiName,
+    leaderboardWorstVerifier3_CustomEmojiName,
 };

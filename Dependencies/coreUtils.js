@@ -29,9 +29,19 @@ import {
     leechPermPackCount,
     resetServerDataFrequently,
     resetServerDataTime,
+    safeEligibleIDsFiltering,
     text_verifiedLogo,
     text_deadLogo,
     text_waitingLogo,
+    leaderboardBestFarm1_CustomEmojiName,
+    leaderboardBestFarm2_CustomEmojiName,
+    leaderboardBestFarm3_CustomEmojiName,
+    leaderboardBestVerifier1_CustomEmojiName,
+    leaderboardBestVerifier2_CustomEmojiName,
+    leaderboardBestVerifier3_CustomEmojiName,
+    leaderboardWorstVerifier1_CustomEmojiName,
+    leaderboardWorstVerifier2_CustomEmojiName,
+    leaderboardWorstVerifier3_CustomEmojiName,
 } from '../config.js';
 
 import {
@@ -60,11 +70,12 @@ import {
 } from './utils.js';
 
 import {
-    checkFileExistsOrCreate,
     checkFileExists,
-    doesUserProfileExists,
-    setUserAttribValue,
-    getUserAttribValue,
+    checkFileExistsOrCreate,
+    writeFile,
+    doesUserProfileExists, 
+    setUserAttribValue, 
+    getUserAttribValue, 
     setUserSubsystemAttribValue,
     getUserSubsystemAttribValue,
     getActiveUsers,
@@ -75,8 +86,8 @@ import {
     getIDFromUsers, 
     getIDFromUser,
     getTimeFromGP,
-    getAttribValueFromUsers,
-    getAttribValueFromUser,
+    getAttribValueFromUsers, 
+    getAttribValueFromUser, 
     getAttribValueFromUserSubsystems,
     refreshUserActiveState,
     refreshUserRealInstances,
@@ -113,6 +124,8 @@ import {
     attrib_ineligibleGP,
     pathUsersData,
     pathServerData,
+    attrib_TotalPacksFarm,
+    attrib_TotalTimeFarm,
 } from './xmlConfig.js';
 
 import {
@@ -127,6 +140,10 @@ import {
     EmbedBuilder,
     PermissionsBitField,
 } from 'discord.js';
+
+import {
+    findEmoji,
+} from './missSentences.js';
 
 import {
     updateGist,
@@ -289,7 +306,7 @@ async function getUsersStats(users, members){
 
 async function sendStats(client){
 
-    console.log("📝 Updating Users Stats...")
+    console.log("📝 Updating Stats...")
     
     const guild = await getGuild(client);
 
@@ -341,33 +358,40 @@ async function sendStats(client){
     var weekLuck = 0;
     var totalLuck = 0;
 
-    if (eligibleGPs != undefined && ineligibleGPs != undefined && liveGPs != undefined) {
-        eligibleGPCount = parseInt(eligibleGPs.length);
-        ineligibleGPCount = parseInt(ineligibleGPs.length);
-        liveGPCount = parseInt(liveGPs.length);
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    
+    if (eligibleGPs != undefined) {
+        eligibleGPCount = parseInt(eligibleGPs.length);
+        
         eligibleGPs.forEach( eligibleGP =>{
             if (getTimeFromGP(eligibleGP) > oneWeekAgo) weekEligibleGPCount++;
         })
-        liveGPs.forEach( liveGP =>{
-            if (getTimeFromGP(liveGP) > oneWeekAgo) weekLiveGPCount++;
-        })
+
+        if(ineligibleGPs != undefined){
+            ineligibleGPCount = parseInt(ineligibleGPs.length);
+
+            if(liveGPs != undefined){
+                liveGPCount = parseInt(liveGPs.length);
+            
+                liveGPs.forEach( liveGP =>{
+                    if (getTimeFromGP(liveGP) > oneWeekAgo) weekLiveGPCount++;
+                })
+                
+                if(weekLiveGPCount > 0){
+                    weekLuck = roundToOneDecimal(weekLiveGPCount / weekEligibleGPCount * 100);
+                }
+                if(liveGPCount > 0){
+                    totalLuck = roundToOneDecimal(liveGPCount / eligibleGPCount * 100);
+                }
         
-        if(weekLiveGPCount > 0){
-            weekLuck = roundToOneDecimal(weekLiveGPCount / weekEligibleGPCount * 100);
-        }
-        if(liveGPCount > 0){
-            totalLuck = roundToOneDecimal(liveGPCount / eligibleGPCount * 100);
-        }
-
-        totalGPCount = eligibleGPCount + ineligibleGPCount;
-
-        if( !isNaN(totalLuck) && totalLuck > 0 && totalGPCount > 0){
-            var potentialEligibleGPCount = eligibleGPCount + (ineligibleGPCount * min2Stars * 0.1) // 0.1 = 1 chance out of 10 for an invalid to not be a gold or immersive (for every Min2Stars)
-            potentialLiveGPCount = Math.round(potentialEligibleGPCount * (totalLuck/100));
+                totalGPCount = eligibleGPCount + ineligibleGPCount;
+        
+                if( !isNaN(totalLuck) && totalLuck > 0 && totalGPCount > 0){
+                    var potentialEligibleGPCount = eligibleGPCount + (ineligibleGPCount * min2Stars * 0.1) // 0.1 = 1 chance out of 10 for an invalid to not be a gold or immersive (for every Min2Stars)
+                    potentialLiveGPCount = Math.round(potentialEligibleGPCount * (totalLuck/100));
+                }
+            }
         }
     }
 
@@ -397,7 +421,7 @@ async function sendStats(client){
             { name: `☑️ Potential Live         ‎`, value: `${potentialLiveGPCount}`, inline: true },
             { name: `📊 Total GP :`, value: `${totalGPCount}`, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
-        );
+    );
 
     // Send UserStats
     guild.channels.cache.get(channelID_UserStats).send({content:`## ${text_ServerStats} :\n`})
@@ -410,6 +434,106 @@ async function sendStats(client){
         // Avoid user stats spawning by stacks of 4 but instead one by one
         await wait(1.5)
     }
+
+    if(allUsers.length > 5) {
+
+        var missCountArray = [];
+        var farmInfoArray = [];
+
+        for( var i = 0; i < allUsers.length; i++ ) {
+                        
+            var user = allUsers[i];
+            var userID = getIDFromUser(user);
+            var userUsername = getUsernameFromUser(user);
+            const member = await getMemberByID(client, userID);
+
+            var displayName = "";
+            if (member == "") {
+                displayName = userUsername;
+            }
+            else{
+                displayName = member.displayName;
+            }
+
+            const totalMiss = getAttribValueFromUser(user, attrib_TotalMiss, 0);
+            const totalTime = getAttribValueFromUser(user, attrib_TotalTime, 0);
+            const sessionTime = getAttribValueFromUser(user, attrib_SessionTime, 0);
+            const totalTimeHour = (parseFloat(totalTime) + parseFloat(sessionTime)) / 60;
+            var missPer24Hour = roundToOneDecimal( (parseFloat(totalMiss) / totalTimeHour) * 24 );
+            missPer24Hour = isNaN(missPer24Hour) || missPer24Hour == Infinity ? 0 : missPer24Hour;
+
+            missCountArray.push({ user: displayName, value: missPer24Hour })
+            
+            const totalTimeFarm = getAttribValueFromUser(user, attrib_TotalTimeFarm, 0);
+            const totalPacksFarm = getAttribValueFromUser(user, attrib_TotalPacksFarm, 0);
+            
+            farmInfoArray.push({ user: displayName, packs: totalPacksFarm, time : totalTimeFarm })
+        };
+        
+        if(farmInfoArray.length > 5){
+
+            const emoji_BestFarm1 = findEmoji(client, leaderboardBestFarm1_CustomEmojiName, "🌟");
+            const emoji_BestFarm2 = findEmoji(client, leaderboardBestFarm2_CustomEmojiName, "⭐️");
+            const emoji_BestFarm3 = findEmoji(client, leaderboardBestFarm3_CustomEmojiName, "✨");
+
+            // Sort by best
+            farmInfoArray.sort((a, b) => b.time - a.time);
+            var bestFarmersText = `
+${emoji_BestFarm1} ${farmInfoArray[0].user} - ${farmInfoArray[0].time/60}h with ${farmInfoArray[0].packs} packs\n
+${emoji_BestFarm2} ${farmInfoArray[1].user} - ${farmInfoArray[1].time/60}h with ${farmInfoArray[1].packs} packs\n
+${emoji_BestFarm3} ${farmInfoArray[2].user} - ${farmInfoArray[2].time/60}h with ${farmInfoArray[2].packs} packs
+            ` //no tabs to avoid phone weird spacing
+
+            const embedBestFarmers = new EmbedBuilder()
+            .setColor('#39d1bf') // Couleur en hexadécimal
+            .setTitle('Best Farmers')
+            .setDescription(bestFarmersText);
+
+            guild.channels.cache.get(channelID_UserStats).send({ embeds: [embedBestFarmers] });
+        }
+
+        if(missCountArray.length > 5){
+            
+            const emoji_BestVerifier1 = findEmoji(client, leaderboardBestVerifier1_CustomEmojiName, "🥇");
+            const emoji_BestVerifier2 = findEmoji(client, leaderboardBestVerifier2_CustomEmojiName, "🥈");
+            const emoji_BestVerifier3 = findEmoji(client, leaderboardBestVerifier3_CustomEmojiName, "🥉");
+
+            const emoji_WorstVerifier1 = findEmoji(client, leaderboardWorstVerifier1_CustomEmojiName, "😈");
+            const emoji_WorstVerifier2 = findEmoji(client, leaderboardWorstVerifier2_CustomEmojiName, "👿");
+            const emoji_WorstVerifier3 = findEmoji(client, leaderboardWorstVerifier3_CustomEmojiName, "💀");
+
+            // Sort by best first
+            missCountArray.sort((a, b) => b.value - a.value);
+            var bestMissCountsText = `
+${emoji_BestVerifier1} ${missCountArray[0].user} - ${missCountArray[0].value} miss / 24h\n
+${emoji_BestVerifier2} ${missCountArray[1].user} - ${missCountArray[1].value} miss / 24h\n
+${emoji_BestVerifier3} ${missCountArray[2].user} - ${missCountArray[2].value} miss / 24h
+            ` //no tabs to avoid phone weird spacing
+
+            // Sort by worst then
+            missCountArray.sort((a, b) => a.value - b.value);
+            var worstMissCountsText = `
+${emoji_WorstVerifier1} ${missCountArray[2].user} - ${missCountArray[2].value} miss / 24h\n
+${emoji_WorstVerifier2} ${missCountArray[1].user} - ${missCountArray[1].value} miss / 24h\n
+${emoji_WorstVerifier3} ${missCountArray[0].user} - ${missCountArray[0].value} miss / 24h
+            ` //no tabs to avoid phone weird spacing
+
+            const embedBestMissCountStats = new EmbedBuilder()
+            .setColor('#5cd139') // Couleur en hexadécimal
+            .setTitle('Best Verifiers')
+            .setDescription(bestMissCountsText);
+
+            const embedWorstMissCountStats = new EmbedBuilder()
+            .setColor('#d13939') // Couleur en hexadécimal
+            .setTitle('Bottom Verifiers')
+            .setDescription(worstMissCountsText);
+
+            guild.channels.cache.get(channelID_UserStats).send({ embeds: [embedBestMissCountStats] });
+            guild.channels.cache.get(channelID_UserStats).send({ embeds: [embedWorstMissCountStats] });
+        }
+    }
+    
+    console.log("☑️ Done updating Stats")
 }
 
 async function sendIDs(client, updateServer = true){
@@ -648,8 +772,12 @@ async function updateEligibleIDs(client){
             
             var cleanThreadName = nestedThread.name.replace(text_waitingLogo,"").replace(text_deadLogo,"").replace(text_verifiedLogo,"");
             var gpPocketName = cleanThreadName.split(" ")[1];
-            var gpTwoStarCountArray = cleanThreadName.match(/\[(\d+\/\d+)\]/);
-            var gpTwoStarCount = gpTwoStarCountArray.length > 1 ? gpTwoStarCountArray[1] : 5; // Consider as a 5/5 in case it's not found to avoid filtering it 
+            
+            var gpTwoStarCount = "5/5"; // Consider as a 5/5 in case it's not found to avoid filtering it 
+            if(!safeEligibleIDsFiltering){ // except if safe filtering is off
+                var gpTwoStarCountArray = cleanThreadName.match(/\[(\d+\/\d+)\]/);
+                gpTwoStarCount = gpTwoStarCountArray.length > 1 ? gpTwoStarCountArray[1] : 5;
+            }
             
             const gpPocketID = contentSplit.find(line => line.includes('ID:'));
             
@@ -694,9 +822,11 @@ async function setUserState(client, user, state, interaction = undefined){
             await sendReceivedMessage(client, `\`\`\`ansi\n${colorText("+ " + userDisplayName, "green")} as active\n\`\`\``, interaction, 0);
             // Send the list of IDs to an URL and who is Active is the IDs channel
             sendIDs(client);
+            return;
         }
         else{
             await sendReceivedMessage(client, `**<@${userID}>** ` + text_alreadyIn, interaction, delayMsgDeleteState);
+            return;
         }
     }
     else if(state == "inactive"){
@@ -710,9 +840,11 @@ async function setUserState(client, user, state, interaction = undefined){
             await sendReceivedMessage(client, `\`\`\`ansi\n${colorText("- " + userDisplayName, "red")} as inactive\n\`\`\``, interaction, 0);
             // Send the list of IDs to an URL and who is Active is the IDs channel
             sendIDs(client);
+            return;
         }
         else{
             await sendReceivedMessage(client, `**<@${userID}>** ` + text_alreadyOut, interaction, delayMsgDeleteState);
+            return;
         }
     }
     else if(state == "farm"){
@@ -726,16 +858,19 @@ async function setUserState(client, user, state, interaction = undefined){
             await sendReceivedMessage(client, `\`\`\`ansi\n${colorText("+ " + userDisplayName, "cyan")} as farmer\n\`\`\``, interaction, 0);
             // Send the list of IDs to an URL and who is Active is the IDs channel
             sendIDs(client);
+            return;
         }
         else{
             await sendReceivedMessage(client, `**<@${userID}>** ` + text_alreadyOut, interaction, delayMsgDeleteState);
+            return;
         }
     }
     else if(state == "leech"){
         
         if(!canPeopleLeech){
             const text_noLeech = localize("Le leech est désactivé sur ce serveur","Leeching is disabled on this server");
-            return await sendReceivedMessage(client, `${text_noLeech}`,interaction ,delayMsgDeleteState);
+            await sendReceivedMessage(client, `${text_noLeech}`,interaction ,delayMsgDeleteState);
+            return;
         }
 
         const text_noReqGP = localize("ne peut pas leech car il a moins de","can't leech because he got less than");
@@ -744,7 +879,8 @@ async function setUserState(client, user, state, interaction = undefined){
         const gpPackCount = await getUserAttribValue(client, userID, attrib_TotalPacksOpened, 0);
         
         if(gpGPCount < leechPermGPCount && gpPackCount < leechPermPackCount){
-            return await sendReceivedMessage(client, `**<@${userID}>** ${text_noReqGP} ${leechPermGPCount}gp ${text_noReqPacks} ${leechPermPackCount}packs`,interaction ,delayMsgDeleteState);
+            await sendReceivedMessage(client, `**<@${userID}>** ${text_noReqGP} ${leechPermGPCount}gp ${text_noReqPacks} ${leechPermPackCount}packs`,interaction ,delayMsgDeleteState);
+            return;
         }
 
         const text_alreadyOut = localize("est déjà listé comme leecher","is already listed as leecher");
@@ -756,11 +892,18 @@ async function setUserState(client, user, state, interaction = undefined){
             await sendReceivedMessage(client, `\`\`\`ansi\n${colorText("+ " + userDisplayName, "pink")} as leecher\n\`\`\``, interaction, 0);
             // Send the list of IDs to an URL and who is Active is the IDs channel
             sendIDs(client);
+            return;
         }
         else{
             await sendReceivedMessage(client, `**<@${userID}>** ` + text_alreadyOut, interaction, delayMsgDeleteState);
+            return;
         }
     }
+    else{
+        await sendReceivedMessage(client, `Failed to update the state of user **<@${userID}>** to ${state}`, interaction, delayMsgDeleteState);
+        return;
+    }
+
 }
 
 async function updateServerData(client){
@@ -897,7 +1040,7 @@ async function updateServerData(client){
         const builder = new xml2js.Builder();
         const xmlOutput = builder.buildObject(data);
         
-        checkFileExistsOrCreate(pathServerData, xmlOutput)
+        writeFile(pathServerData, xmlOutput)
         console.log(text_Success);
     }
 }

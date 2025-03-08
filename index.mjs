@@ -51,6 +51,8 @@ import {
 } from './config.js';
 
 import {
+    formatMinutesToDays,
+    formatNumbertoK,
     sumIntArray, 
     sumFloatArray, 
     roundToOneDecimal, 
@@ -63,10 +65,12 @@ import {
     replaceLastOccurrence,
     replaceMissCount,
     sendReceivedMessage, 
+    sendChannelMessage,
     bulkDeleteMessages, 
     colorText, 
     addTextBar,
     localize,
+    getRandomStringFromArray,
     getOldestMessage,
     wait,
 } from './Dependencies/utils.js';
@@ -117,6 +121,7 @@ import {
     attrib_RealInstances, 
     attrib_SessionTime, 
     attrib_TotalPacksOpened, 
+    attrib_TotalPacksFarm, 
     attrib_SessionPacksOpened,
     attrib_DiffPacksSinceLastHB,
     attrib_DiffTimeSinceLastHB,
@@ -125,6 +130,7 @@ import {
     attrib_LastActiveTime, 
     attrib_LastHeartbeatTime,
     attrib_TotalTime,
+    attrib_TotalTimeFarm,
     attrib_TotalMiss,
     attrib_Subsystems,
     attrib_Subsystem,
@@ -431,437 +437,444 @@ client.on(Events.InteractionCreate, async interaction => {
     const guild = await getGuild(client);
 
     // ======================= Buttons =======================
-        
-    if (interaction.customId === 'active') {
-        await interaction.deferReply();
-        setUserState(client, interaction.user, "active", interaction)
-    } 
-    else if (interaction.customId === 'farm') {
-        await interaction.deferReply();
-        setUserState(client, interaction.user, "farm", interaction)
-    }
-    else if (interaction.customId === 'leech') {
-        await interaction.deferReply();
-        setUserState(client, interaction.user, "leech", interaction)
-    }
-    else if (interaction.customId === 'inactive') {
-        await interaction.deferReply();
-        setUserState(client, interaction.user, "inactive", interaction)
-    }
-    else if (interaction.customId === 'refreshUserStats') {
-        await interaction.deferReply();
-        const text_listForceRefreshed = localize(`**Stats des rerollers actifs rafraichies dans <#${channelID_UserStats}>**`, `**Active rerollers stats refreshed in <#${channelID_UserStats}>**`);
+    
+    try{
 
-        await sendReceivedMessage(client, text_listForceRefreshed, interaction, delayMsgDeleteState);
-        sendStats(client)
-    }
-
-    if(!interaction.isChatInputCommand()) return;
-
-    // SET PLAYER ID COMMAND
-    if(interaction.commandName === `setplayerid`){
-
-        await interaction.deferReply();
-        const id = interaction.options.getString(`id`);
-
-        const text_incorrectID = localize("ID Incorrect pour","ID Incorrect for");
-        const text_incorrectReason = localize("Votre code doit être composé de **16 chifres**","Your could should be **16 numbers length**");
-        const text_replace = localize("a été remplacé par","have been replaced by");
-        const text_for = localize("pour","for");
-        const text_set = localize("set pour","set for user");
-
-        if(id.length != 16 || !isNumbers(id)){
-            await sendReceivedMessage(client, text_incorrectID + ` **<@${interactionUserID}>**, ` + text_incorrectReason, interaction);
+        if (interaction.customId === 'active') {
+            await interaction.deferReply();
+            setUserState(client, interaction.user, "active", interaction)
+        } 
+        else if (interaction.customId === 'farm') {
+            await interaction.deferReply();
+            setUserState(client, interaction.user, "farm", interaction)
         }
-        else{
-            const userPocketID = await getUserAttribValue( client, interactionUserID, attrib_PocketID);
-                
-            if( userPocketID != undefined ){
+        else if (interaction.customId === 'leech') {
+            await interaction.deferReply();
+            setUserState(client, interaction.user, "leech", interaction)
+        }
+        else if (interaction.customId === 'inactive') {
+            await interaction.deferReply();
+            setUserState(client, interaction.user, "inactive", interaction)
+        }
+        else if (interaction.customId === 'refreshUserStats') {
+            await interaction.deferReply();
+            const text_listForceRefreshed = localize(`**Stats des rerollers actifs rafraichies dans <#${channelID_UserStats}>**`, `**Active rerollers stats refreshed in <#${channelID_UserStats}>**`);
 
-                await setUserAttribValue( interactionUserID, interactionUserName, attrib_PocketID, cleanString(id));
-                await sendReceivedMessage(client, `Code **${userPocketID}** ` + text_replace + ` **${id}** ` + text_for + ` **<@${interactionUserID}>**`, interaction);
+            await sendReceivedMessage(client, text_listForceRefreshed, interaction, delayMsgDeleteState);
+            sendStats(client)
+        }
+
+        if(!interaction.isChatInputCommand()) return;
+
+        // SET PLAYER ID COMMAND
+        if(interaction.commandName === `setplayerid`){
+
+            await interaction.deferReply();
+            const id = interaction.options.getString(`id`);
+
+            const text_incorrectID = localize("ID Incorrect pour","ID Incorrect for");
+            const text_incorrectReason = localize("Votre code doit être composé de **16 chifres**","Your could should be **16 numbers length**");
+            const text_replace = localize("a été remplacé par","have been replaced by");
+            const text_for = localize("pour","for");
+            const text_set = localize("set pour","set for user");
+
+            if(id.length != 16 || !isNumbers(id)){
+                await sendReceivedMessage(client, text_incorrectID + ` **<@${interactionUserID}>**, ` + text_incorrectReason, interaction);
             }
             else{
-                await setUserAttribValue( interactionUserID, interactionUserName, attrib_PocketID, cleanString(id));
-                await sendReceivedMessage(client, `Code **${id}** ` + text_set + ` **<@${interactionUserID}>**`, interaction);
-            }
-        }
-    }
-
-    // ACTIVE COMMAND
-    if(interaction.commandName === `active`){
-
-        await interaction.deferReply();
-        const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit other user");
-        
-        var user = interaction.user;
-        const userArg = interaction.options.getUser(`user`);
-        
-        if( userArg != null ){
-            if(!canPeopleAddOthers) {
-                
-                if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
-                    return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, interaction);
-                }
-            }
-            var user = userArg;
-        }
-
-        setUserState(client, user, "active", interaction)
-    }
-
-    // INACTIVE COMMAND
-    if(interaction.commandName === `inactive`){
-
-        await interaction.deferReply();
-        const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit the other user");
-        
-        var user = interaction.user;
-        const userArg = interaction.options.getUser(`user`);
-
-        if( userArg != null){
-            if(!canPeopleRemoveOthers) {
-
-                if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
-                    return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, interaction);
-                }
-            }
-            var user = userArg;
-        }
-
-        setUserState(client, user, "inactive", interaction)
-    }
-
-    // FARM COMMAND
-    if(interaction.commandName === `farm`){
-
-        await interaction.deferReply();
-        const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit the other user");
-        
-        var user = interaction.user;
-        const userArg = interaction.options.getUser(`user`);
-
-        if( userArg != null){
-            if(!canPeopleRemoveOthers) {
-
-                if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
-                    return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, interaction);
-                }
-            }
-            var user = userArg;
-        }
-
-        setUserState(client, user, "farm", interaction)
-    }
-
-    // LEECH COMMAND
-    if(interaction.commandName === `leech`){
-
-        await interaction.deferReply();
-        const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit the other user");
-        
-        var user = interaction.user;
-        const userArg = interaction.options.getUser(`user`);
-
-        if( userArg != null){
-            if(!canPeopleRemoveOthers) {
-
-                if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
-                    return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, interaction);
-                }
-            }
-            var user = userArg;
-        }
-
-        setUserState(client, user, "leech", interaction)
-    }
-
-    // REFRESH COMMAND
-    if(interaction.commandName === `refresh`){
-        
-        await interaction.deferReply();
-        const text_listForceRefreshed = localize(`**Stats des rerollers actifs rafraichies dans <#${channelID_UserStats}>**`, `**Active rerollers stats refreshed in <#${channelID_UserStats}>**`);
-
-        await sendReceivedMessage(client, text_listForceRefreshed, interaction, delayMsgDeleteState);
-        sendStats(client)
-    }
-
-    // FORCE REFRESH COMMAND
-    if(interaction.commandName === `forcerefresh`){
-        
-        await interaction.deferReply();
-        const refreshTime = roundToOneDecimal(getNexIntervalRemainingTime());
-        const text_IDsRefreshedIn = localize("**IDs rafraichis**, rafraichissment des **Stats dans","**IDs refreshed**, reshing the **Stats in");
-        const text_see = localize("voir","see");
-
-        const text_listRefreshed = `${text_IDsRefreshedIn} ${refreshTime}mn**, ${text_see} <#${channelID_UserStats}>`;
-
-        await sendReceivedMessage(client, text_listRefreshed, interaction, delayMsgDeleteState);
-        sendIDs(client);
-    }
-    
-    // VERIFIED COMMAND
-    if(interaction.commandName === `verified`){
-        
-        await interaction.deferReply();
-        const text_markAsVerified = localize("Godpack marqué comme live","Godpack marked as live");
-
-        const forumPost = client.channels.cache.get(interaction.channelId);
-
-        // Edit a thread
-        forumPost.edit({ name: `${forumPost.name.replace(text_waitingLogo, text_verifiedLogo)}` });
-        
-        await addServerGP(attrib_liveGP, forumPost);
-
-        await sendReceivedMessage(client, text_verifiedLogo + ` ` + text_markAsVerified + ` ${forumPost}`, interaction);
-    }
-
-    // DEAD COMMAND
-    if(interaction.commandName === `dead`){
-
-        await interaction.deferReply();
-        await markAsDead(client, interaction);
-    }
-
-    // MISS COMMAND
-    if(interaction.commandName === `miss`){
-
-        await interaction.deferReply();
-        const text_markasMiss = localize("Godpack marqué comme mort","Godpack marked as dud");
-        const text_notCompatible = localize("Le GP est dans **l'ancien format**, /miss incompatible","The GP is using the **old format**, /miss incompatible");
-
-        const forumPost = client.channels.cache.get(interaction.channelId);
-        const initialMessage = await getOldestMessage(forumPost);
-        const splitForumContent = splitMulti(initialMessage.content,['[',']']);
-
-        if (splitForumContent.length > 1){
-
-            const numbersMiss = extractNumbers(splitForumContent[1]);
-    
-            var missAmount = numbersMiss[0];
-            var newMissAmount = parseInt(missAmount)+1;
-            var missNeeded = numbersMiss[1];
-
-            var totalMiss = await getUserAttribValue( client, interactionUserID, attrib_TotalMiss, 0 );
-            await setUserAttribValue( interactionUserID, interactionUserName, attrib_TotalMiss, parseInt(totalMiss)+1);
-
-            if(newMissAmount >= missNeeded){
-                
-                await initialMessage.edit( `${replaceMissCount(initialMessage.content, newMissAmount)}`);
-
-                const text_failed = localize(`C'est finito\n`,`Well rip,`) + ` **[ ${newMissAmount} miss / ${missNeeded} ]**\n`;
-                markAsDead(client, interaction, text_failed);
-            }
-            else{
-                await initialMessage.edit( `${replaceMissCount(initialMessage.content, newMissAmount)}`);
-                
-                // If miss is <= 50% the amount sentences are """encouraging""" then it gets worst and even more after 75% 
-                const text_fitTension = newMissAmount <= missNeeded*0.5 ? text_lowTension(client) : newMissAmount <= missNeeded*0.75 ? text_mediumTension(client) : text_highTension(client);
-                await sendReceivedMessage(client, `${text_fitTension}\n**[ ${newMissAmount} miss / ${missNeeded} ]**`, interaction);            
-            }
-        }
-        else{
-            await sendReceivedMessage(client, text_notCompatible, interaction);
-        }
-    }
-
-    // MISS COUNT COMMAND
-    if(interaction.commandName === `misscount`){
-
-        await interaction.deferReply();
-
-        // text_days = localize("jour","h");
-        var activityOutput = "\`\`\`\n";
-
-        const allUsers = await getAllUsers();
-
-        for( var i = 0; i < allUsers.length; i++ ) {
-            
-            var user = allUsers[i];
-            var userID = getIDFromUser(user);
-            
-            const member = await getMemberByID(client, userID);
-
-            // Skip if member do not exist
-            if (member == "") {
-                console.log(`❗️ Heartbeat from ID ${userID} is no registered on this server`)
-                continue;
-            }
-
-            var userDisplayName = member.displayName;
-            const totalMiss = getAttribValueFromUser(user, attrib_TotalMiss, 0);
-            const totalTime = getAttribValueFromUser(user, attrib_TotalTime, 0);
-            const totalTimeHour = parseFloat(totalTime)/60;
-            var missPer24Hour = roundToOneDecimal( (parseFloat(totalMiss) / totalTimeHour) * 24 );
-
-            missPer24Hour = isNaN(missPer24Hour) || missPer24Hour == Infinity ? 0 : missPer24Hour;
-
-            activityOutput += addTextBar(`${userDisplayName} `, 20, false) + ` ${missPer24Hour} miss / 24h over ${roundToOneDecimal(totalTimeHour)}h\n`
-        };
-
-        activityOutput+="\`\`\`";
-
-        await sendReceivedMessage(client, activityOutput, interaction);
-    }
-
-    // LAST ACTIVITY COMMAND
-    if(interaction.commandName === `lastactivity`){
-
-        await interaction.deferReply();
-
-        // text_days = localize("jour","h");
-        var activityOutput = "\`\`\`\n";
-
-        const allUsers = await getAllUsers();
-
-        for( var i = 0; i < allUsers.length; i++ ) {
-            
-            var userID = getIDFromUser(allUsers[i]);
-            const member = await getMemberByID(client, userID);
-
-            // Skip if member do not exist
-            if (member == "") {
-                console.log(`❗️ Heartbeat from ID ${userID} is no registered on this server`)
-                continue;
-            }
-
-            var userDisplayName = member.displayName;
-
-            const lastHBTime = new Date(getAttribValueFromUser(allUsers[i], attrib_LastHeartbeatTime));
-            var diffTime = (Date.now() - lastHBTime) / 60000 / 60;
-            diffTime = roundToOneDecimal(diffTime);
-
-            activityOutput += addTextBar(`${userDisplayName} `, 20, false) + ` ${diffTime} h since last hb\n`
-        };
-
-        activityOutput+="\`\`\`";
-
-        await sendReceivedMessage(client, activityOutput, interaction);
-    }
-
-    // GENERATE USERNAMES COMMAND
-    if(interaction.commandName === `generateusernames`){
-
-        await interaction.deferReply();
-        const text_incorrectParameters = localize("Paramètres incorrects, entre suffix ET keywords","Incorrect parameters, write suffix AND keyworks");
-        const text_listGenerated = localize("Nouvelle liste d'usernames generé :","New usernames.txt list generated :");
-
-        const suffix = interaction.options.getString(`suffix`);
-        var keyWords = interaction.options.getString(`keywords`);
-
-        if(suffix == null || keyWords == null)
-        {
-            return await sendReceivedMessage(client, text_incorrectParameters, interaction);
-        }
-        
-        keyWords = keyWords.replaceAll(`,`,` `).split(' ');
-        const wordsGenerated = 1000;
-        const maxNameLength = 14;
-        const suffixLenth = suffix.length;
-
-        var content = "";
-        
-        for (let i = 0; i < wordsGenerated; i++){
-            
-            var generatedWord = "";
-
-            for(let j = 0; j < 100; j++){
-
-                const randomIndex = Math.floor(Math.random() * keyWords.length);
-                var keyWord = keyWords[randomIndex];
-                //Remove all special characters... my god i hate regex
-                keyWord = keyWord.replaceAll(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '');
-
-                if( (generatedWord + keyWord).length + suffixLenth > maxNameLength ){
-                    break;
+                const userPocketID = await getUserAttribValue( client, interactionUserID, attrib_PocketID);
+                    
+                if( userPocketID != undefined ){
+
+                    await setUserAttribValue( interactionUserID, interactionUserName, attrib_PocketID, cleanString(id));
+                    await sendReceivedMessage(client, `Code **${userPocketID}** ` + text_replace + ` **${id}** ` + text_for + ` **<@${interactionUserID}>**`, interaction);
                 }
                 else{
-                    generatedWord = generatedWord + keyWord;
+                    await setUserAttribValue( interactionUserID, interactionUserName, attrib_PocketID, cleanString(id));
+                    await sendReceivedMessage(client, `Code **${id}** ` + text_set + ` **<@${interactionUserID}>**`, interaction);
                 }
             }
-            if(generatedWord.length > 0){
-                content = content + generatedWord + suffix.toUpperCase() + " \n";
+        }
+
+        // ACTIVE COMMAND
+        if(interaction.commandName === `active`){
+
+            await interaction.deferReply();
+            const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit other user");
+            
+            var user = interaction.user;
+            const userArg = interaction.options.getUser(`user`);
+            
+            if( userArg != null ){
+                if(!canPeopleAddOthers) {
+                    
+                    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
+                        return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, interaction);
+                    }
+                }
+                var user = userArg;
+            }
+
+            setUserState(client, user, "active", interaction)
+        }
+
+        // INACTIVE COMMAND
+        if(interaction.commandName === `inactive`){
+
+            await interaction.deferReply();
+            const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit the other user");
+            
+            var user = interaction.user;
+            const userArg = interaction.options.getUser(`user`);
+
+            if( userArg != null){
+                if(!canPeopleRemoveOthers) {
+
+                    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
+                        return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, interaction);
+                    }
+                }
+                var user = userArg;
+            }
+
+            setUserState(client, user, "inactive", interaction)
+        }
+
+        // FARM COMMAND
+        if(interaction.commandName === `farm`){
+
+            await interaction.deferReply();
+            const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit the other user");
+            
+            var user = interaction.user;
+            const userArg = interaction.options.getUser(`user`);
+
+            if( userArg != null){
+                if(!canPeopleRemoveOthers) {
+
+                    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
+                        return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, interaction);
+                    }
+                }
+                var user = userArg;
+            }
+
+            setUserState(client, user, "farm", interaction)
+        }
+
+        // LEECH COMMAND
+        if(interaction.commandName === `leech`){
+
+            await interaction.deferReply();
+            const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit the other user");
+            
+            var user = interaction.user;
+            const userArg = interaction.options.getUser(`user`);
+
+            if( userArg != null){
+                if(!canPeopleRemoveOthers) {
+
+                    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) && interactionUserID != user.id) {
+                        return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm} <@${user.id}>`, interaction);
+                    }
+                }
+                var user = userArg;
+            }
+
+            setUserState(client, user, "leech", interaction)
+        }
+
+        // REFRESH COMMAND
+        if(interaction.commandName === `refresh`){
+            
+            await interaction.deferReply();
+            const text_listForceRefreshed = localize(`**Stats des rerollers actifs rafraichies dans <#${channelID_UserStats}>**`, `**Active rerollers stats refreshed in <#${channelID_UserStats}>**`);
+
+            await sendReceivedMessage(client, text_listForceRefreshed, interaction, delayMsgDeleteState);
+            sendStats(client)
+        }
+
+        // FORCE REFRESH COMMAND
+        if(interaction.commandName === `forcerefresh`){
+            
+            await interaction.deferReply();
+            const refreshTime = roundToOneDecimal(getNexIntervalRemainingTime());
+            const text_IDsRefreshedIn = localize("**IDs rafraichis**, rafraichissment des **Stats dans","**IDs refreshed**, reshing the **Stats in");
+            const text_see = localize("voir","see");
+
+            const text_listRefreshed = `${text_IDsRefreshedIn} ${refreshTime}mn**, ${text_see} <#${channelID_UserStats}>`;
+
+            await sendReceivedMessage(client, text_listRefreshed, interaction, delayMsgDeleteState);
+            sendIDs(client);
+        }
+        
+        // VERIFIED COMMAND
+        if(interaction.commandName === `verified`){
+            
+            await interaction.deferReply();
+            const text_markAsVerified = localize("Godpack marqué comme live","Godpack marked as live");
+
+            const forumPost = client.channels.cache.get(interaction.channelId);
+
+            // Edit a thread
+            forumPost.edit({ name: `${forumPost.name.replace(text_waitingLogo, text_verifiedLogo)}` });
+            
+            await addServerGP(attrib_liveGP, forumPost);
+
+            await sendReceivedMessage(client, text_verifiedLogo + ` ` + text_markAsVerified + ` ${forumPost}`, interaction);
+        }
+
+        // DEAD COMMAND
+        if(interaction.commandName === `dead`){
+
+            await interaction.deferReply();
+            await markAsDead(client, interaction);
+        }
+
+        // MISS COMMAND
+        if(interaction.commandName === `miss`){
+
+            await interaction.deferReply();
+            const text_markasMiss = localize("Godpack marqué comme mort","Godpack marked as dud");
+            const text_notCompatible = localize("Le GP est dans **l'ancien format**, /miss incompatible","The GP is using the **old format**, /miss incompatible");
+
+            const forumPost = client.channels.cache.get(interaction.channelId);
+            const initialMessage = await getOldestMessage(forumPost);
+            const splitForumContent = splitMulti(initialMessage.content,['[',']']);
+
+            if (splitForumContent.length > 1){
+
+                const numbersMiss = extractNumbers(splitForumContent[1]);
+        
+                var missAmount = numbersMiss[0];
+                var newMissAmount = parseInt(missAmount)+1;
+                var missNeeded = numbersMiss[1];
+
+                var totalMiss = await getUserAttribValue( client, interactionUserID, attrib_TotalMiss, 0 );
+                await setUserAttribValue( interactionUserID, interactionUserName, attrib_TotalMiss, parseInt(totalMiss)+1);
+
+                if(newMissAmount >= missNeeded){
+                    
+                    await initialMessage.edit( `${replaceMissCount(initialMessage.content, newMissAmount)}`);
+
+                    const text_failed = localize(`C'est finito\n`,`Well rip,`) + ` **[ ${newMissAmount} miss / ${missNeeded} ]**\n`;
+                    markAsDead(client, interaction, text_failed);
+                }
+                else{
+                    await initialMessage.edit( `${replaceMissCount(initialMessage.content, newMissAmount)}`);
+                    
+                    // If miss is <= 50% the amount sentences are """encouraging""" then it gets worst and even more after 75% 
+                    const text_fitTension = newMissAmount <= missNeeded*0.5 ? text_lowTension(client) : newMissAmount <= missNeeded*0.75 ? text_mediumTension(client) : text_highTension(client);
+                    await sendReceivedMessage(client, `${text_fitTension}\n**[ ${newMissAmount} miss / ${missNeeded} ]**`, interaction);            
+                }
+            }
+            else{
+                await sendReceivedMessage(client, text_notCompatible, interaction);
             }
         }
-        
 
-        await sendReceivedMessage(client, text_listGenerated, interaction);
-        await interaction.channel.send({
-            files: [{
-                attachment: Buffer.from(content),
-                name: 'usernames.txt'
-            }]
-        })
+        // MISS COUNT COMMAND
+        if(interaction.commandName === `misscount`){
+
+            await interaction.deferReply();
+
+            // text_days = localize("jour","h");
+            var activityOutput = "\`\`\`\n";
+
+            const allUsers = await getAllUsers();
+
+            for( var i = 0; i < allUsers.length; i++ ) {
+                
+                var user = allUsers[i];
+                var userID = getIDFromUser(user);
+                
+                const member = await getMemberByID(client, userID);
+
+                // Skip if member do not exist
+                if (member == "") {
+                    console.log(`❗️ User ${userID} is no registered on this server`)
+                    continue;
+                }
+
+                var userDisplayName = member.displayName;
+                const totalMiss = getAttribValueFromUser(user, attrib_TotalMiss, 0);
+                const totalTime = getAttribValueFromUser(user, attrib_TotalTime, 0);
+                const totalTimeHour = parseFloat(totalTime)/60;
+                var missPer24Hour = roundToOneDecimal( (parseFloat(totalMiss) / totalTimeHour) * 24 );
+
+                missPer24Hour = isNaN(missPer24Hour) || missPer24Hour == Infinity ? 0 : missPer24Hour;
+
+                activityOutput += addTextBar(`${userDisplayName} `, 20, false) + ` ${missPer24Hour} miss / 24h over ${roundToOneDecimal(totalTimeHour)}h\n`
+            };
+
+            activityOutput+="\`\`\`";
+
+            await sendReceivedMessage(client, activityOutput, interaction);
+        }
+
+        // LAST ACTIVITY COMMAND
+        if(interaction.commandName === `lastactivity`){
+
+            await interaction.deferReply();
+
+            // text_days = localize("jour","h");
+            var activityOutput = "\`\`\`\n";
+
+            const allUsers = await getAllUsers();
+
+            for( var i = 0; i < allUsers.length; i++ ) {
+                
+                var userID = getIDFromUser(allUsers[i]);
+                const member = await getMemberByID(client, userID);
+
+                // Skip if member do not exist
+                if (member == "") {
+                    console.log(`❗️ Heartbeat from ID ${userID} is no registered on this server`)
+                    continue;
+                }
+
+                var userDisplayName = member.displayName;
+
+                const lastHBTime = new Date(getAttribValueFromUser(allUsers[i], attrib_LastHeartbeatTime));
+                var diffTime = (Date.now() - lastHBTime) / 60000 / 60;
+                diffTime = roundToOneDecimal(diffTime);
+
+                activityOutput += addTextBar(`${userDisplayName} `, 20, false) + ` ${diffTime} h since last hb\n`
+            };
+
+            activityOutput+="\`\`\`";
+
+            await sendReceivedMessage(client, activityOutput, interaction);
+        }
+
+        // GENERATE USERNAMES COMMAND
+        if(interaction.commandName === `generateusernames`){
+
+            await interaction.deferReply();
+            const text_incorrectParameters = localize("Paramètres incorrects, entre suffix ET keywords","Incorrect parameters, write suffix AND keyworks");
+            const text_listGenerated = localize("Nouvelle liste d'usernames generé :","New usernames.txt list generated :");
+
+            const suffix = interaction.options.getString(`suffix`);
+            var keyWords = interaction.options.getString(`keywords`);
+
+            if(suffix == null || keyWords == null)
+            {
+                return await sendReceivedMessage(client, text_incorrectParameters, interaction);
+            }
+            
+            keyWords = keyWords.replaceAll(`,`,` `).split(' ');
+            const wordsGenerated = 1000;
+            const maxNameLength = 14;
+            const suffixLenth = suffix.length;
+
+            var content = "";
+            
+            for (let i = 0; i < wordsGenerated; i++){
+                
+                var generatedWord = "";
+
+                for(let j = 0; j < 100; j++){
+
+                    const randomIndex = Math.floor(Math.random() * keyWords.length);
+                    var keyWord = keyWords[randomIndex];
+                    //Remove all special characters... my god i hate regex
+                    keyWord = keyWord.replaceAll(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '');
+
+                    if( (generatedWord + keyWord).length + suffixLenth > maxNameLength ){
+                        break;
+                    }
+                    else{
+                        generatedWord = generatedWord + keyWord;
+                    }
+                }
+                if(generatedWord.length > 0){
+                    content = content + generatedWord + suffix.toUpperCase() + " \n";
+                }
+            }
+            
+
+            await sendReceivedMessage(client, text_listGenerated, interaction);
+            await interaction.channel.send({
+                files: [{
+                    attachment: Buffer.from(content),
+                    name: 'usernames.txt'
+                }]
+            })
+        }
+
+        // SET AVERAGE INSTANCES COMMAND
+        if(interaction.commandName === `setaverageinstances`){
+
+            await interaction.deferReply();
+            const amount = interaction.options.getInteger(`amount`);
+
+            const text_instancesSetTo = localize("Nombre d'instance moyenne défini à","Average amount of instances set to");
+            const text_incorrectAmount = localize("Pti con va, entre ton vrai nombre d'instances","You lil sneaky boy... input your real number of instances");
+            const text_for = localize("pour","for");
+
+            if(amount < 1 || amount > 100){
+                await sendReceivedMessage(client, text_incorrectAmount, interaction);
+            }
+            else{
+                await setUserAttribValue( interactionUserID, interactionUserName, attrib_AverageInstances, amount);
+                await sendReceivedMessage(client, text_instancesSetTo + ` **${amount}** ` + text_for + ` **<@${interactionUserID}>**`, interaction);
+            }
+        }
+
+        // ADD GP FOUND COMMAND
+        if(interaction.commandName === `addgpfound`){
+
+            await interaction.deferReply();        
+            const text_addGP = localize("Ajout d\'un GP pour","Add a GP for");
+            const text_missingPerm = localize("n\'a pas les permissions d\'Admin","do not have Admin permissions");
+            
+            if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm}`, interaction);
+            }
+
+            const user = interaction.options.getUser(`user`);
+            if( user != null){
+                interactionUserName = user.username;
+                interactionUserID = user.id;
+            }
+
+            var GPCount = parseInt(await getUserAttribValue( client, interactionUserID, attrib_GodPackFound));
+            await setUserAttribValue( interactionUserID, interactionUserName, attrib_GodPackFound, GPCount+1);
+            await sendReceivedMessage(client, `${text_addGP} **<@${interactionUserID}>**`, interaction);
+        }
+
+        // REMOVE GP FOUND COMMAND
+        if(interaction.commandName === `removegpfound`){
+
+            await interaction.deferReply();
+            const text_removeGP = localize("Retrait d\'un GP pour","Remove a GP for");
+            const text_minimumGP = localize("Nombre de GP déjà au minimum pour","GP Count already at the minimum value for");
+            const text_missingPerm = localize("n\'a pas les permissions d\'Admin","do not have Admin permissions");
+
+            if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm}`, interaction);
+            }
+
+            const user = interaction.options.getUser(`user`);
+            if( user != null){
+                interactionUserName = user.username;
+                interactionUserID = user.id;
+            }
+
+            var GPCount = parseInt(await getUserAttribValue( client, interactionUserID, attrib_GodPackFound));
+            if (GPCount > 0){
+                await setUserAttribValue( interactionUserID, interactionUserName, attrib_GodPackFound, GPCount-1);
+                await sendReceivedMessage(client, `${text_removeGP} **<@${interactionUserID}>**`, interaction);
+            }
+            else{
+                await sendReceivedMessage(client, `${text_minimumGP} **<@${interactionUserID}>**`, interaction);
+            }
+        }  
     }
-
-    // SET AVERAGE INSTANCES COMMAND
-    if(interaction.commandName === `setaverageinstances`){
-
-        await interaction.deferReply();
-        const amount = interaction.options.getInteger(`amount`);
-
-        const text_instancesSetTo = localize("Nombre d'instance moyenne défini à","Average amount of instances set to");
-        const text_incorrectAmount = localize("Pti con va, entre ton vrai nombre d'instances","You lil sneaky boy... input your real number of instances");
-        const text_for = localize("pour","for");
-
-        if(amount < 1 || amount > 100){
-            await sendReceivedMessage(client, text_incorrectAmount, interaction);
-        }
-        else{
-            await setUserAttribValue( interactionUserID, interactionUserName, attrib_AverageInstances, amount);
-            await sendReceivedMessage(client, text_instancesSetTo + ` **${amount}** ` + text_for + ` **<@${interactionUserID}>**`, interaction);
-        }
+    catch(error){
+        console.error('❌ ERROR with interaction - crash prevented\n', error);
+        sendChannelMessage(client, channelID_IDs, '❌ ERROR with interaction - crash prevented\n' + error)
     }
-
-    // ADD GP FOUND COMMAND
-    if(interaction.commandName === `addgpfound`){
-
-        await interaction.deferReply();        
-        const text_addGP = localize("Ajout d\'un GP pour","Add a GP for");
-        const text_missingPerm = localize("n\'a pas les permissions d\'Admin","do not have Admin permissions");
-        
-        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm}`, interaction);
-        }
-
-        const user = interaction.options.getUser(`user`);
-        if( user != null){
-            interactionUserName = user.username;
-            interactionUserID = user.id;
-        }
-
-        var GPCount = parseInt(await getUserAttribValue( client, interactionUserID, attrib_GodPackFound));
-        await setUserAttribValue( interactionUserID, interactionUserName, attrib_GodPackFound, GPCount+1);
-        await sendReceivedMessage(client, `${text_addGP} **<@${interactionUserID}>**`, interaction);
-    }
-
-    // REMOVE GP FOUND COMMAND
-    if(interaction.commandName === `removegpfound`){
-
-        await interaction.deferReply();
-        const text_removeGP = localize("Retrait d\'un GP pour","Remove a GP for");
-        const text_minimumGP = localize("Nombre de GP déjà au minimum pour","GP Count already at the minimum value for");
-        const text_missingPerm = localize("n\'a pas les permissions d\'Admin","do not have Admin permissions");
-
-        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            return await sendReceivedMessage(client, `<@${interactionUserID}> ${text_missingPerm}`, interaction);
-        }
-
-        const user = interaction.options.getUser(`user`);
-        if( user != null){
-            interactionUserName = user.username;
-            interactionUserID = user.id;
-        }
-
-        var GPCount = parseInt(await getUserAttribValue( client, interactionUserID, attrib_GodPackFound));
-        if (GPCount > 0){
-            await setUserAttribValue( interactionUserID, interactionUserName, attrib_GodPackFound, GPCount-1);
-            await sendReceivedMessage(client, `${text_removeGP} **<@${interactionUserID}>**`, interaction);
-        }
-        else{
-            await sendReceivedMessage(client, `${text_minimumGP} **<@${interactionUserID}>**`, interaction);
-        }
-    }  
 });
 
 client.on("messageCreate", async (message) => {
@@ -949,21 +962,34 @@ client.on("messageCreate", async (message) => {
                 var packs = parseInt(timeAndPacks[1]);
 
                 var sessionPacks = parseInt(await getUserAttribValue( client, userID, attrib_SessionPacksOpened, 0 ));
+                var diffPacks = Math.max(packs-sessionPacks,0);
+
+                var userState = await getUserAttribValue( client, userID, attrib_UserState, 0 );
                 
                 if( time == "0" ){
                     var totalTime = await getUserAttribValue( client, userID, attrib_TotalTime, 0 );
                     var sessionTime = await getUserAttribValue( client, userID, attrib_SessionTime, 0 );
                     await setUserAttribValue( userID, userUsername, attrib_TotalTime, parseFloat(totalTime) + parseFloat(sessionTime));
-                    
+
                     var totalPacks = await getUserAttribValue( client, userID, attrib_TotalPacksOpened, 0 );
                     await setUserAttribValue( userID, userUsername, attrib_TotalPacksOpened, parseInt(totalPacks) + sessionPacks);
                 }
-                
-                const lastHBTime = new Date(await getUserAttribValue( client, userID, attrib_LastHeartbeatTime, 0 ));
-                var diffTime = (Date.now() - lastHBTime) / 60000;
-                await setUserAttribValue( userID, userUsername, attrib_DiffTimeSinceLastHB, diffTime);
+                else{
+                    if(userState == "farm"){
+                        var totalTimeFarm = await getUserAttribValue( client, userID, attrib_TotalTimeFarm, 0 );
+                        var totalPacksFarm = await getUserAttribValue( client, userID, attrib_TotalPacksFarm, 0 );
+                        var sessionTime = await getUserAttribValue( client, userID, attrib_SessionTime, 0 );
+                        var diffTime = Math.max( parseFloat(time) - parseFloat(sessionTime), 0 );
+                        await setUserAttribValue( userID, userUsername, attrib_TotalTimeFarm, parseFloat(totalTimeFarm) + diffTime);
+                        await setUserAttribValue( userID, userUsername, attrib_TotalPacksFarm, parseFloat(totalPacksFarm) + diffPacks);
+                    }
+                }
 
-                await setUserAttribValue( userID, userUsername, attrib_DiffPacksSinceLastHB, Math.max(packs-sessionPacks,0));
+                const lastHBTime = new Date(await getUserAttribValue( client, userID, attrib_LastHeartbeatTime, 0 ));
+                var diffHBTime = (Date.now() - lastHBTime) / 60000;
+                await setUserAttribValue( userID, userUsername, attrib_DiffTimeSinceLastHB, diffHBTime);
+
+                await setUserAttribValue( userID, userUsername, attrib_DiffPacksSinceLastHB, diffPacks);
                 await setUserAttribValue( userID, userUsername, attrib_SessionTime, time);
                 await setUserAttribValue( userID, userUsername, attrib_SessionPacksOpened, packs);
                 await setUserAttribValue( userID, userUsername, attrib_HBInstances, instances);
@@ -998,13 +1024,20 @@ client.on("messageCreate", async (message) => {
                 var packs = parseInt(timeAndPacks[1]);
 
                 var sessionSubsystemPacks = parseInt(await getUserSubsystemAttribValue( client, userID, subSystemName, attrib_SessionPacksOpened, 0 ));
+                var diffPacks = Math.max(packs-sessionSubsystemPacks,0);
+
+                var userState = await getUserAttribValue( client, userID, attrib_UserState, 0 );
                 
                 if( time == "0" ){
                     var totalPacks = await getUserAttribValue( client, userID, attrib_TotalPacksOpened, 0 );
                     await setUserAttribValue( userID, userUsername, attrib_TotalPacksOpened, parseInt(totalPacks) + parseInt(sessionSubsystemPacks));
                 }
+                else{
+                    var totalPacksFarm = await getUserAttribValue( client, userID, attrib_TotalPacksFarm, 0 );
+                    await setUserAttribValue( userID, userUsername, attrib_TotalPacksFarm, parseFloat(totalPacksFarm) + diffPacks);
+                }
                 
-                await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_DiffPacksSinceLastHB, Math.max(packs-sessionSubsystemPacks,0));
+                await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_DiffPacksSinceLastHB, diffPacks);
                 await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_SessionTime, time);
                 await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_SessionPacksOpened, packs);
                 await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_HBInstances, instances);
