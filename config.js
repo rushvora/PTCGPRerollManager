@@ -4,17 +4,17 @@ const token = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 const guildID = "XXXXXXXXXXXXXXXXXXX";
 
 // For all channelID below, right click a channel in your discord server and "copy server ID" with developper mode on
-// Where ID list, AutoKick alerts are sent
+// THE ID OF THE DISCORD CHANNEL - Where ID list, AutoKick alerts are sent
 const channelID_IDs = "XXXXXXXXXXXXXXXXXXX";
-// Where statistics of users will be sent
+// THE ID OF THE DISCORD CHANNEL - Where statistics of users will be sent
 const channelID_UserStats = "XXXXXXXXXXXXXXXXXXX";
-// Where GP validation threads will be created /////!\\\\\ IT HAVE TO BE A FORUM CHANNEL, look for discord community server for more info
+// THE ID OF THE DISCORD CHANNEL - Where GP validation threads will be created /////!\\\\\ IT HAVE TO BE A FORUM CHANNEL, look for discord community server for more info
 const channelID_GPVerificationForum = "XXXXXXXXXXXXXXXXXXX";
-// Where Double 2 Star validation threads will be created /////!\\\\\ IT HAVE TO BE A FORUM CHANNEL, look for discord community server for more info
+// THE ID OF THE DISCORD CHANNEL - Where Double 2 Star validation threads will be created /////!\\\\\ IT HAVE TO BE A FORUM CHANNEL, look for discord community server for more info
 const channelID_2StarVerificationForum = "";
-// Where the Packs Webhooks is linked, better be a separate channel from heartbeat webhook
+// THE ID OF THE DISCORD CHANNEL - Where the Packs Webhooks is linked, better be a separate channel from heartbeat webhook
 const channelID_Webhook = "XXXXXXXXXXXXXXXXXXX"; 
-// Where the Heartbeat Webhooks is linked, better be a separate channel from packs webhook
+// THE ID OF THE DISCORD CHANNEL - Where the Heartbeat Webhooks is linked, better be a separate channel from packs webhook
 const channelID_Heartbeat = "XXXXXXXXXXXXXXXXXXX";
 
 // Create a new fine-grained token for your GitHub account, and make sure to only check to read/write your Gists : https://github.com/settings/tokens
