@@ -146,7 +146,7 @@ Now place the repo in your project folder if you haven't alrdy done it and edit 
 
 After that [create a new fine-grained token](https://github.com/settings/tokens) for your GitHub account, and make sure to only check to read/write your Gists
 
-Then, [create a GitGist](https://gist.github.com/) and get it's ID (the numbers in the URL). Now you're ready to fill out the GitGist variables in config.js
+Then, [create a GitGist](https://gist.github.com/) and get it's ID (the numbers in the URL). **It won't work if that's secret gist**. Now you're ready to fill out the GitGist variables in config.js
 
 In Arturo's bot the url should be placed in Friend ID and look like this : ```https://gist.githubusercontent.com/{YourUsername}/{YourGitGistID}/raw/PTCGPRerollGroupIDs```
 
