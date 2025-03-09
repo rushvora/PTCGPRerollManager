@@ -124,7 +124,7 @@ It helps tracking usernamers easily and brings joy to ppl in your group clearing
 
 Be sure to enable all Privileged Gateway Intents in the app settings
 
-At this time you can either import the repo in a folder and run npm commands from here for updating it easier or create your bot and drop  the repo afterward. Be sure to reimport package.json if npm replaced it for you or it won't find the script where to begin with and will treat it as a commonJS file and not ES6 module js.
+At this time you can either clone the repo in a folder and run npm commands from here for updating it easier or create your bot and drop  the repo afterward. Be sure to reimport package.json if npm replaced it for you or it won't find the script where to begin with and will treat it as a commonJS file and not ES6 module js.
 
 - Install Node.js 
 - Ensure that your Windows Execution Policy is set to RemoteSigned or Unsigned
