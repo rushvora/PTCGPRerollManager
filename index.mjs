@@ -637,39 +637,47 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.deferReply();
             const text_markasMiss = localize("Godpack marqué comme mort","Godpack marked as dud");
             const text_notCompatible = localize("Le GP est dans **l'ancien format**, /miss incompatible","The GP is using the **old format**, /miss incompatible");
+            const text_scam = localize("Oh le petit malin il a essayé de scam un miss 🤡\nVenez voir tout le monde","Little sneaky boy tried to scam a miss 🤡\nCome see everyone");
 
             const forumPost = client.channels.cache.get(interaction.channelId);
-            const initialMessage = await getOldestMessage(forumPost);
-            const splitForumContent = splitMulti(initialMessage.content,['[',']']);
 
-            if (splitForumContent.length > 1){
+            if (forumPost.name.includes(text_waitingLogo)){
 
-                const numbersMiss = extractNumbers(splitForumContent[1]);
-        
-                var missAmount = numbersMiss[0];
-                var newMissAmount = parseInt(missAmount)+1;
-                var missNeeded = numbersMiss[1];
+                const initialMessage = await getOldestMessage(forumPost);
+                const splitForumContent = splitMulti(initialMessage.content,['[',']']);
 
-                var totalMiss = await getUserAttribValue( client, interactionUserID, attrib_TotalMiss, 0 );
-                await setUserAttribValue( interactionUserID, interactionUserName, attrib_TotalMiss, parseInt(totalMiss)+1);
+                if (splitForumContent.length > 1){
 
-                if(newMissAmount >= missNeeded){
-                    
-                    await initialMessage.edit( `${replaceMissCount(initialMessage.content, newMissAmount)}`);
+                    const numbersMiss = extractNumbers(splitForumContent[1]);
+            
+                    var missAmount = numbersMiss[0];
+                    var newMissAmount = parseInt(missAmount)+1;
+                    var missNeeded = numbersMiss[1];
 
-                    const text_failed = localize(`C'est finito\n`,`Well rip,`) + ` **[ ${newMissAmount} miss / ${missNeeded} ]**\n`;
-                    markAsDead(client, interaction, text_failed);
+                    var totalMiss = await getUserAttribValue( client, interactionUserID, attrib_TotalMiss, 0 );
+                    await setUserAttribValue( interactionUserID, interactionUserName, attrib_TotalMiss, parseInt(totalMiss)+1);
+
+                    if(newMissAmount >= missNeeded){
+                        
+                        await initialMessage.edit( `${replaceMissCount(initialMessage.content, newMissAmount)}`);
+
+                        const text_failed = localize(`C'est finito\n`,`Well rip,`) + ` **[ ${newMissAmount} miss / ${missNeeded} ]**\n`;
+                        markAsDead(client, interaction, text_failed);
+                    }
+                    else{
+                        await initialMessage.edit( `${replaceMissCount(initialMessage.content, newMissAmount)}`);
+                        
+                        // If miss is <= 50% the amount sentences are """encouraging""" then it gets worst and even more after 75% 
+                        const text_fitTension = newMissAmount <= missNeeded*0.5 ? text_lowTension(client) : newMissAmount <= missNeeded*0.75 ? text_mediumTension(client) : text_highTension(client);
+                        await sendReceivedMessage(client, `${text_fitTension}\n**[ ${newMissAmount} miss / ${missNeeded} ]**`, interaction);            
+                    }
                 }
                 else{
-                    await initialMessage.edit( `${replaceMissCount(initialMessage.content, newMissAmount)}`);
-                    
-                    // If miss is <= 50% the amount sentences are """encouraging""" then it gets worst and even more after 75% 
-                    const text_fitTension = newMissAmount <= missNeeded*0.5 ? text_lowTension(client) : newMissAmount <= missNeeded*0.75 ? text_mediumTension(client) : text_highTension(client);
-                    await sendReceivedMessage(client, `${text_fitTension}\n**[ ${newMissAmount} miss / ${missNeeded} ]**`, interaction);            
+                    await sendReceivedMessage(client, text_notCompatible, interaction);
                 }
             }
             else{
-                await sendReceivedMessage(client, text_notCompatible, interaction);
+                await sendReceivedMessage(client, text_scam, interaction);
             }
         }
 
@@ -704,7 +712,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
                 missPer24Hour = isNaN(missPer24Hour) || missPer24Hour == Infinity ? 0 : missPer24Hour;
 
-                activityOutput += addTextBar(`${userDisplayName} `, 20, false) + ` ${missPer24Hour} miss / 24h over ${roundToOneDecimal(totalTimeHour)}h\n`
+                activityOutput += addTextBar(`${userDisplayName} `, 20, false) + ` ${missPer24Hour} miss / 24h - ${totalMiss} miss over ${roundToOneDecimal(totalTimeHour)}h\n`
             };
 
             activityOutput+="\`\`\`";
@@ -872,8 +880,7 @@ client.on(Events.InteractionCreate, async interaction => {
         }  
     }
     catch(error){
-        console.error('❌ ERROR with interaction - crash prevented\n', error);
-        sendChannelMessage(client, channelID_IDs, '❌ ERROR with interaction - crash prevented\n' + error)
+        console.error('❌ ERROR - Crash Prevented\n', error);
     }
 });
 

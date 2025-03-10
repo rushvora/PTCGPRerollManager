@@ -371,6 +371,8 @@ async function sendStats(client){
         if(ineligibleGPs != undefined){
             ineligibleGPCount = parseInt(ineligibleGPs.length);
 
+            totalGPCount = eligibleGPCount + ineligibleGPCount;
+
             if(liveGPs != undefined){
                 liveGPCount = parseInt(liveGPs.length);
             
@@ -384,8 +386,6 @@ async function sendStats(client){
                 if(liveGPCount > 0){
                     totalLuck = roundToOneDecimal(liveGPCount / eligibleGPCount * 100);
                 }
-        
-                totalGPCount = eligibleGPCount + ineligibleGPCount;
         
                 if( !isNaN(totalLuck) && totalLuck > 0 && totalGPCount > 0){
                     var potentialEligibleGPCount = eligibleGPCount + (ineligibleGPCount * min2Stars * 0.1) // 0.1 = 1 chance out of 10 for an invalid to not be a gold or immersive (for every Min2Stars)
@@ -470,7 +470,7 @@ async function sendStats(client){
             farmInfoArray.push({ user: displayName, packs: totalPacksFarm, time : totalTimeFarm })
         };
         
-        if(farmInfoArray.length > 5){
+        if(farmInfoArray.length >= 3){
 
             const emoji_BestFarm1 = findEmoji(client, leaderboardBestFarm1_CustomEmojiName, "🌟");
             const emoji_BestFarm2 = findEmoji(client, leaderboardBestFarm2_CustomEmojiName, "⭐️");
@@ -479,9 +479,9 @@ async function sendStats(client){
             // Sort by best
             farmInfoArray.sort((a, b) => b.time - a.time);
             var bestFarmersText = `
-${emoji_BestFarm1} ${farmInfoArray[0].user} - ${farmInfoArray[0].time/60}h with ${farmInfoArray[0].packs} packs\n
-${emoji_BestFarm2} ${farmInfoArray[1].user} - ${farmInfoArray[1].time/60}h with ${farmInfoArray[1].packs} packs\n
-${emoji_BestFarm3} ${farmInfoArray[2].user} - ${farmInfoArray[2].time/60}h with ${farmInfoArray[2].packs} packs
+${emoji_BestFarm1} ${farmInfoArray[0].user} - ${roundToOneDecimal(farmInfoArray[0].time/60)}h with ${farmInfoArray[0].packs} packs\n
+${emoji_BestFarm2} ${farmInfoArray[1].user} - ${roundToOneDecimal(farmInfoArray[1].time/60)}h with ${farmInfoArray[1].packs} packs\n
+${emoji_BestFarm3} ${farmInfoArray[2].user} - ${roundToOneDecimal(farmInfoArray[2].time/60)}h with ${farmInfoArray[2].packs} packs
             ` //no tabs to avoid phone weird spacing
 
             const embedBestFarmers = new EmbedBuilder()
@@ -492,7 +492,7 @@ ${emoji_BestFarm3} ${farmInfoArray[2].user} - ${farmInfoArray[2].time/60}h with 
             guild.channels.cache.get(channelID_UserStats).send({ embeds: [embedBestFarmers] });
         }
 
-        if(missCountArray.length > 5){
+        if(missCountArray.length >= 6){
             
             const emoji_BestVerifier1 = findEmoji(client, leaderboardBestVerifier1_CustomEmojiName, "🥇");
             const emoji_BestVerifier2 = findEmoji(client, leaderboardBestVerifier2_CustomEmojiName, "🥈");
@@ -680,7 +680,7 @@ async function createForumPost(client, message, channelID, packName, titleName, 
 
     // Skip if member do not exist
     if (member == "") {
-        console.log(`❗️ Heartbeat from ID ${userID} is no registered on this server`)
+        console.log(`❗️ Heartbeat from ID ${ownerID} is no registered on this server`)
         return;
     }
     var ownerUsername = (member).user.username;
@@ -721,7 +721,7 @@ async function createForumPost(client, message, channelID, packName, titleName, 
         // Create forum post for verification
         const forum = client.channels.cache.get(channelID);
         const forumPost = forum.threads.create({
-        name: `⌛ ${titleName}`,
+        name: `${text_waitingLogo} ${titleName}`,
         message: {
             content: text_foundbyLine + text_missLine + text_eligibleLine + text_metadataLine + text_commandTooltip,
         },
