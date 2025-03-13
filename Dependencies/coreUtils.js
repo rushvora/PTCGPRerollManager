@@ -12,6 +12,7 @@ import {
     gitGistGroupName,
     gitGistGPName,
     missBeforeDead,
+    showPerPersonLive,
     EnglishLanguage,
     AutoKick,
     refreshInterval,
@@ -36,6 +37,7 @@ import {
     leaderboardBestFarm1_CustomEmojiName,
     leaderboardBestFarm2_CustomEmojiName,
     leaderboardBestFarm3_CustomEmojiName,
+    leaderboardBestFarmLength,
     leaderboardBestVerifier1_CustomEmojiName,
     leaderboardBestVerifier2_CustomEmojiName,
     leaderboardBestVerifier3_CustomEmojiName,
@@ -105,14 +107,17 @@ import {
     attrib_RealInstances, 
     attrib_SessionTime, 
     attrib_TotalPacksOpened, 
+    attrib_TotalPacksFarm, 
     attrib_SessionPacksOpened,
     attrib_DiffPacksSinceLastHB,
     attrib_DiffTimeSinceLastHB,
     attrib_PacksPerMin,
-    attrib_GodPackFound, 
+    attrib_GodPackFound,
+    attrib_GodPackLive,
     attrib_LastActiveTime, 
     attrib_LastHeartbeatTime,
     attrib_TotalTime,
+    attrib_TotalTimeFarm,
     attrib_TotalMiss,
     attrib_Subsystems,
     attrib_Subsystem,
@@ -124,8 +129,6 @@ import {
     attrib_ineligibleGP,
     pathUsersData,
     pathServerData,
-    attrib_TotalPacksFarm,
-    attrib_TotalTimeFarm,
 } from './xmlConfig.js';
 
 import {
@@ -278,7 +281,7 @@ async function getUsersStats(users, members){
         await setUserAttribValue( id, username, attrib_PacksPerMin, avgPackMn);
         const text_avgPackMn = colorText(avgPackMn, "blue");
 
-        userOutput += `    ${text_Session} ${text_avgPackMn} packs/mn  ${text_sessionTime} ${text_sessionPackF}\n`
+        userOutput += `    ${text_Session}${text_avgPackMn} packs/mn  ${text_sessionTime} ${text_sessionPackF}\n`
 
         // Pack stats
         const totalPack = parseInt(getAttribValueFromUser(user, attrib_TotalPacksOpened));
@@ -286,16 +289,20 @@ async function getUsersStats(users, members){
 
         const totalGodPack = parseInt(getAttribValueFromUser(user, attrib_GodPackFound));
         const avgGodPack = roundToOneDecimal(totalGodPack >= 1 ? (totalPack+sessionPackI)/totalGodPack : (totalPack+sessionPackI));
+        
+        const gpLive = parseInt(getAttribValueFromUser(user, attrib_GodPackLive, 0));
 
         const text_GPAvg = colorText("GP Avg:", "gray");
         const text_Packs = colorText("Packs:", "gray");
         const text_GP = colorText("GP:", "gray");
+        const text_Live = showPerPersonLive ? colorText("Live:", "gray") : "";
         const text_TotalPack = colorText(totalPack + sessionPackI, "blue");
         const text_TotalGodPack = colorText(totalGodPack, "blue");
         const text_GPRatio = totalGodPack >= 1 ? '1/' : '0/';
         const text_AvgGodPack = colorText(`${text_GPRatio}${avgGodPack}`, `blue`);
+        const text_GPLive = showPerPersonLive ? colorText(`${gpLive}`, `blue`) : "";
 
-        userOutput += `    ${text_Packs} ${text_TotalPack}  ${text_GP} ${text_TotalGodPack}  ${text_GPAvg} ${text_AvgGodPack} packs`
+        userOutput += `    ${text_Packs}${text_TotalPack} ${text_GP}${text_TotalGodPack} ${text_Live}${text_GPLive} ${text_GPAvg}${text_AvgGodPack}`
         userOutput += `\n\`\`\``;
 
         usersStats.push(userOutput);
@@ -470,19 +477,28 @@ async function sendStats(client){
             farmInfoArray.push({ user: displayName, packs: totalPacksFarm, time : totalTimeFarm })
         };
         
-        if(farmInfoArray.length >= 3){
-
-            const emoji_BestFarm1 = findEmoji(client, leaderboardBestFarm1_CustomEmojiName, "🌟");
-            const emoji_BestFarm2 = findEmoji(client, leaderboardBestFarm2_CustomEmojiName, "⭐️");
-            const emoji_BestFarm3 = findEmoji(client, leaderboardBestFarm3_CustomEmojiName, "✨");
-
+        if(farmInfoArray.length >= leaderboardBestFarmLength){
+            
             // Sort by best
             farmInfoArray.sort((a, b) => b.time - a.time);
-            var bestFarmersText = `
-${emoji_BestFarm1} ${farmInfoArray[0].user} - ${roundToOneDecimal(farmInfoArray[0].time/60)}h with ${farmInfoArray[0].packs} packs\n
-${emoji_BestFarm2} ${farmInfoArray[1].user} - ${roundToOneDecimal(farmInfoArray[1].time/60)}h with ${farmInfoArray[1].packs} packs\n
-${emoji_BestFarm3} ${farmInfoArray[2].user} - ${roundToOneDecimal(farmInfoArray[2].time/60)}h with ${farmInfoArray[2].packs} packs
-            ` //no tabs to avoid phone weird spacing
+            
+            var bestFarmersText = `` 
+
+            for( let i = 0 ; i<leaderboardBestFarmLength ; i++){
+
+                var emoji_BestFarm;
+                if(i == 0){
+                    emoji_BestFarm = findEmoji(client, leaderboardBestFarm1_CustomEmojiName, "🌟");
+                }
+                else if(i == 1){
+                    emoji_BestFarm = findEmoji(client, leaderboardBestFarm2_CustomEmojiName, "⭐️");
+                }
+                else{
+                    emoji_BestFarm = findEmoji(client, leaderboardBestFarm3_CustomEmojiName, "✨");
+                }
+
+                bestFarmersText += `${emoji_BestFarm} ${farmInfoArray[i].user} - ${roundToOneDecimal(farmInfoArray[i].time/60)}h with ${farmInfoArray[i].packs} packs\n\n`                
+            }
 
             const embedBestFarmers = new EmbedBuilder()
             .setColor('#39d1bf') // Couleur en hexadécimal
@@ -555,10 +571,21 @@ async function sendStatusHeader(client){
     const guild = await getGuild(client);
     const channel_IDs = guild.channels.cache.get(channelID_IDs);
 
+
+
+    const headerDescription = `
+\`\`\`ansi
+${colorText("Active", "green")} - ✅Friend Requests${AutoKick ? " ✅Auto Kickable" : ""}
+${colorText("Inactive", "red")} - ❌Friend Requests
+${colorText("Farm / No Main", "cyan")} - ❌Friend Requests${AutoKick ? " ❌Auto Kickable" : ""}
+${colorText("Switch to this for others when verifying / playing on Main / Low Instances amount due to high computer usage", "gray")}
+${canPeopleLeech ? `${colorText("Leech / Only Main", "pink")} - ✅Friend Requests${AutoKick ? " ❌Auto Kickable" : ""}` : ``}
+\`\`\``
+
     const embedStatusChange = new EmbedBuilder()
         .setColor('#f02f7e')
-        .setTitle('Click to change your status')
-        .setDescription('It works similar to /active /inactive /farm or /leech');
+        .setTitle(`__**Click to change Status**__ - *Similar to /active /inactive /farm ${canPeopleLeech ? "/leech" : ""}*`)
+        .setDescription(headerDescription);
 
     const buttonActive = new ButtonBuilder()
         .setCustomId('active')
@@ -568,13 +595,13 @@ async function sendStatusHeader(client){
 
     const buttonFarm = new ButtonBuilder()
         .setCustomId('farm')
-        .setLabel('Farm (noMain)')
+        .setLabel('Farm')
         .setEmoji('⚡')
         .setStyle(ButtonStyle.Primary)
 
     const buttonLeech = new ButtonBuilder()
         .setCustomId('leech')
-        .setLabel('Leech (onlyMain)')
+        .setLabel('Leech')
         .setEmoji('🩸')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(!canPeopleLeech);
@@ -743,18 +770,30 @@ async function createForumPost(client, message, channelID, packName, titleName, 
 
 async function markAsDead(client, interaction, optionalText = ""){
 
-    const text_markAsDead = localize("Godpack marqué comme mort et fermé","Godpack marked as dud and closed");
+    const text_markAsDead = localize("Godpack marqué comme mort","Godpack marked as dud");
+    const text_alreadyDead = localize("Il est déjà mort et enterré... tu veux vraiment en remettre une couche ?","It's already dead and buried...");
     
     const thread = client.channels.cache.get(interaction.channelId);
 
-    thread.edit({ name: `${thread.name.replace(text_waitingLogo, text_deadLogo)}` });
-
-    await sendReceivedMessage(client, optionalText + text_deadLogo + ` ` + text_markAsDead, interaction);
-
-    await updateEligibleIDs(client);
+    if(thread.name.includes(text_deadLogo)){
+        await sendReceivedMessage(client, `${text_alreadyDead}`, interaction);
+    }
+    else{
+        const newThreadName = thread.name.replace(text_waitingLogo, text_deadLogo).replace(text_verifiedLogo, text_deadLogo);
+    
+        await thread.edit({ name: `${newThreadName}` });
+    
+        await sendReceivedMessage(client, optionalText + text_deadLogo + ` ` + text_markAsDead, interaction);
+    
+        await updateEligibleIDs(client);
+    }
 }
 
 async function updateEligibleIDs(client){
+
+    const text_Start = `⌛ Updating Eligible IDs...`;
+    const text_Done = `☑️  Finished updating Eligible IDs`;
+    console.log(text_Start)
 
     const forum = await client.channels.cache.get(channelID_GPVerificationForum);
     const activeThreads = await forum.threads.fetchActive();
@@ -787,6 +826,8 @@ async function updateEligibleIDs(client){
             }
         }
     }
+
+    console.log(text_Done)
 
     await updateGist(idList, gitGistGPName);
 }
@@ -906,12 +947,12 @@ async function setUserState(client, user, state, interaction = undefined){
 
 }
 
-async function updateServerData(client){
+async function updateServerData(client, startup = false){
 
     const serverDataExist = checkFileExists(pathServerData);
 
-    // If file have been created more than X hours ago
-    if(serverDataExist){
+    //Only check if file is <4h at startup, otherwise skip every 4h, otheriwise it'll never reset cause he's being modified by new GP appearing
+    if(serverDataExist && startup){
 
         const { mtime } = fs.statSync(pathServerData)
         const fileModificationDate = mtime;
@@ -927,9 +968,9 @@ async function updateServerData(client){
 
     if( !serverDataExist || resetServerDataFrequently ) {
         
-        const text_Warning = `⌛ Analyzing & reset all GP stats to ServerData.xml...`;
-        const text_Success = `☑️ All GP stats have been successfully saved`;
-        console.log(text_Warning);
+        const text_Start = `⌛ Analyze & Reset all GP stats to ServerData.xml...`;
+        const text_Done = `☑️ Finished Analyze & Reset all GP stats`;
+        console.log(text_Start);
 
         // Default XML Structure
         const data = {
@@ -1039,10 +1080,68 @@ async function updateServerData(client){
 
         const builder = new xml2js.Builder();
         const xmlOutput = builder.buildObject(data);
-        
         writeFile(pathServerData, xmlOutput)
-        console.log(text_Success);
+
+        console.log(text_Done);
+
+        await updateUserDataGPLive(client);
     }
+}
+
+async function updateUserDataGPLive(client){
+    
+    const text_Start = `⌛ Updating GPLive UserData...`;
+    const text_Done = `☑️  Finished updating GPLive UserData`;
+    console.log(text_Start)
+
+    const allUsers = await getAllUsers();
+
+    for( var i = 0; i < allUsers.length; i++ ) {
+                        
+        var user = allUsers[i];
+        var userID = getIDFromUser(user);
+        var userUsername = getUsernameFromUser(user);
+        await setUserAttribValue(userID, userUsername, attrib_GodPackLive, 0);
+    };
+
+    try{
+        var liveGPs = await getServerDataGPs(attrib_liveGPs);
+        liveGPs = Array.isArray(liveGPs) ? liveGPs: [liveGPs];
+
+        const liveGPArray = liveGPs.map(liveGP => ({
+            time: liveGP.$.time,
+            name: liveGP.$.name,
+            id: liveGP._
+        }));
+    
+        for (let i = 0; i < liveGPArray.length; i++) {
+            const liveGP = liveGPArray[i];
+            const verificationChannel = await client.channels.cache.get(channelID_GPVerificationForum);
+            const thread = await verificationChannel.threads.fetch(liveGP.id);
+
+            await addUserDataGPLive(client, thread);
+        }
+
+        console.log(text_Done)
+    }
+    catch (error){
+        console.log("❌ ERROR - Failed to update UserData GPLive\n" + error)
+    }
+}
+
+async function addUserDataGPLive(client, thread){
+
+    const initialMessage = await getOldestMessage(thread);
+    var ownerID = splitMulti(initialMessage.content,['<@','>'])[1];
+    
+    const member = await getMemberByID(client, ownerID);
+    if (member == "") {
+        console.log(`❗️ Failed to update UserData GPLive of thread ID : ${thread.id}\nFor more infos, check the ID in ServerData.xml`)
+        return;
+    }
+    
+    var GPLive = parseInt(await getUserAttribValue( client, ownerID, attrib_GodPackLive, 0 ));
+    await setUserAttribValue(ownerID, member.user.username, attrib_GodPackLive,GPLive+1);
 }
 
 export { 
@@ -1058,4 +1157,6 @@ export {
     updateEligibleIDs,
     setUserState,
     updateServerData,
+    updateUserDataGPLive,
+    addUserDataGPLive,
 }

@@ -30,7 +30,7 @@ async function updateGist( gitContent, gitName = gitGistGroupName ){
                 'X-GitHub-Api-Version': '2022-11-28'
             }
         })
-        console.log(`🌐 Updating GistGit... - ${gitName}`)
+        console.log(`🌐 Uploading GistGit... - ${gitName}`)
     }
     catch{
         console.log(`❌ ERROR trying to upload GistGit - ${gitName}`);

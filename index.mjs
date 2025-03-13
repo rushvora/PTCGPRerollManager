@@ -88,6 +88,8 @@ import {
     updateEligibleIDs,
     setUserState,
     updateServerData,
+    updateUserDataGPLive,
+    addUserDataGPLive,
 } from './Dependencies/coreUtils.js';
 
 import {
@@ -214,7 +216,7 @@ client.once(Events.ClientReady, async c => {
     }, convertMnToMs(60));
 
     // Reset and Update ServerData every X hours (might disable the loop it if you have over 10k gp or it'll take a while)
-    updateServerData(client);
+    updateServerData(client, true);
     setInterval(() =>{
         updateServerData(client);
     }, convertMnToMs(resetServerDataTime+1));
@@ -613,15 +615,25 @@ client.on(Events.InteractionCreate, async interaction => {
             
             await interaction.deferReply();
             const text_markAsVerified = localize("Godpack marqué comme live","Godpack marked as live");
+            const text_alreadyVerified = localize("C'est gentil de ta part mais il est déjà vérifié le GodPack","That's kind of you but this GP already is verified");
 
-            const forumPost = client.channels.cache.get(interaction.channelId);
+            const thread = client.channels.cache.get(interaction.channelId);
 
-            // Edit a thread
-            forumPost.edit({ name: `${forumPost.name.replace(text_waitingLogo, text_verifiedLogo)}` });
-            
-            await addServerGP(attrib_liveGP, forumPost);
+            if(thread.name.includes(text_verifiedLogo)){
+                await sendReceivedMessage(client, `${text_alreadyVerified}`, interaction);
+            }
+            else{
+                const newPostName = thread.name.replace(text_waitingLogo, text_verifiedLogo).replace(text_deadLogo, text_verifiedLogo);
+    
+                // Edit a thread
+                await thread.edit({ name: `${newPostName}` });
+                
+                await addServerGP(attrib_liveGP, thread);
 
-            await sendReceivedMessage(client, text_verifiedLogo + ` ` + text_markAsVerified + ` ${forumPost}`, interaction);
+                await addUserDataGPLive(client, thread);
+    
+                await sendReceivedMessage(client, `${text_verifiedLogo} ${text_markAsVerified}`, interaction);
+            }
         }
 
         // DEAD COMMAND

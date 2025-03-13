@@ -13,6 +13,7 @@ const attrib_DiffPacksSinceLastHB = "DiffPacksSinceLastHB";
 const attrib_DiffTimeSinceLastHB = "DiffTimeSinceLastHB";
 const attrib_PacksPerMin = "PacksPerMin"
 const attrib_GodPackFound = "GodPackFound";
+const attrib_GodPackLive = "GodPackLive";
 const attrib_LastActiveTime = "LastActiveTime";
 const attrib_LastHeartbeatTime = "LastHeartbeatTime";
 const attrib_TotalTime = "TotalTime";
@@ -48,7 +49,8 @@ export{
     attrib_DiffPacksSinceLastHB,
     attrib_DiffTimeSinceLastHB,
     attrib_PacksPerMin,
-    attrib_GodPackFound, 
+    attrib_GodPackFound,
+    attrib_GodPackLive,
     attrib_LastActiveTime, 
     attrib_LastHeartbeatTime,
     attrib_TotalTime,

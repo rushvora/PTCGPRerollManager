@@ -69,11 +69,13 @@ var safeEligibleIDsFiltering = true; // true = all flagged as 5/5
 // Choose language
 const EnglishLanguage = false;
 
-// Number of /miss needed before a post is marked as dead, here it means 1pack=4miss, 2packs=6miss, 3packs=8miss
+// Number of /miss needed before a post is marked as dead, here it means 1pack=4miss, 2packs=6miss, 3packs=8miss, etc..
 const missBeforeDead = [4,6,8,10,12];
 
+// Do you want to show GP Lives per User in Stats
+const showPerPersonLive = true;
+
 // The average Min2Stars of the group on Arturo's bot, used to calculate the Potential Lives GP
-// Considering that at a value of 2, 1 invalid pack out of 10 will be invalidated by stars and not gold / immersive
 var min2Stars = 0;//can be a floating number ex:2.5
 
 // No need to modify it except you specifically changed the rate in yours ahk files
@@ -91,6 +93,7 @@ const text_waitingLogo = "⌛";
 const leaderboardBestFarm1_CustomEmojiName = "Chadge"; // 🌟 if not found
 const leaderboardBestFarm2_CustomEmojiName = "PeepoLove"; // ⭐️ if not found
 const leaderboardBestFarm3_CustomEmojiName = "PeepoShy"; // ✨ if not found
+const leaderboardBestFarmLength = 6; // Number of Peoples showing in "Best Farmers"
 
 const leaderboardBestVerifier1_CustomEmojiName = "Wicked"; // 🥇 if not found
 const leaderboardBestVerifier2_CustomEmojiName = "PeepoSunglasses"; // 🥈 if not found
@@ -114,6 +117,7 @@ export {
     gitGistGroupName,
     gitGistGPName,
     missBeforeDead,
+    showPerPersonLive,
     EnglishLanguage,
     AutoKick,
     refreshInterval,
@@ -138,6 +142,7 @@ export {
     leaderboardBestFarm1_CustomEmojiName,
     leaderboardBestFarm2_CustomEmojiName,
     leaderboardBestFarm3_CustomEmojiName,
+    leaderboardBestFarmLength,
     leaderboardBestVerifier1_CustomEmojiName,
     leaderboardBestVerifier2_CustomEmojiName,
     leaderboardBestVerifier3_CustomEmojiName,

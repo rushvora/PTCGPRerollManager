@@ -63,7 +63,7 @@ async function readFileAsync(filepath) {
             });
         });
     } catch (err) {
-        console.log(`❌ Error reading the XML file, ${filepath} does not exist`);
+        console.log(`❌ ERROR reading the XML file, ${filepath} does not exist`);
     }
 }
 
@@ -296,8 +296,8 @@ async function getUserAttribValue( client, attribUserId, subAttribName, fallback
                 return fallbackValue
             }
         }
-    } catch (err) {
-        console.log(`❗️ Try to get attribute ${subAttribName} but does not exist`);
+    } catch {
+        // console.log(`❗️ Try to get attribute ${subAttribName} but does not exist`);
         return fallbackValue
     }
 }
@@ -550,18 +550,21 @@ async function getAllUsers() {
     // ==== ASYNC LOCK READ ==== //
     var result = "";
     await lockUsersData.acquire('fileLock', async () => {
-        try {
-            result = await readFileAsync(pathUsersData);
-        } catch (error) {
-            console.log('❌ ERROR trying to read filesync with lock');
-        }});
-        ////////////////////////////////
-        
+    try {
+        result = await readFileAsync(pathUsersData);
+    } catch (error) {
+        console.log('❌ ERROR trying to read filesync with lock');
+    }});
+    ////////////////////////////////
+    try{
         if (result.root && result.root.user && result.root.user.length > 0){
             var ActiveUsers = result.root.user;
         }
-        
         return ActiveUsers;
+    }
+    catch{
+        return [];
+    }
 }
     
 function getUsernameFromUsers( user ){

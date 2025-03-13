@@ -170,7 +170,7 @@ async function bulkDeleteMessages(channel, numberOfMessages) {
                     messagesToDeleteIds.push(msg.id);
                 } catch (fetchError) {
                     if (fetchError.code != 10008) {
-                        console.error(`❗️ Error fetching message with ID ${msg.id} :`, fetchError);
+                        console.error(`❗️ Can't fetch message with ID ${msg.id} :`, fetchError);
                     }
                     // else the message does not exist anymore
                 }
@@ -184,7 +184,7 @@ async function bulkDeleteMessages(channel, numberOfMessages) {
             }
         }
     } catch (error) {
-        console.error('Error deleting messages:', error);
+        console.error('❌ ERROR deleting messages:', error);
     }
 }
 
