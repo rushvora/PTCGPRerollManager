@@ -78,6 +78,7 @@ import {
     doesUserProfileExists, 
     setUserAttribValue, 
     getUserAttribValue, 
+    setAllUsersAttribValue,
     setUserSubsystemAttribValue,
     getUserSubsystemAttribValue,
     getActiveUsers,
@@ -570,8 +571,6 @@ async function sendStatusHeader(client){
         
     const guild = await getGuild(client);
     const channel_IDs = guild.channels.cache.get(channelID_IDs);
-
-
 
     const headerDescription = `
 \`\`\`ansi
@@ -1094,15 +1093,7 @@ async function updateUserDataGPLive(client){
     const text_Done = `☑️  Finished updating GPLive UserData`;
     console.log(text_Start)
 
-    const allUsers = await getAllUsers();
-
-    for( var i = 0; i < allUsers.length; i++ ) {
-                        
-        var user = allUsers[i];
-        var userID = getIDFromUser(user);
-        var userUsername = getUsernameFromUser(user);
-        await setUserAttribValue(userID, userUsername, attrib_GodPackLive, 0);
-    };
+    setAllUsersAttribValue(attrib_GodPackLive, 0);
 
     try{
         var liveGPs = await getServerDataGPs(attrib_liveGPs);

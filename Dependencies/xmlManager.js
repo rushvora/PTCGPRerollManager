@@ -91,7 +91,6 @@ async function checkFileExistsOrCreate(filepath, content='', lock = lockServerDa
             } catch (error) {
                 console.log('❌ ERROR trying to write filesync with lock');
         }});
-        ////////////////////////////////
         return false;
     }
     return true;
@@ -113,65 +112,63 @@ async function writeFile(filepath, content='', lock = lockServerData) {
         } catch (error) {
             console.log('❌ ERROR trying to write filesync with lock');
     }});
-    ////////////////////////////////
 }
 
 
 // Create the user profile because none was existing
 async function createUserProfile( attribUserId, attribUserName ) {
     try {
-        
-        // ==== ASYNC LOCK READ ==== //
         var result = ""; 
+
+        // ==== LOCK ACQUIRE ==== //
         await lockUsersData.acquire('fileLock', async () => {
+
+            // ==== ASYNC READ ==== //
             try {
                 result = await readFileAsync(pathUsersData);
             } catch (error) {
                 console.log('❌ ERROR trying to read filesync with lock');
-        }});
-        ////////////////////////////////
+            }
 
-        // Check root existence
-        if (!result.root) {
-            result.root = {};
-        }
+            // Check root existence
+            if (!result.root) {
+                result.root = {};
+            }
 
-        // Check if Element already exists
-        if (!result.root.user) {
-            result.root.user = [];
-        }
+            // Check if Element already exists
+            if (!result.root.user) {
+                result.root.user = [];
+            }
 
-        result.root.user.push({
-            $: { username: attribUserName },
-            _: attribUserId,
-            // attrib_PocketID: "0000000000000000",
-            [attrib_UserState]: "inactive",
-            [attrib_AverageInstances]: 0,
-            [attrib_HBInstances]: 0,
-            [attrib_RealInstances]: 0,
-            [attrib_SessionTime]: 0,
-            [attrib_TotalPacksOpened]: 0,
-            [attrib_SessionPacksOpened]: 0,
-            [attrib_DiffPacksSinceLastHB]: 0,
-            [attrib_PacksPerMin]: 0,
-            [attrib_GodPackFound]: 0,
-            [attrib_LastActiveTime]: new Date(),
-            [attrib_LastHeartbeatTime]: new Date(),
-        });
+            result.root.user.push({
+                $: { username: attribUserName },
+                _: attribUserId,
+                // attrib_PocketID: "0000000000000000",
+                [attrib_UserState]: "inactive",
+                [attrib_AverageInstances]: 0,
+                [attrib_HBInstances]: 0,
+                [attrib_RealInstances]: 0,
+                [attrib_SessionTime]: 0,
+                [attrib_TotalPacksOpened]: 0,
+                [attrib_SessionPacksOpened]: 0,
+                [attrib_DiffPacksSinceLastHB]: 0,
+                [attrib_PacksPerMin]: 0,
+                [attrib_GodPackFound]: 0,
+                [attrib_LastActiveTime]: new Date(),
+                [attrib_LastHeartbeatTime]: new Date(),
+            });
 
-        const builder = new xml2js.Builder();
-        const xmlOutput = builder.buildObject(result);
+            const builder = new xml2js.Builder();
+            const xmlOutput = builder.buildObject(result);
 
-        console.log(`✅ Created user profile "${attribUserName}"`);
-
-        // ==== ASYNC LOCK WRITE ==== //
-        await lockUsersData.acquire('fileLock', async () => {
+            // ==== ASYNC WRITE ==== //
             try {
                 await fs.promises.writeFile(pathUsersData, xmlOutput, 'utf8');
+                console.log(`✅ Created user profile "${attribUserName}"`);
             } catch (error) {
                 console.log('❌ ERROR trying to write filesync with lock');
-        }});
-        ////////////////////////////////
+            }
+        });
 
     } catch (err) {
         console.error('❌ ERROR modifying the XML file:', err);
@@ -198,7 +195,6 @@ async function doesUserProfileExists( attribUserId, attribUserName ) {
         } catch (error) {
             console.log('❌ ERROR trying to read filesync with lock');
     }});
-    ////////////////////////////////
 
     if (result.root && result.root.user) {
         if(result.root.user.find(user => cleanString(user._) === attribUserId)) {
@@ -216,6 +212,7 @@ async function doesUserProfileExists( attribUserId, attribUserName ) {
 
 
 
+// =============================================== User ===============================================
 
 
 
@@ -227,37 +224,38 @@ async function setUserAttribValue( attribUserId, attribUserName, subAttribName, 
     }
 
     try {
-        // ==== ASYNC LOCK READ ==== //
         var result = "";
+
+        // ==== LOCK ACQUIRE ==== //
         await lockUsersData.acquire('fileLock', async () => {
+            
+            // ==== ASYNC READ ==== //
             try {
                 result = await readFileAsync(pathUsersData);
             } catch (error) {
                 console.log('❌ ERROR trying to read filesync with lock');
-        }});
-        ////////////////////////////////
+            }
 
-        const user = result.root.user.find(user => cleanString(user._) === attribUserId);
+            const user = result.root.user.find(user => cleanString(user._) === attribUserId);
 
-        if (user) {
-            user[subAttribName] = subAttribValue;
-            if(debugConsole) {console.log(`Set ${subAttribName} to ${subAttribValue} for User ${attribUserName}`);}
-        } else {
-            console.log(`❗️ User ${attribUserName} not found.`);
-        }
+            if (user) {
+                user[subAttribName] = subAttribValue;
+                if(debugConsole) {console.log(`Set ${subAttribName} to ${subAttribValue} for User ${attribUserName}`);}
+            } else {
+                console.log(`❗️ User ${attribUserName} not found.`);
+            }
 
-        const builder = new xml2js.Builder();
-        let xmlOutput = builder.buildObject(result);
-        xmlOutput = cleanString(xmlOutput)
+            const builder = new xml2js.Builder();
+            let xmlOutput = builder.buildObject(result);
+            xmlOutput = cleanString(xmlOutput)
 
-        // ==== ASYNC LOCK WRITE ==== //
-        await lockUsersData.acquire('fileLock', async () => {
+            // ==== ASYNC WRITE ==== //
             try {
                 await fs.promises.writeFile(pathUsersData, xmlOutput, 'utf8');
             } catch (error) {
                 console.log('❌ ERROR trying to write filesync with lock');
-        }});
-        ////////////////////////////////
+            }
+        });
 
     } catch (err) {
         console.error('❌ ERROR modifying the XML file:', err);
@@ -282,7 +280,6 @@ async function getUserAttribValue( client, attribUserId, subAttribName, fallback
             } catch (error) {
                 console.log('❌ ERROR trying to read filesync with lock');
         }});
-        ////////////////////////////////
 
         if (result.root && result.root.user && result.root.user.length > 0){
             const user = result.root.user.find(user => cleanString(user._) === attribUserId);
@@ -302,68 +299,112 @@ async function getUserAttribValue( client, attribUserId, subAttribName, fallback
     }
 }
 
+// Set attrib value of all users
+async function setAllUsersAttribValue( subAttribName, subAttribValue ) {
+
+    try {
+        var result = "";
+
+        // ==== LOCK ACQUIRE ==== //
+        await lockUsersData.acquire('fileLock', async () => {
+            
+            // ==== ASYNC READ ==== //
+            try {
+                result = await readFileAsync(pathUsersData);
+            } catch (error) {
+                console.log('❌ ERROR trying to read filesync with lock');
+            }
+
+            if (result.root && result.root.user) {
+                
+                const users = Array.isArray(result.root.user) ? result.root.user : [result.root.user];
+            
+                users.forEach(user => {
+                    
+                    if (user[subAttribName]) {
+                        user[subAttribName] = subAttribValue;
+                    }
+                });
+
+                const builder = new xml2js.Builder();
+                let xmlOutput = builder.buildObject(result);
+                xmlOutput = cleanString(xmlOutput)
+
+                // ==== ASYNC WRITE ==== //
+                try {
+                    await fs.promises.writeFile(pathUsersData, xmlOutput, 'utf8');
+                } catch (error) {
+                    console.log('❌ ERROR trying to write filesync with lock');
+                }
+            }
+        });
+
+    } catch (err) {
+        console.error('❌ ERROR modifying the XML file:', err);
+    }
+}
+
 
 
 // =============================================== Subsystems ===============================================
 
 
 
-// Set the attrib value of an user
 async function setUserSubsystemAttribValue( attribUserId, attribUserName, subSystemName, subAttribName, subAttribValue ) {
 
     try {
-        // ==== ASYNC LOCK READ ==== //
         var result = "";
+        // ==== LOCK ACQUIRE ==== //
         await lockUsersData.acquire('fileLock', async () => {
+
+            // ==== ASYNC READ ==== //
             try {
                 result = await readFileAsync(pathUsersData);
             } catch (error) {
                 console.log('❌ ERROR trying to read filesync with lock');
-        }});
-        ////////////////////////////////
-
-        const user = result.root.user.find(user => cleanString(user._) === attribUserId);
-
-        if (user) {
-
-            // Create Systems + System if it doesn't exist
-            if (!user[attrib_Subsystems]) {
-                user[attrib_Subsystems] = [{ [attrib_Subsystem]: [] }];
             }
 
-            // Create System if it doesn't exist
-            var subSystem = user[attrib_Subsystems][0][attrib_Subsystem].find(sub => cleanString(sub._) === subSystemName);
-            if (!subSystem) {
-                user[attrib_Subsystems][0][attrib_Subsystem].push({
-                    _: subSystemName,
-                    [attrib_HBInstances]: 0,
-                    [attrib_SessionTime]: 0,
-                    [attrib_SessionPacksOpened]: 0,
-                    [attrib_DiffPacksSinceLastHB]: 0,
-                    [attrib_LastHeartbeatTime]: new Date(),
-                });
-                subSystem = user[attrib_Subsystems][0][attrib_Subsystem].find(sub => cleanString(sub._) === subSystemName);
+            const user = result.root.user.find(user => cleanString(user._) === attribUserId);
+
+            if (user) {
+
+                // Create Systems + System if it doesn't exist
+                if (!user[attrib_Subsystems]) {
+                    user[attrib_Subsystems] = [{ [attrib_Subsystem]: [] }];
+                }
+
+                // Create System if it doesn't exist
+                var subSystem = user[attrib_Subsystems][0][attrib_Subsystem].find(sub => cleanString(sub._) === subSystemName);
+                if (!subSystem) {
+                    user[attrib_Subsystems][0][attrib_Subsystem].push({
+                        _: subSystemName,
+                        [attrib_HBInstances]: 0,
+                        [attrib_SessionTime]: 0,
+                        [attrib_SessionPacksOpened]: 0,
+                        [attrib_DiffPacksSinceLastHB]: 0,
+                        [attrib_LastHeartbeatTime]: new Date(),
+                    });
+                    subSystem = user[attrib_Subsystems][0][attrib_Subsystem].find(sub => cleanString(sub._) === subSystemName);
+                }
+                
+                subSystem[subAttribName] = subAttribValue;
+
+                if(debugConsole) {console.log(`Set ${subAttribName} to ${subAttribValue} for User ${attribUserName} on Subsystem ${subSystemName}`);}
+            } else {
+                console.log(`❗️ User ${attribUserName} not found.`);
             }
-            
-            subSystem[subAttribName] = subAttribValue;
 
-            if(debugConsole) {console.log(`Set ${subAttribName} to ${subAttribValue} for User ${attribUserName} on Subsystem ${subSystemName}`);}
-        } else {
-            console.log(`❗️ User ${attribUserName} not found.`);
-        }
+            const builder = new xml2js.Builder();
+            let xmlOutput = builder.buildObject(result);
+            xmlOutput = cleanString(xmlOutput)
 
-        const builder = new xml2js.Builder();
-        let xmlOutput = builder.buildObject(result);
-        xmlOutput = cleanString(xmlOutput)
-
-        // ==== ASYNC LOCK WRITE ==== //
-        await lockUsersData.acquire('fileLock', async () => {
+            // ==== ASYNC WRITE ==== //
             try {
                 await fs.promises.writeFile(pathUsersData, xmlOutput, 'utf8');
             } catch (error) {
                 console.log('❌ ERROR trying to write filesync with lock');
-        }});
-        ////////////////////////////////
+            }
+        });
 
     } catch (err) {
         console.error('❌ ERROR modifying the XML file:', err);
@@ -384,7 +425,6 @@ async function getUserSubsystemAttribValue( client, attribUserId, subSystemName,
             } catch (error) {
                 console.log('❌ ERROR trying to read filesync with lock');
         }});
-        ////////////////////////////////
 
         if (result.root && result.root.user && result.root.user.length > 0){
             const user = result.root.user.find(user => cleanString(user._) === attribUserId);
@@ -421,54 +461,55 @@ async function getUserSubsystemAttribValue( client, attribUserId, subSystemName,
 
 async function addServerGP( type, threadOrMessage ){
 
-    // ==== ASYNC LOCK READ ==== //
+    
+    // ==== LOCK ACQUIRE ==== //
     var result = "";
     await lockServerData.acquire('fileLock', async () => {
+        
+        // ==== ASYNC READ ==== //
         try {
             result = await readFileAsync(pathServerData);
         } catch (error) {
             console.log('❌ ERROR trying to read filesync with lock');
-    }});
-    ////////////////////////////////
+        }
 
-    const newGPElement = {
-        $: {
-            time: new Date(threadOrMessage.createdTimestamp),
-            name: threadOrMessage.name
-        },
-        _: threadOrMessage.id
-    };
+        const newGPElement = {
+            $: {
+                time: new Date(threadOrMessage.createdTimestamp),
+                name: threadOrMessage.name
+            },
+            _: threadOrMessage.id
+        };
 
-    if(type == attrib_eligibleGP){
+        if(type == attrib_eligibleGP){
 
-        if ( result.root[attrib_eligibleGPs][0].length < 1 ){ result.root[attrib_eligibleGPs] = [{ [attrib_eligibleGP]: [] }]; }
+            if ( result.root[attrib_eligibleGPs][0].length < 1 ){ result.root[attrib_eligibleGPs] = [{ [attrib_eligibleGP]: [] }]; }
 
-        result.root[attrib_eligibleGPs][0][attrib_eligibleGP].push(newGPElement);
-    }
-    else if(type == attrib_liveGP){
+            result.root[attrib_eligibleGPs][0][attrib_eligibleGP].push(newGPElement);
+        }
+        else if(type == attrib_liveGP){
 
-        if ( result.root[attrib_liveGPs][0].length < 1 ){ result.root[attrib_liveGPs] = [{ [attrib_liveGP]: [] }]; }
+            if ( result.root[attrib_liveGPs][0].length < 1 ){ result.root[attrib_liveGPs] = [{ [attrib_liveGP]: [] }]; }
 
-        result.root[attrib_liveGPs][0][attrib_liveGP].push(newGPElement);
-    }
-    else if(type == attrib_ineligibleGP){
+            result.root[attrib_liveGPs][0][attrib_liveGP].push(newGPElement);
+        }
+        else if(type == attrib_ineligibleGP){
 
-        if ( result.root[attrib_ineligibleGPs][0].length < 1 ){ result.root[attrib_ineligibleGPs] = [{ [attrib_ineligibleGP]: [] }]; }
+            if ( result.root[attrib_ineligibleGPs][0].length < 1 ){ result.root[attrib_ineligibleGPs] = [{ [attrib_ineligibleGP]: [] }]; }
 
-        result.root[attrib_ineligibleGPs][0][attrib_ineligibleGP].push(newGPElement);
-    }    
+            result.root[attrib_ineligibleGPs][0][attrib_ineligibleGP].push(newGPElement);
+        }    
 
-    const builder = new xml2js.Builder();
-    const updatedXml = builder.buildObject(result);
-
-    // ==== ASYNC LOCK WRITE ==== //
-    await lockServerData.acquire('fileLock', async () => {
+        const builder = new xml2js.Builder();
+        const updatedXml = builder.buildObject(result);
+    
+        // ==== ASYNC WRITE ==== //
         try {
             await fs.promises.writeFile(pathServerData, updatedXml, 'utf8');
         } catch (error) {
             console.log('❌ ERROR trying to write filesync with lock');
-    }});
-    ////////////////////////////////
+        }
+    });
 }
 
 async function getServerDataGPs( type ){
@@ -481,7 +522,6 @@ async function getServerDataGPs( type ){
         } catch (error) {
             console.log('❌ ERROR trying to read filesync with lock');
     }});
-    ////////////////////////////////
 
     if(type == attrib_eligibleGPs){
 
@@ -514,7 +554,6 @@ async function getActiveUsers( includeFarmers = false, includeLeechers = false, 
             } catch (error) {
                 console.log('❌ ERROR trying to read filesync with lock');
         }});
-        ////////////////////////////////
 
         if (result.root && result.root.user && result.root.user.length > 0){
             var ActiveUsers = result.root.user.filter( user => {
@@ -555,7 +594,7 @@ async function getAllUsers() {
     } catch (error) {
         console.log('❌ ERROR trying to read filesync with lock');
     }});
-    ////////////////////////////////
+
     try{
         if (result.root && result.root.user && result.root.user.length > 0){
             var ActiveUsers = result.root.user;
@@ -738,6 +777,7 @@ export {
     doesUserProfileExists, 
     setUserAttribValue, 
     getUserAttribValue, 
+    setAllUsersAttribValue,
     setUserSubsystemAttribValue,
     getUserSubsystemAttribValue,
     getActiveUsers,

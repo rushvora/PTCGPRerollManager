@@ -93,9 +93,13 @@ import {
 } from './Dependencies/coreUtils.js';
 
 import {
-    doesUserProfileExists,
-    setUserAttribValue,
-    getUserAttribValue,
+    checkFileExists,
+    checkFileExistsOrCreate,
+    writeFile,
+    doesUserProfileExists, 
+    setUserAttribValue, 
+    getUserAttribValue, 
+    setAllUsersAttribValue,
     setUserSubsystemAttribValue,
     getUserSubsystemAttribValue,
     getActiveUsers,
@@ -104,14 +108,16 @@ import {
     getUsernameFromUsers, 
     getUsernameFromUser, 
     getIDFromUsers, 
-    getIDFromUser, 
-    getAttribValueFromUsers,
-    getAttribValueFromUser,
+    getIDFromUser,
+    getTimeFromGP,
+    getAttribValueFromUsers, 
+    getAttribValueFromUser, 
     getAttribValueFromUserSubsystems,
     refreshUserActiveState,
     refreshUserRealInstances,
     cleanString,
     addServerGP,
+    getServerDataGPs,
 } from './Dependencies/xmlManager.js';
 
 import {
@@ -144,6 +150,7 @@ import {
     attrib_ineligibleGP,
     pathUsersData,
     pathServerData,
+    attrib_GodPackLive,
 } from './Dependencies/xmlConfig.js';
 
 import {
@@ -186,7 +193,24 @@ function getNexIntervalRemainingTime() {
     return timeRemaining;
 }
 
+// var pouetTime = 0;
+// var pouetPacks = 0;
+// function spamHB(client){
 
+//     const randomNumber = Math.random();
+//     if (randomNumber < 0.1) {
+//         pouetTime = 0;
+//         pouetPacks = 0;
+//     }
+
+//     sendChannelMessage(client, channelID_Heartbeat, `181053462098870272
+// Online: Main, 1, 2, 3, 4, 5, 6.
+// Offline: none.
+// Time: ${pouetTime}m Packs: ${pouetPacks} Avg: 0 packs/min
+// Type: 5 Pack (Menu Delete)`)
+//     pouetTime+=30;
+//     pouetPacks+=60;
+// }
 
 // Events
 
@@ -210,18 +234,22 @@ client.once(Events.ClientReady, async c => {
     }, convertMnToMs(refreshInterval/2));
 
     // Send back the messages with buttons so ppl can switch states easily
-    sendStatusHeader(client)
-    setInterval(() =>{
-        sendStatusHeader(client)
+    await sendStatusHeader(client)
+    setInterval(async() =>{
+        await sendStatusHeader(client)
     }, convertMnToMs(60));
 
     // Reset and Update ServerData every X hours (might disable the loop it if you have over 10k gp or it'll take a while)
-    updateServerData(client, true);
-    setInterval(() =>{
-        updateServerData(client);
+    await updateServerData(client, true);
+    setInterval(async() =>{
+        await updateServerData(client);
     }, convertMnToMs(resetServerDataTime+1));
 
     await updateEligibleIDs(client);
+
+    // setInterval(async() =>{
+    //     spamHB(client);
+    // }, convertMnToMs(0.02));
 
     // Clear all guild commands (Warning : also clear channels restrictions set on discord)
     // guild.commands.set([]);
