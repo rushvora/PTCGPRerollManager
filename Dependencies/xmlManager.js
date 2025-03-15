@@ -89,7 +89,7 @@ async function checkFileExistsOrCreate(filepath, content='', lock = lockServerDa
             try {
                 await fs.promises.writeFile(filepath, content);
             } catch (error) {
-                console.log('❌ ERROR trying to write filesync with lock');
+                console.log('❌ ERROR trying to write fileAsync with lock');
         }});
         return false;
     }
@@ -110,7 +110,7 @@ async function writeFile(filepath, content='', lock = lockServerData) {
         try {
             await fs.promises.writeFile(filepath, content);
         } catch (error) {
-            console.log('❌ ERROR trying to write filesync with lock');
+            console.log('❌ ERROR trying to write fileAsync with lock');
     }});
 }
 
@@ -127,7 +127,7 @@ async function createUserProfile( attribUserId, attribUserName ) {
             try {
                 result = await readFileAsync(pathUsersData);
             } catch (error) {
-                console.log('❌ ERROR trying to read filesync with lock');
+                console.log('❌ ERROR trying to read fileAsync with lock');
             }
 
             // Check root existence
@@ -166,7 +166,7 @@ async function createUserProfile( attribUserId, attribUserName ) {
                 await fs.promises.writeFile(pathUsersData, xmlOutput, 'utf8');
                 console.log(`✅ Created user profile "${attribUserName}"`);
             } catch (error) {
-                console.log('❌ ERROR trying to write filesync with lock');
+                console.log('❌ ERROR trying to write fileAsync with lock');
             }
         });
 
@@ -193,7 +193,7 @@ async function doesUserProfileExists( attribUserId, attribUserName ) {
         try {
             result = await readFileAsync(pathUsersData);
         } catch (error) {
-            console.log('❌ ERROR trying to read filesync with lock');
+            console.log('❌ ERROR trying to read fileAsync with lock');
     }});
 
     if (result.root && result.root.user) {
@@ -233,7 +233,7 @@ async function setUserAttribValue( attribUserId, attribUserName, subAttribName, 
             try {
                 result = await readFileAsync(pathUsersData);
             } catch (error) {
-                console.log('❌ ERROR trying to read filesync with lock');
+                console.log('❌ ERROR trying to read fileAsync with lock');
             }
 
             const user = result.root.user.find(user => cleanString(user._) === attribUserId);
@@ -253,7 +253,7 @@ async function setUserAttribValue( attribUserId, attribUserName, subAttribName, 
             try {
                 await fs.promises.writeFile(pathUsersData, xmlOutput, 'utf8');
             } catch (error) {
-                console.log('❌ ERROR trying to write filesync with lock');
+                console.log('❌ ERROR trying to write fileAsync with lock');
             }
         });
 
@@ -278,7 +278,7 @@ async function getUserAttribValue( client, attribUserId, subAttribName, fallback
             try {
                 result = await readFileAsync(pathUsersData);
             } catch (error) {
-                console.log('❌ ERROR trying to read filesync with lock');
+                console.log('❌ ERROR trying to read fileAsync with lock');
         }});
 
         if (result.root && result.root.user && result.root.user.length > 0){
@@ -312,7 +312,7 @@ async function setAllUsersAttribValue( subAttribName, subAttribValue ) {
             try {
                 result = await readFileAsync(pathUsersData);
             } catch (error) {
-                console.log('❌ ERROR trying to read filesync with lock');
+                console.log('❌ ERROR trying to read fileAsync with lock');
             }
 
             if (result.root && result.root.user) {
@@ -334,7 +334,7 @@ async function setAllUsersAttribValue( subAttribName, subAttribValue ) {
                 try {
                     await fs.promises.writeFile(pathUsersData, xmlOutput, 'utf8');
                 } catch (error) {
-                    console.log('❌ ERROR trying to write filesync with lock');
+                    console.log('❌ ERROR trying to write fileAsync with lock');
                 }
             }
         });
@@ -361,7 +361,7 @@ async function setUserSubsystemAttribValue( attribUserId, attribUserName, subSys
             try {
                 result = await readFileAsync(pathUsersData);
             } catch (error) {
-                console.log('❌ ERROR trying to read filesync with lock');
+                console.log('❌ ERROR trying to read fileAsync with lock');
             }
 
             const user = result.root.user.find(user => cleanString(user._) === attribUserId);
@@ -402,7 +402,7 @@ async function setUserSubsystemAttribValue( attribUserId, attribUserName, subSys
             try {
                 await fs.promises.writeFile(pathUsersData, xmlOutput, 'utf8');
             } catch (error) {
-                console.log('❌ ERROR trying to write filesync with lock');
+                console.log('❌ ERROR trying to write fileAsync with lock');
             }
         });
 
@@ -423,7 +423,7 @@ async function getUserSubsystemAttribValue( client, attribUserId, subSystemName,
             try {
                 result = await readFileAsync(pathUsersData);
             } catch (error) {
-                console.log('❌ ERROR trying to read filesync with lock');
+                console.log('❌ ERROR trying to read fileAsync with lock');
         }});
 
         if (result.root && result.root.user && result.root.user.length > 0){
@@ -470,7 +470,7 @@ async function addServerGP( type, threadOrMessage ){
         try {
             result = await readFileAsync(pathServerData);
         } catch (error) {
-            console.log('❌ ERROR trying to read filesync with lock');
+            console.log('❌ ERROR trying to read fileAsync with lock');
         }
 
         const newGPElement = {
@@ -507,7 +507,7 @@ async function addServerGP( type, threadOrMessage ){
         try {
             await fs.promises.writeFile(pathServerData, updatedXml, 'utf8');
         } catch (error) {
-            console.log('❌ ERROR trying to write filesync with lock');
+            console.log('❌ ERROR trying to write fileAsync with lock');
         }
     });
 }
@@ -520,7 +520,7 @@ async function getServerDataGPs( type ){
         try {
             result = await readFileAsync(pathServerData);
         } catch (error) {
-            console.log('❌ ERROR trying to read filesync with lock');
+            console.log('❌ ERROR trying to read fileAsync with lock');
     }});
 
     if(type == attrib_eligibleGPs){
@@ -552,7 +552,7 @@ async function getActiveUsers( includeFarmers = false, includeLeechers = false, 
             try {
                 result = await readFileAsync(pathUsersData);
             } catch (error) {
-                console.log('❌ ERROR trying to read filesync with lock');
+                console.log('❌ ERROR trying to read fileAsync with lock');
         }});
 
         if (result.root && result.root.user && result.root.user.length > 0){
@@ -592,7 +592,7 @@ async function getAllUsers() {
     try {
         result = await readFileAsync(pathUsersData);
     } catch (error) {
-        console.log('❌ ERROR trying to read filesync with lock');
+        console.log('❌ ERROR trying to read fileAsync with lock');
     }});
 
     try{
@@ -770,6 +770,78 @@ async function refreshUserRealInstances( user, activeState, fallbackValue = 1 ){
 
 }
 
+
+
+// =============================================== Backup ===============================================
+
+function cleanupBackupsFolder(fileDir) {
+    try {
+      // Read the files in the backup directory
+      const files = fs.readdirSync(fileDir);
+  
+      // If the number of files is 20 or fewer, do nothing
+      if (files.length <= 20) {
+        return;
+      }
+  
+      // Get the stats of each file and sort them by modification date
+      const filesWithStats = files.map(file => {
+        const filePath = path.join(fileDir, file);
+        return {
+          name: file,
+          time: fs.statSync(filePath).mtime
+        };
+      });
+  
+      // Sort files by modification date, oldest first
+      filesWithStats.sort((a, b) => a.time - b.time);
+  
+      // Delete the oldest files until only 20 remain
+      for (let i = 0; i < filesWithStats.length - 20; i++) {
+        const fileToDelete = path.join(fileDir, filesWithStats[i].name);
+        fs.unlinkSync(fileToDelete);
+      }
+    } catch (error) {
+      console.error('❌ ERROR trying to cleanup backup folder\n', error);
+    }
+}
+
+async function backupFile(filePath) {
+
+    try {
+        var data = "";
+
+        // ==== SYNC READ ==== //
+        try {
+            data = fs.readFileSync(pathUsersData, 'utf8');
+        } catch (error) {
+            console.log('❌ ERROR trying to read fileAsync');
+        }
+
+        const fileName = path.basename(filePath);
+        const backupDir = path.join(path.dirname(filePath), 'backup');
+
+        if (!fs.existsSync(backupDir)) {
+        fs.mkdirSync(backupDir);
+        }
+
+        const dateSuffix = new Date().toISOString().replace(/[:.]/g, '-');
+        const backupFileName = `${path.parse(fileName).name}-${dateSuffix}${path.extname(fileName)}`;
+        const backupFilePath = path.join(backupDir, backupFileName);
+
+        // ==== SYNC WRITE ==== //
+        try {
+            fs.writeFileSync(backupFilePath, String(data), 'utf8');
+            console.log(`💾 Backup "${fileName}" file`);
+            cleanupBackupsFolder(backupDir);
+        } catch (error) {
+            console.error(`❌ ERROR trying to backup file ${filePath}\n`, error);
+        }
+    } catch (error) {
+        console.error(`❌ ERROR trying to backup file ${filePath}\n`, error);
+    }    
+}
+
 export {
     checkFileExists,
     checkFileExistsOrCreate,
@@ -796,4 +868,5 @@ export {
     cleanString,
     addServerGP,
     getServerDataGPs,
+    backupFile,
 }

@@ -44,7 +44,7 @@ var inactiveTime = 61;
 var inactiveInstanceCount = 1;
 // At which number of instances users will be kicked, for a value of 1, users below 1 pack per min will be kicked)
 var inactivePackPerMinCount = 1;
-// Kick instantly if it detects that Main is On AND Offline /!\ At this time there are false positive where Main could be considered offline but it have no issue in reality
+// Kick instantly if it detects that Main is On AND Offline ⚠️ At this time there are false positive where Main could be considered offline but it have no issue in reality
 var inactiveIfMainOffline = false;
 
 // =========================================== LEECHING ===========================================
@@ -65,6 +65,21 @@ const resetServerDataTime = 240;
 // If some ppl in your group are running Min2Stars : 2 and some others 3, that flags all the GPs as 5/5 in the list to avoid to auto remove bot from kicking 2/5 for those who are at Min2Stars : 3
 var safeEligibleIDsFiltering = true; // true = all flagged as 5/5
 
+// =========================================== OTHER TIME SETTINGS ===========================================
+
+// Decide after how much time you want the verification posts to automatically closed, it'll be the time from the post creation, not the last activity
+// ⚠️ Closed Posts will be removed from the Eligible GPs / VIP IDs list
+const AutoPostCloseTime = 96;//hours
+
+// No need to modify it except you specifically changed the rate in arturo's script
+const heartbeatRate = 30;//minutes
+
+// Decide how frequently you want to Backup UserDatas, default to 20mn
+const backupUserDatasTime = 30;//minutes
+
+// Delete some messages after X seconds (/active /inactive /refresh /forcerefresh) 0 = no delete
+const delayMsgDeleteState = 10;//seconds
+
 // =========================================== OTHER SETTINGS ===========================================
 // Choose language
 const EnglishLanguage = false;
@@ -78,17 +93,13 @@ const showPerPersonLive = true;
 // The average Min2Stars of the group on Arturo's bot, used to calculate the Potential Lives GP
 var min2Stars = 0;//can be a floating number ex:2.5
 
-// No need to modify it except you specifically changed the rate in yours ahk files
-var heartbeatRate = 30;//minutes
-
-// Delete some messages after X seconds (/active /inactive /refresh /forcerefresh) 0 = no delete
-var delayMsgDeleteState = 10;//seconds
-
 // =========================================== AESTHETICS ===========================================
 // Icons of GP Validation
 const text_verifiedLogo = "✅";
-const text_deadLogo = "💀";
+const text_likedLogo = "🔥";
 const text_waitingLogo = "⌛";
+const text_notLikedLogo = "🥶";
+const text_deadLogo = "💀";
 
 const leaderboardBestFarm1_CustomEmojiName = "Chadge"; // 🌟 if not found
 const leaderboardBestFarm2_CustomEmojiName = "PeepoLove"; // ⭐️ if not found
@@ -125,8 +136,10 @@ export {
     inactiveInstanceCount,
     inactivePackPerMinCount,
     inactiveIfMainOffline,
+    AutoPostCloseTime,
     heartbeatRate,
     delayMsgDeleteState,
+    backupUserDatasTime,
     min2Stars,
     canPeopleAddOthers,
     canPeopleRemoveOthers,
@@ -137,8 +150,10 @@ export {
     resetServerDataTime,
     safeEligibleIDsFiltering,
     text_verifiedLogo,
-    text_deadLogo,
+    text_likedLogo,
     text_waitingLogo,
+    text_notLikedLogo,
+    text_deadLogo,
     leaderboardBestFarm1_CustomEmojiName,
     leaderboardBestFarm2_CustomEmojiName,
     leaderboardBestFarm3_CustomEmojiName,

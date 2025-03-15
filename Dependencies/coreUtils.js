@@ -20,8 +20,10 @@ import {
     inactiveInstanceCount,
     inactivePackPerMinCount,
     inactiveIfMainOffline,
+    AutoPostCloseTime,
     heartbeatRate,
     delayMsgDeleteState,
+    backupUserDatasTime,
     min2Stars,
     canPeopleAddOthers,
     canPeopleRemoveOthers,
@@ -32,8 +34,10 @@ import {
     resetServerDataTime,
     safeEligibleIDsFiltering,
     text_verifiedLogo,
-    text_deadLogo,
+    text_likedLogo,
     text_waitingLogo,
+    text_notLikedLogo,
+    text_deadLogo,
     leaderboardBestFarm1_CustomEmojiName,
     leaderboardBestFarm2_CustomEmojiName,
     leaderboardBestFarm3_CustomEmojiName,
@@ -69,6 +73,7 @@ import {
     getRandomStringFromArray,
     getOldestMessage,
     wait,
+    replaceAnyLogoWith,
 } from './utils.js';
 
 import {
@@ -693,78 +698,83 @@ async function inactivityCheck(client){
 
 async function createForumPost(client, message, channelID, packName, titleName, ownerID, accountID, packAmount){
 
-    const guild = await getGuild(client);
+    try{
+        const guild = await getGuild(client);
 
-    const text_verificationRedirect = localize("Verification ici :","Verification link here :");
-    const text_godpackFoundBy = localize(`${packName} trouvé par`,`${packName} found by`);
-    const text_commandTooltip = localize(
-        "Écrivez **/miss** si un autre est apparu ou que vous ne l'avez pas\n**/verified** ou **/dead** pour changer l'état du post",
-        "Write **/miss** if another one appeared or you didn't saw it\n**/verified** or **/dead** to change post state");
-    const text_eligible = localize("**Éligibles :**","**Eligible :**");
-    
-    const member = await getMemberByID(client, ownerID);
-
-    // Skip if member do not exist
-    if (member == "") {
-        console.log(`❗️ Heartbeat from ID ${ownerID} is no registered on this server`)
-        return;
-    }
-    var ownerUsername = (member).user.username;
-    
-    if(packName == "GodPack"){
-        const godPackFound = await getUserAttribValue( client, ownerID, attrib_GodPackFound, 0 );
-        await setUserAttribValue( ownerID, ownerUsername, attrib_GodPackFound, parseInt(godPackFound) + 1);
-    }
+        const text_verificationRedirect = localize("Verification ici :","Verification link here :");
+        const text_godpackFoundBy = localize(`${packName} trouvé par`,`${packName} found by`);
+        const text_commandTooltip = localize(
+            "Écrivez **/miss** si un autre est apparu ou que vous ne l'avez pas\n**/verified** ou **/dead** pour changer l'état du post",
+            "Write **/miss** if another one appeared or you didn't saw it\n**/verified** or **/dead** to change post state");
+        const text_eligible = localize("**Éligibles :**","**Eligible :**");
         
-    var imageUrl = message.attachments.first().url;
+        const member = await getMemberByID(client, ownerID);
 
-    var activeUsersID = getIDFromUsers(await getActiveUsers(false, true));
-    var tagActiveUsernames = "";
-
-    activeUsersID.forEach((id) =>{
-            tagActiveUsernames += `<@${id}>`
-    });
-
-    // Create thread in Webhook channel
-    const thread = await message.startThread({
-        name: text_verificationRedirect,
-    }).then( async thread =>{
-        // First line
-        const text_foundbyLine = `${text_godpackFoundBy} **<@${ownerID}>**\n`;
+        // Skip if member do not exist
+        if (member == "") {
+            console.log(`❗️ Heartbeat from ID ${ownerID} is no registered on this server`)
+            return;
+        }
+        var ownerUsername = (member).user.username;
         
-        // Second line
-        packAmount = extractNumbers(packAmount);
-        packAmount = Math.max(Math.min(packAmount,5),1); // Ensure that it is only 1 to 5
-        const text_miss = `## [ 0 miss / ${missBeforeDead[packAmount-1]} ]`
-        const text_missLine = `${text_miss}\n\n`;
-        
-        // Third line
-        const text_eligibleLine = `${text_eligible} ${tagActiveUsernames}\n\n`;
-        
-        // Fourth line
-        const text_metadataLine = `Source: ${message.url}\nID:${accountID}\n${imageUrl}\n\n`;
-
-        // Create forum post for verification
-        const forum = client.channels.cache.get(channelID);
-        const forumPost = forum.threads.create({
-        name: `${text_waitingLogo} ${titleName}`,
-        message: {
-            content: text_foundbyLine + text_missLine + text_eligibleLine + text_metadataLine + text_commandTooltip,
-        },
-        }).then ( async forum =>{
-
-            // Post forum link in webhook thread
-            await thread.send(text_verificationRedirect + ` ${forum}`);
-            // Lock thread
-            await thread.setLocked(true);
-
-            guild.channels.cache.get(await forum.id).send({content:`${accountID} is the id of the account\n`})
+        if(packName == "GodPack"){
+            const godPackFound = await getUserAttribValue( client, ownerID, attrib_GodPackFound, 0 );
+            await setUserAttribValue( ownerID, ownerUsername, attrib_GodPackFound, parseInt(godPackFound) + 1);
+        }
             
-            await wait(1);
-            await updateEligibleIDs(client)
-            await addServerGP(attrib_eligibleGP, forum);
-        })
-    });
+        var imageUrl = message.attachments.first().url;
+
+        var activeUsersID = getIDFromUsers(await getActiveUsers(false, true));
+        var tagActiveUsernames = "";
+
+        activeUsersID.forEach((id) =>{
+                tagActiveUsernames += `<@${id}>`
+        });
+
+        // Create thread in Webhook channel
+        const thread = await message.startThread({
+            name: text_verificationRedirect,
+        }).then( async thread =>{
+            // First line
+            const text_foundbyLine = `${text_godpackFoundBy} **<@${ownerID}>**\n`;
+            
+            // Second line
+            packAmount = extractNumbers(packAmount);
+            packAmount = Math.max(Math.min(packAmount,5),1); // Ensure that it is only 1 to 5
+            const text_miss = `## [ 0 miss / ${missBeforeDead[packAmount-1]} ]`
+            const text_missLine = `${text_miss}\n\n`;
+            
+            // Third line
+            const text_eligibleLine = `${text_eligible} ${tagActiveUsernames}\n\n`;
+            
+            // Fourth line
+            const text_metadataLine = `Source: ${message.url}\nID:${accountID}\n${imageUrl}\n\n`;
+
+            // Create forum post for verification
+            const forum = client.channels.cache.get(channelID);
+            const forumPost = forum.threads.create({
+            name: `${text_waitingLogo} ${titleName}`,
+            message: {
+                content: text_foundbyLine + text_missLine + text_eligibleLine + text_metadataLine + text_commandTooltip,
+            },
+            }).then ( async forum =>{
+
+                // Post forum link in webhook thread
+                await thread.send(text_verificationRedirect + ` ${forum}`);
+                // Lock thread
+                await thread.setLocked(true);
+
+                guild.channels.cache.get(await forum.id).send({content:`${accountID} is the id of the account\n`})
+                
+                await wait(1);
+                await updateEligibleIDs(client)
+                await addServerGP(attrib_eligibleGP, forum);
+            })
+        });   
+    }
+    catch (error) {
+        console.log(`❌ ERROR - Failed to create GP Forum Thread GPLive for Account ${accountID} owned by <@${ownerID}>\n` + error)
+    }
 } 
 
 async function markAsDead(client, interaction, optionalText = ""){
@@ -778,7 +788,7 @@ async function markAsDead(client, interaction, optionalText = ""){
         await sendReceivedMessage(client, `${text_alreadyDead}`, interaction);
     }
     else{
-        const newThreadName = thread.name.replace(text_waitingLogo, text_deadLogo).replace(text_verifiedLogo, text_deadLogo);
+        const newThreadName = replaceAnyLogoWith(thread.name,text_deadLogo);
     
         await thread.edit({ name: `${newThreadName}` });
     
@@ -791,7 +801,7 @@ async function markAsDead(client, interaction, optionalText = ""){
 async function updateEligibleIDs(client){
 
     const text_Start = `⌛ Updating Eligible IDs...`;
-    const text_Done = `☑️  Finished updating Eligible IDs`;
+    const text_Done = `☑️ Finished updating Eligible IDs`;
     console.log(text_Start)
 
     const forum = await client.channels.cache.get(channelID_GPVerificationForum);
@@ -803,12 +813,13 @@ async function updateEligibleIDs(client){
 
         const nestedThread = thread[1];
 
-        if(nestedThread.name.includes(text_waitingLogo) || nestedThread.name.includes(text_verifiedLogo)){
+        // Check if post contains any logo other skip
+        if(nestedThread.name.includes(text_notLikedLogo) || nestedThread.name.includes(text_waitingLogo) || nestedThread.name.includes(text_likedLogo) || nestedThread.name.includes(text_verifiedLogo)){
             
             const initialMessage = await getOldestMessage(nestedThread);
             const contentSplit = initialMessage.content.split('\n');
             
-            var cleanThreadName = nestedThread.name.replace(text_waitingLogo,"").replace(text_deadLogo,"").replace(text_verifiedLogo,"");
+            var cleanThreadName = replaceAnyLogoWith(nestedThread.name, "");
             var gpPocketName = cleanThreadName.split(" ")[1];
             
             var gpTwoStarCount = "5/5"; // Consider as a 5/5 in case it's not found to avoid filtering it 
@@ -829,6 +840,52 @@ async function updateEligibleIDs(client){
     console.log(text_Done)
 
     await updateGist(idList, gitGistGPName);
+}
+
+// Define custom ThreadFlags enumeration
+const ThreadFlags = {PINNED: 1 << 0,};
+
+function isThreadPinned(thread) {
+    return (thread.flags & ThreadFlags.PINNED) === ThreadFlags.PINNED;
+}
+
+async function updateInactiveGPs(client){
+
+    const text_Start = `🔎 Checking Inactive GPs...`;
+    const text_Done = `☑️ Finished checking Inactive GPs`;
+    console.log(text_Start)
+
+    const forum = await client.channels.cache.get(channelID_GPVerificationForum);
+    const activeThreads = await forum.threads.fetchActive();
+
+    var removedThreadCount = 0;
+
+    for (let [threadId, thread] of activeThreads.threads) {
+
+        // Calculate the age of the thread in hours
+        const threadAgeHours = (Date.now() - thread.createdTimestamp) / (1000 * 60 * 60);
+
+        // Check if the thread is older than AutoPostCloseTime hours
+        if (threadAgeHours > AutoPostCloseTime || thread.name.includes(text_deadLogo)) {
+
+            if(!thread.name.includes(text_deadLogo) && !thread.name.includes(text_verifiedLogo)){
+                const newThreadName = replaceAnyLogoWith(thread.name,text_deadLogo);
+                await thread.edit({ name: `${newThreadName}` });
+                await wait(1);
+            }
+            // Close the thread
+            await thread.setArchived(true);
+            console.log(`🔒 Closed thread: ${thread.name} (ID: ${threadId})`);
+
+            removedThreadCount ++;
+        }
+    }
+
+    console.log(text_Done)
+
+    if (removedThreadCount > 0){
+        await updateEligibleIDs(client);
+    }
 }
 
 async function setUserState(client, user, state, interaction = undefined){
@@ -1014,7 +1071,8 @@ async function updateServerData(client, startup = false){
 
         for (let thread of allThreads) {
 
-            if(!thread.name.includes(text_verifiedLogo) && !thread.name.includes(text_waitingLogo) && !thread.name.includes(text_deadLogo)) {
+            // Check if post name contains no logo, in that case skip post
+            if(!thread.name.includes(text_verifiedLogo) && !thread.name.includes(text_notLikedLogo) && !thread.name.includes(text_waitingLogo) && !thread.name.includes(text_likedLogo) && !thread.name.includes(text_deadLogo)) {
                 continue;
             }
 
@@ -1116,7 +1174,7 @@ async function updateUserDataGPLive(client){
         console.log(text_Done)
     }
     catch (error){
-        console.log("❌ ERROR - Failed to update UserData GPLive\n" + error)
+        console.log(`❌ ERROR - Failed to update UserData GPLive\n` + error)
     }
 }
 
@@ -1146,6 +1204,7 @@ export {
     createForumPost,
     markAsDead, 
     updateEligibleIDs,
+    updateInactiveGPs,
     setUserState,
     updateServerData,
     updateUserDataGPLive,

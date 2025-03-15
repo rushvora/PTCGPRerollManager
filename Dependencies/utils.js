@@ -9,6 +9,11 @@ import {
     channelID_2StarVerificationForum,
     channelID_Webhook,
     channelID_Heartbeat,
+    text_verifiedLogo,
+    text_likedLogo,
+    text_waitingLogo,
+    text_notLikedLogo,
+    text_deadLogo,
 } from '../config.js';
 
 import {
@@ -223,7 +228,7 @@ function addTextBar(str, targetLength, color = true) {
     return str + spaces + bar;
 }
 
-function localize( text_french, text_english ){
+function localize( text_french, text_english ) {
     if(EnglishLanguage){
         return text_english;
     }
@@ -277,6 +282,11 @@ function wait(seconds) {
     return new Promise(resolve => setTimeout(resolve, seconds * 1000));
 }
 
+function replaceAnyLogoWith(text, newLogo) {
+    const editedText = text.replace(text_deadLogo,newLogo).replace(text_notLikedLogo,newLogo).replace(text_waitingLogo,newLogo).replace(text_likedLogo,newLogo).replace(text_verifiedLogo,newLogo);
+    return editedText;
+}
+
 export {
     formatMinutesToDays,
     formatNumbertoK,
@@ -300,4 +310,5 @@ export {
     getRandomStringFromArray,
     getOldestMessage,
     wait,
+    replaceAnyLogoWith,
 }

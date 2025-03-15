@@ -9,7 +9,7 @@
 // See here : https://github.com/Arturo-1212/PTCGPB
 // Shoutout to @cjlj for Automated ids.txt modifications on the ahk side
 //
-// To know what to input into config.json file or other setup, check the github / readme file
+// Documentation :
 // https://github.com/TheThobi/PTCGPRerollManager
 //
 
@@ -29,6 +29,7 @@ import {
     gitGistGroupName,
     gitGistGPName,
     missBeforeDead,
+    showPerPersonLive,
     EnglishLanguage,
     AutoKick,
     refreshInterval,
@@ -38,6 +39,8 @@ import {
     inactiveIfMainOffline,
     heartbeatRate,
     delayMsgDeleteState,
+    backupUserDatasTime,
+    min2Stars,
     canPeopleAddOthers,
     canPeopleRemoveOthers,
     canPeopleLeech,
@@ -45,9 +48,22 @@ import {
     leechPermPackCount,
     resetServerDataFrequently,
     resetServerDataTime,
+    safeEligibleIDsFiltering,
     text_verifiedLogo,
-    text_deadLogo,
+    text_likedLogo,
     text_waitingLogo,
+    text_notLikedLogo,
+    text_deadLogo,
+    leaderboardBestFarm1_CustomEmojiName,
+    leaderboardBestFarm2_CustomEmojiName,
+    leaderboardBestFarm3_CustomEmojiName,
+    leaderboardBestFarmLength,
+    leaderboardBestVerifier1_CustomEmojiName,
+    leaderboardBestVerifier2_CustomEmojiName,
+    leaderboardBestVerifier3_CustomEmojiName,
+    leaderboardWorstVerifier1_CustomEmojiName,
+    leaderboardWorstVerifier2_CustomEmojiName,
+    leaderboardWorstVerifier3_CustomEmojiName,
 } from './config.js';
 
 import {
@@ -73,6 +89,7 @@ import {
     getRandomStringFromArray,
     getOldestMessage,
     wait,
+    replaceAnyLogoWith,
 } from './Dependencies/utils.js';
 
 import {
@@ -86,6 +103,7 @@ import {
     createForumPost,
     markAsDead, 
     updateEligibleIDs,
+    updateInactiveGPs,
     setUserState,
     updateServerData,
     updateUserDataGPLive,
@@ -118,6 +136,7 @@ import {
     cleanString,
     addServerGP,
     getServerDataGPs,
+    backupFile,
 } from './Dependencies/xmlManager.js';
 
 import {
@@ -184,7 +203,8 @@ const client = new Client({
 });
 
 var startIntervalTime = Date.now();    
-var evenTurnInterval = false;
+var evenTurnShortInterval = false;
+var evenTurnLongaInterval = false;
 
 function getNexIntervalRemainingTime() {
     const currentTime = Date.now();
@@ -222,9 +242,9 @@ client.once(Events.ClientReady, async c => {
     // Every "refreshInterval/2" mn it will alternate from sendUserStat to inactivityCheck
     setInterval(() =>{
         startIntervalTime = Date.now();
-        evenTurnInterval = !evenTurnInterval;
+        evenTurnShortInterval = !evenTurnShortInterval;
 
-        if (evenTurnInterval) {
+        if (evenTurnShortInterval) {
             sendStats(client);
         } 
         else if(AutoKick) {
@@ -245,8 +265,18 @@ client.once(Events.ClientReady, async c => {
         await updateServerData(client);
     }, convertMnToMs(resetServerDataTime+1));
 
-    await updateEligibleIDs(client);
+    // Backup UserData.xml file
+    setInterval(async() =>{
+        await backupFile(pathUsersData);
+    }, convertMnToMs(backupUserDatasTime+1));
 
+    // Backup UserData.xml file
+    setInterval(async() =>{
+        await updateInactiveGPs(client);
+    }, convertMnToMs(60));
+    
+    await updateInactiveGPs(client);
+    
     // setInterval(async() =>{
     //     spamHB(client);
     // }, convertMnToMs(0.02));
@@ -254,7 +284,7 @@ client.once(Events.ClientReady, async c => {
     // Clear all guild commands (Warning : also clear channels restrictions set on discord)
     // guild.commands.set([]);
 
-    // TO REMOVE A SPECIFIC GUILD COMMAND
+    // Clear a specific guild command
     // const commandId = 'XXXXXXXXXXXXXXXXXXX';
     // await guild.commands.delete(commandId);
 
@@ -352,6 +382,16 @@ client.once(Events.ClientReady, async c => {
         .setName(`dead`)
         .setDescription(`${deadDesc}`);
 
+    const likedDesc = localize("Designe pack comme liké","Flag the post as liked");
+    const likedSCB = new SlashCommandBuilder()
+        .setName(`liked`)
+        .setDescription(`${likedDesc}`);
+
+    const notLikedDesc = localize("Designe pack comme non liké","Flag the post as not liked");
+    const notLikedSCB = new SlashCommandBuilder()
+        .setName(`notliked`)
+        .setDescription(`${notLikedDesc}`);
+
     const missDesc = localize("Pour la verification GP, après X fois suivant le nombre de pack cela auto /dead", "For verification purposes, after X times based on pack amount it sends /dead");
     const missSCB = new SlashCommandBuilder()
         .setName(`miss`)
@@ -438,6 +478,12 @@ client.once(Events.ClientReady, async c => {
     
     const deadCommand = deadSCB.toJSON();
     client.application.commands.create(deadCommand, guildID);
+    
+    const likedCommand = likedSCB.toJSON();
+    client.application.commands.create(likedCommand, guildID);
+    
+    const notLikedCommand = notLikedSCB.toJSON();
+    client.application.commands.create(notLikedCommand, guildID);
 
     const missCommand = missSCB.toJSON();
     client.application.commands.create(missCommand, guildID);    
@@ -651,7 +697,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 await sendReceivedMessage(client, `${text_alreadyVerified}`, interaction);
             }
             else{
-                const newPostName = thread.name.replace(text_waitingLogo, text_verifiedLogo).replace(text_deadLogo, text_verifiedLogo);
+                const newPostName = replaceAnyLogoWith(thread.name, text_verifiedLogo);
     
                 // Edit a thread
                 await thread.edit({ name: `${newPostName}` });
@@ -671,6 +717,46 @@ client.on(Events.InteractionCreate, async interaction => {
             await markAsDead(client, interaction);
         }
 
+        // LIKED COMMAND
+        if(interaction.commandName === `liked`){
+                    
+            await interaction.deferReply();
+            const text_markAsLiked = localize("Godpack marqué comme liké, beaucoup de chance d'être live","Godpack marked as liked, likely to be live");
+            const text_alreadyLiked = localize("C'est gentil de ta part mais il est déjà marqué comme liké","That's kind of you but this GP already is already marked as liked");
+
+            const thread = client.channels.cache.get(interaction.channelId);
+
+            if(thread.name.includes(text_likedLogo)){
+                await sendReceivedMessage(client, `${text_alreadyLiked}`, interaction);
+            }
+            else{
+                const newPostName = replaceAnyLogoWith(thread.name, text_likedLogo);
+                await thread.edit({ name: `${newPostName}` });
+
+                await sendReceivedMessage(client, `${text_likedLogo} ${text_markAsLiked}`, interaction);
+            }
+        }
+
+        // NOT LIKED COMMAND
+        if(interaction.commandName === `notliked`){
+            
+            await interaction.deferReply();
+            const text_markAsNotLiked = localize("Godpack marqué comme non liké, peu de chance d'être live","Godpack marked as not liked, unlikely to be live");
+            const text_alreadyNotLiked = localize("C'est gentil de ta part mais il est déjà marqué comme non liké","That's kind of you but this GP already is already marked as not liked");
+
+            const thread = client.channels.cache.get(interaction.channelId);
+
+            if(thread.name.includes(text_notLikedLogo)){
+                await sendReceivedMessage(client, `${text_alreadyNotLiked}`, interaction);
+            }
+            else{
+                const newPostName = replaceAnyLogoWith(thread.name, text_notLikedLogo);
+                await thread.edit({ name: `${newPostName}` });
+    
+                await sendReceivedMessage(client, `${text_notLikedLogo} ${text_markAsNotLiked}`, interaction);
+            }
+        }
+
         // MISS COMMAND
         if(interaction.commandName === `miss`){
 
@@ -681,7 +767,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
             const forumPost = client.channels.cache.get(interaction.channelId);
 
-            if (forumPost.name.includes(text_waitingLogo)){
+            // Only add a miss for posts marked as notLiked, Waiting or Liked
+            if (forumPost.name.includes(text_notLikedLogo) || forumPost.name.includes(text_waitingLogo) || forumPost.name.includes(text_likedLogo)){
 
                 const initialMessage = await getOldestMessage(forumPost);
                 const splitForumContent = splitMulti(initialMessage.content,['[',']']);
