@@ -1,0 +1,14 @@
+services:
+  ptcgp-reroll:
+    build: .
+    container_name: ptcgp-reroll
+    restart: unless-stopped
+    env_file: .env
+    volumes: 
+      - "/home/rushvora/Code/PTCGPRerollManager/data:/app/data"
+    logging:
+      driver: "local"
+      options:
+        max-size: "1m"
+        max-file: "500"
+    command: ["node", "index.mjs"]

@@ -332,7 +332,7 @@ async function sendStats(client){
 
     var activeUsers = await getActiveUsers(true, true);
     // Exit if 0 activeUsers
-    if (activeUsers == "" || activeUsers.length == 0) {return};
+    if (activeUsers == "" || activeUsers?.length == 0) {return};
 
     var activeUsersInfos = await getUsersStats(activeUsers, m);
 

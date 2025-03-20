@@ -1,0 +1,8 @@
+node_modules
+.node-version
+README.md
+LICENSE
+.env
+.git
+.DS_Store
+data-bak

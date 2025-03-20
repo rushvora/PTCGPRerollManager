@@ -1,40 +1,43 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 // Your app Token, if you don't know it you can reset it here : https://discord.com/developers/applications > Your App > Bot > Reset Token
-const token = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+const token = process.env.DISCORD_BOT_TOKEN;
 // With discord developper mode on, right click your server and "copy server ID"
-const guildID = "XXXXXXXXXXXXXXXXXXX";
+const guildID = process.env.GUILD_ID;
 
 // For all channelID below, right click a channel in your discord server and "copy server ID" with developper mode on
 // THE ID OF THE DISCORD CHANNEL - Where ID list, AutoKick alerts are sent
-const channelID_IDs = "XXXXXXXXXXXXXXXXXXX";
+const channelID_IDs = process.env.CHANNELID_IDS; // #Rerollers-Annonces
 // THE ID OF THE DISCORD CHANNEL - Where statistics of users will be sent
-const channelID_UserStats = "XXXXXXXXXXXXXXXXXXX";
+const channelID_UserStats = process.env.CHANNELID_USER_STATS; // #Users-Stats
 // THE ID OF THE DISCORD CHANNEL - Where GP validation threads will be created /////!\\\\\ IT HAVE TO BE A FORUM CHANNEL, look for discord community server for more info
-const channelID_GPVerificationForum = "XXXXXXXXXXXXXXXXXXX";
+const channelID_GPVerificationForum = process.env.CHANNELID_GP_VERIFICATION_FORUM; // #verify-gp
 // THE ID OF THE DISCORD CHANNEL - Where Double 2 Star validation threads will be created /////!\\\\\ IT HAVE TO BE A FORUM CHANNEL, look for discord community server for more info
-const channelID_2StarVerificationForum = "";
+const channelID_2StarVerificationForum = process.env.CHANNELID_2STAR_VERIFICATION_FORUM; // #2starforum 
 // THE ID OF THE DISCORD CHANNEL - Where the Packs Webhooks is linked, better be a separate channel from heartbeat webhook
-const channelID_Webhook = "XXXXXXXXXXXXXXXXXXX"; 
+const channelID_Webhook = process.env.CHANNELID_WEBHOOK; // # GP-Webhook
 // THE ID OF THE DISCORD CHANNEL - Where the Heartbeat Webhooks is linked, better be a separate channel from packs webhook
-const channelID_Heartbeat = "XXXXXXXXXXXXXXXXXXX";
+const channelID_Heartbeat = process.env.CHANNELID_HEARTBEAT; // # Heartbeat
 
 // Create a new fine-grained token for your GitHub account, and make sure to only check to read/write your Gists : https://github.com/settings/tokens
-const gitToken = "github_pat_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";;
+const gitToken = process.env.GIT_GIST_TOKEN;
 // Then, create a GitGist : https://gist.github.com/ and get its ID (the numbers in the URL).
-const gitGistID = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+const gitGistID = process.env.GIT_GIST_ID;
 // And the GitGist Name based on the name you gave it
-const gitGistGroupName = "PTCGPRerollGroupIDs";
+const gitGistGroupName = process.env.GIT_GIST_GROUPNAME;
 // And the GitGist Name based on the name you gave it
-const gitGistGPName = "EligibleGPs";
+const gitGistGPName = process.env.GIT_GIST_GPNAME;
 
 // =========================================== RULES ===========================================
 // If you want your group to be able to add other ppl than themselves using /active @user 
-const canPeopleAddOthers = true;
+const canPeopleAddOthers = false;
 // If you want your group to be able to remove other ppl than themselves using /inactive @user 
-const canPeopleRemoveOthers = true;
+const canPeopleRemoveOthers = false;
 
 // =========================================== AUTO KICK ===========================================
 // Setting this to true will enable auto kick and kick players based on the others factors below
-const AutoKick = false;
+const AutoKick = process.env.AUTOKICK || true;
 // Every X minute divided by 2 it will alternate between sending user stats and checking for inactive peoples
 // Exemple with a value of 10 : 5mn:InactivityCheck, 10mn:UserStats, 15mn:InactivityCheck, 20mn:UserStats, etc...
 var refreshInterval = 10;
@@ -82,7 +85,7 @@ const delayMsgDeleteState = 10;//seconds
 
 // =========================================== OTHER SETTINGS ===========================================
 // Choose language
-const EnglishLanguage = false;
+const EnglishLanguage = true;
 
 // Number of /miss needed before a post is marked as dead, here it means 1pack=4miss, 2packs=6miss, 3packs=8miss, etc..
 const missBeforeDead = [4,6,8,10,12];

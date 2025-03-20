@@ -1,5 +1,8 @@
 discloud*
-node_modules/*
+node_modules
 backup_*
 users/*
 data/*
+.env
+.DS_Store
+data-bak
