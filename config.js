@@ -33,13 +33,13 @@ const gitGistGPName = process.env.GIT_GIST_GPNAME;
 
 // =========================================== RULES ===========================================
 // If you want your group to be able to add other ppl than themselves using /active @user 
-const canPeopleAddOthers = false;
+const canPeopleAddOthers = true;
 // If you want your group to be able to remove other ppl than themselves using /inactive @user 
-const canPeopleRemoveOthers = false;
+const canPeopleRemoveOthers = true;
 
 // =========================================== AUTO KICK ===========================================
 // Setting this to true will enable auto kick and kick players based on the others factors below
-const AutoKick = process.env.AUTOKICK || true;
+const AutoKick = process.env.AUTOKICK === 'true' ? true : false;
 // Every X minute divided by 2 it will alternate between sending user stats and checking for inactive peoples
 // Exemple with a value of 10 : 5mn:InactivityCheck, 10mn:UserStats, 15mn:InactivityCheck, 20mn:UserStats, etc...
 var refreshInterval = 10;
