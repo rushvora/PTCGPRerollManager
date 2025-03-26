@@ -892,7 +892,7 @@ async function createForumPost(client, message, channelID, packName, titleName, 
                 // Lock thread
                 await thread.setLocked(true);
 
-                guild.channels.cache.get(await forum.id).send({content:`${accountID} is the id of the account\n`})
+                guild.channels.cache.get(await forum.id).send({content:`${accountID} is the id of the account\n -# You can copy paste this message in PocketTCG to look for this account`})
 
                 if(accountID == "0000000000000000"){
                     const text_incorrectID = localize("L'ID du compte est incorrect :\n- Injecter le compte pour retrouver l'ID\n- Reposter le GP dans le webhook avec l'ID entre parenthèse\n- Faites /removegpfound @LaPersonneQuiLaDrop\n- Supprimer ce post","The account ID is incorrect:\n- Inject the account to find the ID\n- Repost the GP in the webhook with the ID in parentheses\n- Do /removegpfound @UserThatDroppedIt\n- Delete this post");
