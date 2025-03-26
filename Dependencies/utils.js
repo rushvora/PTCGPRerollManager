@@ -3,12 +3,15 @@ import {
 } from '../config.js';
 
 import {
-    channelID_IDs,
+    heartbeatRate,
+    antiCheatRate,
+    channelID_Commands,
     channelID_UserStats,
     channelID_GPVerificationForum,
     channelID_2StarVerificationForum,
     channelID_Webhook,
     channelID_Heartbeat,
+    channelID_AntiCheat,
     text_verifiedLogo,
     text_likedLogo,
     text_waitingLogo,
@@ -50,12 +53,26 @@ function roundToOneDecimal(num) {
     return parseFloat(num.toFixed(1));
 }
 
+function roundToTwoDecimals(num) {
+    return parseFloat(num.toFixed(2));
+}
+
 function countDigits(str) {
     return (str.match(/\d/g) || []).length;
 }
 
 function extractNumbers(str) {
     return (str.match(/\d+/g) || []).map(Number);
+}
+
+function extractTwoStarAmount(inputString) {
+    const match = inputString.match(/\[(\d+)\/5\]/);
+
+    if (match && match[1]) {
+        return match[1];
+    }
+
+    return 5;
 }
 
 function replaceLastOccurrence(str, search, replace) {
@@ -68,6 +85,13 @@ function replaceMissCount(str, newCount) {
     const regex = /\[ (\d+) miss \/ (\d+) \]/;
     // Remplacez le nombre à l'intérieur des crochets par le nouveau nombre tout en conservant le deuxième nombre
     return str.replace(regex, (match, p1, p2) => `[ ${newCount} miss / ${p2} ]`);
+}
+
+function replaceMissNeeded(str, newCount) {
+    // Use a regular expression to find the numbers inside the brackets
+    const regex = /\[ (\d+) miss \/ (\d+) \]/;
+    // Replace only the second number inside the brackets with the new total count
+    return str.replace(regex, (match, p1, p2) => `[ ${p1} miss / ${newCount} ]`);
 }
 
 function isNumbers( input ){
@@ -101,7 +125,7 @@ function splitMulti(str, tokens){
     return str;
 }
 
-async function sendReceivedMessage(client, msgContent, interaction = undefined, timeout = 0, channelID = channelID_IDs) {
+async function sendReceivedMessage(client, msgContent, interaction = undefined, timeout = 0, channelID = channelID_Commands) {
     
     if(interaction != undefined) {
         var message = await interaction.editReply({ content: msgContent });
@@ -156,37 +180,22 @@ async function sendChannelMessage(client, channelID, msgContent, timeout = 0) {
 
 async function bulkDeleteMessages(channel, numberOfMessages) {
     try {
-        let totalDeleted = 0;
+        var totalDeleted = 0;
 
-        // Fetch messages in batches of 100
         while (totalDeleted < numberOfMessages) {
-            const messages = await channel.messages.fetch({ limit: 100 });
-            const messagesToDelete = messages.filter(msg => !msg.pinned);
+            const remaining = numberOfMessages - totalDeleted;
+            const limit = Math.min(remaining, 100);
+
+            const fetchedMessages = await channel.messages.fetch({ limit });
+
+            const messagesToDelete = fetchedMessages.filter(msg => !msg.pinned);
 
             if (messagesToDelete.size === 0) {
                 break;
             }
 
-            // Check if each message still exists before attempting to delete it
-            const messagesToDeleteIds = [];
-            for (const msg of messagesToDelete.values()) {
-                try {
-                    await msg.fetch();
-                    messagesToDeleteIds.push(msg.id);
-                } catch (fetchError) {
-                    if (fetchError.code != 10008) {
-                        console.error(`❗️ Can't fetch message with ID ${msg.id} :`, fetchError);
-                    }
-                    // else the message does not exist anymore
-                }
-            }
-
-            if (messagesToDeleteIds.length > 0) {
-                await channel.bulkDelete(messagesToDeleteIds);
-                totalDeleted += messagesToDeleteIds.length;
-            } else {
-                break;
-            }
+            await channel.bulkDelete(messagesToDelete);
+            totalDeleted += messagesToDelete.size;
         }
     } catch (error) {
         console.error('❌ ERROR deleting messages:', error);
@@ -226,6 +235,15 @@ function addTextBar(str, targetLength, color = true) {
     // Return the string with the spaces and the bar added
     const bar = color == true ? colorText('|', "gray") : '|';
     return str + spaces + bar;
+}
+
+function formatNumberWithSpaces(number, totalLength) {
+
+    const numberStr = number.toString();
+    const currentLength = numberStr.replace('.', '').length;
+    const spacesNeeded = totalLength - currentLength;
+    const formattedStr = numberStr + '⠀'.repeat(spacesNeeded);
+    return formattedStr;
 }
 
 function localize( text_french, text_english ) {
@@ -287,28 +305,90 @@ function replaceAnyLogoWith(text, newLogo) {
     return editedText;
 }
 
+// Replace caracters that looks the same
+function normalizeOCR(str){
+    const replacements = { 'D': 'O', 'B': 'O', '0': 'O', '1': 'I', 'l': 'I' };
+    return str.toUpperCase().split('').map(char => replacements[char] || char).join('');
+}
+
+async function getLastsAntiCheatMessages(client){
+    const channel_AntiCheat = await client.channels.fetch(channelID_AntiCheat);
+    const fetchedMessages = await channel_AntiCheat.messages.fetch({ limit: 100 });
+
+    const antiCheatTimeThreshold = 30 + antiCheatRate;
+
+    // Check if messages are less than 35 minutes ago by default
+    const thresholdMinutesAgo = new Date(Date.now() - antiCheatTimeThreshold * 60 * 1000);
+    const recentMessages = Array.from(fetchedMessages.values()).filter(msg => msg.createdTimestamp > thresholdMinutesAgo.getTime());
+
+    // Find the messages that start with the same numeric sequence
+    const messagesByPrefix = {};
+
+    for (let msg of recentMessages) {
+        // Extract the initial numeric sequence
+        const match = msg.content.match(/^\d+/);
+        if (match) {
+            const prefix = match[0];
+
+            // Group messages by their prefix
+            if (!messagesByPrefix[prefix]) {
+                messagesByPrefix[prefix] = [];
+            }
+            messagesByPrefix[prefix].push(msg);
+        }
+    }
+
+    // Find the prefix with the highest total length of string
+    let maxLengthPrefix = '';
+    let maxLength = 0;
+    for (let prefix in messagesByPrefix) {
+        const totalLength = messagesByPrefix[prefix].reduce((sum, msg) => sum + msg.content.length, 0);
+        if (totalLength > maxLength) {
+            maxLength = totalLength;
+            maxLengthPrefix = prefix;
+        }
+    }
+
+    return {
+        prefix: maxLengthPrefix,
+        messages: messagesByPrefix[maxLengthPrefix]?.slice(0, Math.floor(30/antiCheatRate)) || [""]
+    };
+}
+
+function updateAverage(currentAverage, count, newValue) {
+    const newAverage = (currentAverage * (count - 1) + newValue) / count;
+    return newAverage;
+}
+
 export {
     formatMinutesToDays,
     formatNumbertoK,
     sumIntArray, 
     sumFloatArray, 
-    roundToOneDecimal, 
+    roundToOneDecimal,
+    roundToTwoDecimals,
     countDigits, 
-    extractNumbers, 
+    extractNumbers,
+    extractTwoStarAmount,
     isNumbers,
     convertMnToMs,
     convertMsToMn,
     splitMulti, 
     replaceLastOccurrence,
     replaceMissCount,
+    replaceMissNeeded,
     sendReceivedMessage, 
     sendChannelMessage,
     bulkDeleteMessages, 
     colorText, 
     addTextBar,
+    formatNumberWithSpaces,
     localize,
     getRandomStringFromArray,
     getOldestMessage,
     wait,
     replaceAnyLogoWith,
+    normalizeOCR,
+    getLastsAntiCheatMessages,
+    updateAverage,
 }

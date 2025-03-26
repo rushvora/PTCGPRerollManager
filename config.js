@@ -8,7 +8,7 @@ const guildID = process.env.GUILD_ID;
 
 // For all channelID below, right click a channel in your discord server and "copy server ID" with developper mode on
 // THE ID OF THE DISCORD CHANNEL - Where ID list, AutoKick alerts are sent
-const channelID_IDs = process.env.CHANNELID_IDS; // #Rerollers-Annonces
+const channelID_Commands = process.env.CHANNELID_IDS; // #Rerollers-Annonces
 // THE ID OF THE DISCORD CHANNEL - Where statistics of users will be sent
 const channelID_UserStats = process.env.CHANNELID_USER_STATS; // #Users-Stats
 // THE ID OF THE DISCORD CHANNEL - Where GP validation threads will be created /////!\\\\\ IT HAVE TO BE A FORUM CHANNEL, look for discord community server for more info
@@ -19,6 +19,8 @@ const channelID_2StarVerificationForum = process.env.CHANNELID_2STAR_VERIFICATIO
 const channelID_Webhook = process.env.CHANNELID_WEBHOOK; // # GP-Webhook
 // THE ID OF THE DISCORD CHANNEL - Where the Heartbeat Webhooks is linked, better be a separate channel from packs webhook
 const channelID_Heartbeat = process.env.CHANNELID_HEARTBEAT; // # Heartbeat
+// THE ID OF THE DISCORD CHANNEL - Where the AntiCheat pseudonyms are sent in order to analyse
+const channelID_AntiCheat = process.env.CHANNELID_ANTICHEAT; // # AntiCheat
 
 // Create a new fine-grained token for your GitHub account, and make sure to only check to read/write your Gists : https://github.com/settings/tokens
 const gitToken = process.env.GIT_GIST_TOKEN;
@@ -63,38 +65,52 @@ const leechPermPackCount = 50000;
 const resetServerDataFrequently = true;
 // Decide how frequently you want to Reset GP Stats, default to 4 hours (240mn)
 const resetServerDataTime = 240;
+// Upload UserData.xml to GitGist, resetServerDataFrequently also needs to be true
+const outputUserDataOnGitGist = true;
 
 // =========================================== ELIGIBLES IDs ===========================================
 // If some ppl in your group are running Min2Stars : 2 and some others 3, that flags all the GPs as 5/5 in the list to avoid to auto remove bot from kicking 2/5 for those who are at Min2Stars : 3
-var safeEligibleIDsFiltering = true; // true = all flagged as 5/5
+const safeEligibleIDsFiltering = true; // true = all flagged as 5/5
+
+// =========================================== FORCE SKIP ===========================================
+// Allows you to bypass GP based on Packs Amount, Exemple : forceSkipMin2Stars 2 & forceSkipMinPacks 2 will 
+// - not send in verif forum all GP [3P][2/5] [4P][2/5] [5P][2/5] and below 
+// - send in verif forum all GP [1P][2/5] [2P][2/5] and abobe
+const forceSkipMin2Stars = 2;
+const forceSkipMinPacks = 2;
 
 // =========================================== OTHER TIME SETTINGS ===========================================
 
 // Decide after how much time you want the verification posts to automatically closed, it'll be the time from the post creation, not the last activity
-// ⚠️ Closed Posts will be removed from the Eligible GPs / VIP IDs list
-const AutoPostCloseTime = 96;//hours
-
-// No need to modify it except you specifically changed the rate in arturo's script
+// Age of post be before closing the post ⚠️ Closed Posts will be removed from the Eligible GPs / VIP IDs list
+const AutoCloseLivePostTime = 96;//hours
+const AutoCloseNotLivePostTime = 36;//hours
+// No need to modify it except if you specifically changed it in the script
 const heartbeatRate = 30;//minutes
-
-// Decide how frequently you want to Backup UserDatas, default to 20mn
+// No need to modify it except if you specifically changed it in the script
+const antiCheatRate = 3;//minutes
+// Decide how frequently you want to Backup UserDatas, default to 30mn
 const backupUserDatasTime = 30;//minutes
-
 // Delete some messages after X seconds (/active /inactive /refresh /forcerefresh) 0 = no delete
 const delayMsgDeleteState = 10;//seconds
 
-// =========================================== OTHER SETTINGS ===========================================
+// =========================================== DISPLAY SETTINGS ===========================================
 // Choose language
 const EnglishLanguage = true;
-
-// Number of /miss needed before a post is marked as dead, here it means 1pack=4miss, 2packs=6miss, 3packs=8miss, etc..
-const missBeforeDead = [4,6,8,10,12];
-
 // Do you want to show GP Lives per User in Stats
 const showPerPersonLive = true;
 
+// =========================================== OTHER SETTINGS ===========================================
+
+// Number of /miss needed before a post is marked as dead, here it means 1pack=4miss, 2packs=6miss, 3packs=8miss, etc..
+const missBeforeDead = [4,6,8,10,12];
+// Multiply the Miss required when a post is flagged as NotLiked (ex : with a value of 0.5 a post with 8 miss required will switch to 4 miss)
+const missNotLikedMultiplier = [0.5,0.5,0.5,0.75,0.85,1]; // Based on two stars Amount, ex : x0.85 for a [4/5]
+
 // The average Min2Stars of the group on Arturo's bot, used to calculate the Potential Lives GP
-var min2Stars = 0;//can be a floating number ex:2.5
+const min2Stars = 0;//can be a floating number ex:2.5
+//What does your group runs, it is used for AntiCheat
+const groupPacksType = 5;// 5 for 5 packs, 3 for 3packs
 
 // =========================================== AESTHETICS ===========================================
 // Icons of GP Validation
@@ -117,20 +133,31 @@ const leaderboardWorstVerifier1_CustomEmojiName = "Bedge"; // 😈 if not found
 const leaderboardWorstVerifier2_CustomEmojiName = "PeepoClown"; // 👿 if not found
 const leaderboardWorstVerifier3_CustomEmojiName = "DinkDonk"; // 💀 if not found /!\ This one the worst one, it should be at the top but that helps for readability 
 
+const GA_Mewtwo_CustomEmojiName = "mewtwo"; // 🧠 if not found, alternative : 🟣
+const GA_Charizard_CustomEmojiName = "charizard"; // 🔥 if not found, alternative : 🟠
+const GA_Pikachu_CustomEmojiName = "pikachu"; // ⚡️ if not found, alternative : 🟡
+const MI_Mew_CustomEmojiName = "mew"; // 🏝️ if not found, alternative : 🟢
+const STS_Dialga_CustomEmojiName = "dialga"; // 🕒 if not found, alternative : 🟦
+const STS_Palkia_CustomEmojiName = "palkia"; // 🌌 if not found, alternative : 🟪
+const TL_Arceus_CustomEmojiName = "arceus"; // 💡 if not found, alternative : 🟨
+const SR_Lucario_CustomEmojiName = "lucario_shiny"; // ✨ if not found
+
 export {
     token,
     guildID,
-    channelID_IDs,
+    channelID_Commands,
     channelID_UserStats,
     channelID_GPVerificationForum,
     channelID_2StarVerificationForum,
     channelID_Webhook,
     channelID_Heartbeat,
+    channelID_AntiCheat,
     gitToken,
     gitGistID,
     gitGistGroupName,
     gitGistGPName,
     missBeforeDead,
+    missNotLikedMultiplier,
     showPerPersonLive,
     EnglishLanguage,
     AutoKick,
@@ -139,11 +166,14 @@ export {
     inactiveInstanceCount,
     inactivePackPerMinCount,
     inactiveIfMainOffline,
-    AutoPostCloseTime,
+    AutoCloseLivePostTime,
+    AutoCloseNotLivePostTime,
     heartbeatRate,
+    antiCheatRate,
     delayMsgDeleteState,
     backupUserDatasTime,
     min2Stars,
+    groupPacksType,
     canPeopleAddOthers,
     canPeopleRemoveOthers,
     canPeopleLeech,
@@ -152,6 +182,8 @@ export {
     resetServerDataFrequently,
     resetServerDataTime,
     safeEligibleIDsFiltering,
+    forceSkipMin2Stars,
+    forceSkipMinPacks,
     text_verifiedLogo,
     text_likedLogo,
     text_waitingLogo,
@@ -167,4 +199,13 @@ export {
     leaderboardWorstVerifier1_CustomEmojiName,
     leaderboardWorstVerifier2_CustomEmojiName,
     leaderboardWorstVerifier3_CustomEmojiName,
+    GA_Mewtwo_CustomEmojiName,
+    GA_Charizard_CustomEmojiName,
+    GA_Pikachu_CustomEmojiName,
+    MI_Mew_CustomEmojiName,
+    STS_Dialga_CustomEmojiName,
+    STS_Palkia_CustomEmojiName,
+    TL_Arceus_CustomEmojiName,
+    SR_Lucario_CustomEmojiName,
+    outputUserDataOnGitGist,
 };
