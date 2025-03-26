@@ -798,7 +798,7 @@ async function inactivityCheck(client){
 
 function extractGPInfo(message) {
     const regexOwnerID = /<@(\d+)>/;
-    const regexAccountName = /^([^\d\s]+)/m;
+    const regexAccountName = /^(\S+)/m;
     const regexAccountID = /\((\d+)\)/;
     const regexTwoStarRatio = /\[(\d)\/\d\]/;
     const regexPackAmount = /\[(\d+)P\]/;
