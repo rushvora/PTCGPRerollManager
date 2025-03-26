@@ -62,19 +62,31 @@ const leechPermPackCount = 50000;
 const resetServerDataFrequently = true;
 // Decide how frequently you want to Reset GP Stats, default to 4 hours (240mn)
 const resetServerDataTime = 240;
+// Upload UserData.xml to GitGist, resetServerDataFrequently also needs to be true
+const outputUserDataOnGitGist = true;
 
 // =========================================== ELIGIBLES IDs ===========================================
 // If some ppl in your group are running Min2Stars : 2 and some others 3, that flags all the GPs as 5/5 in the list to avoid to auto remove bot from kicking 2/5 for those who are at Min2Stars : 3
-var safeEligibleIDsFiltering = true; // true = all flagged as 5/5
+const safeEligibleIDsFiltering = true; // true = all flagged as 5/5
+
+// =========================================== FORCE SKIP ===========================================
+// Allows you to bypass GP based on Packs Amount, Exemple : forceSkipMin2Stars 2 & forceSkipMinPacks 2 will 
+// - not send in verif forum all GP [3P][2/5] [4P][2/5] [5P][2/5] and below 
+// - send in verif forum all GP [1P][2/5] [2P][2/5] and abobe
+const forceSkipMin2Stars = 2;
+const forceSkipMinPacks = 2;
 
 // =========================================== OTHER TIME SETTINGS ===========================================
 
 // Decide after how much time you want the verification posts to automatically closed, it'll be the time from the post creation, not the last activity
-// ⚠️ Closed Posts will be removed from the Eligible GPs / VIP IDs list
-const AutoPostCloseTime = 96;//hours
-// No need to modify it except you specifically changed the rate in arturo's script
+// Age of post be before closing the post ⚠️ Closed Posts will be removed from the Eligible GPs / VIP IDs list
+const AutoCloseLivePostTime = 96;//hours
+const AutoCloseNotLivePostTime = 36;//hours
+// No need to modify it except if you specifically changed it in the script
 const heartbeatRate = 30;//minutes
-// Decide how frequently you want to Backup UserDatas, default to 20mn
+// No need to modify it except if you specifically changed it in the script
+const antiCheatRate = 3;//minutes
+// Decide how frequently you want to Backup UserDatas, default to 30mn
 const backupUserDatasTime = 30;//minutes
 // Delete some messages after X seconds (/active /inactive /refresh /forcerefresh) 0 = no delete
 const delayMsgDeleteState = 10;//seconds
@@ -90,11 +102,11 @@ const showPerPersonLive = true;
 // Number of /miss needed before a post is marked as dead, here it means 1pack=4miss, 2packs=6miss, 3packs=8miss, etc..
 const missBeforeDead = [4,6,8,10,12];
 // Multiply the Miss required when a post is flagged as NotLiked (ex : with a value of 0.5 a post with 8 miss required will switch to 4 miss)
-const missNotLikedMultiplier = 1;
+const missNotLikedMultiplier = [0.5,0.5,0.5,0.75,0.85,1]; // Based on two stars Amount, ex : x0.85 for a [4/5]
 
 // The average Min2Stars of the group on Arturo's bot, used to calculate the Potential Lives GP
 const min2Stars = 0;//can be a floating number ex:2.5
-//What does your group runs
+//What does your group runs, it is used for AntiCheat
 const groupPacksType = 5;// 5 for 5 packs, 3 for 3packs
 
 // =========================================== AESTHETICS ===========================================
@@ -124,7 +136,8 @@ const GA_Pikachu_CustomEmojiName = "pikachu"; // ⚡️ if not found, alternativ
 const MI_Mew_CustomEmojiName = "mew"; // 🏝️ if not found, alternative : 🟢
 const STS_Dialga_CustomEmojiName = "dialga"; // 🕒 if not found, alternative : 🟦
 const STS_Palkia_CustomEmojiName = "palkia"; // 🌌 if not found, alternative : 🟪
-const TL_Arceus_CustomEmojiName = "arceus"; // 🌟 if not found, alternative : 🟨
+const TL_Arceus_CustomEmojiName = "arceus"; // 💡 if not found, alternative : 🟨
+const SR_Lucario_CustomEmojiName = "lucario_shiny"; // ✨ if not found
 
 export {
     token,
@@ -150,8 +163,10 @@ export {
     inactiveInstanceCount,
     inactivePackPerMinCount,
     inactiveIfMainOffline,
-    AutoPostCloseTime,
+    AutoCloseLivePostTime,
+    AutoCloseNotLivePostTime,
     heartbeatRate,
+    antiCheatRate,
     delayMsgDeleteState,
     backupUserDatasTime,
     min2Stars,
@@ -164,6 +179,8 @@ export {
     resetServerDataFrequently,
     resetServerDataTime,
     safeEligibleIDsFiltering,
+    forceSkipMin2Stars,
+    forceSkipMinPacks,
     text_verifiedLogo,
     text_likedLogo,
     text_waitingLogo,
@@ -186,4 +203,6 @@ export {
     STS_Dialga_CustomEmojiName,
     STS_Palkia_CustomEmojiName,
     TL_Arceus_CustomEmojiName,
+    SR_Lucario_CustomEmojiName,
+    outputUserDataOnGitGist,
 };

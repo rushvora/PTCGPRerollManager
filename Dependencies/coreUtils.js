@@ -1,17 +1,19 @@
 import {
     token,
     guildID,
-    channelID_IDs,
+    channelID_Commands,
     channelID_UserStats,
     channelID_GPVerificationForum,
     channelID_2StarVerificationForum,
     channelID_Webhook,
     channelID_Heartbeat,
+    channelID_AntiCheat,
     gitToken,
     gitGistID,
     gitGistGroupName,
     gitGistGPName,
     missBeforeDead,
+    missNotLikedMultiplier,
     showPerPersonLive,
     EnglishLanguage,
     AutoKick,
@@ -20,11 +22,14 @@ import {
     inactiveInstanceCount,
     inactivePackPerMinCount,
     inactiveIfMainOffline,
-    AutoPostCloseTime,
+    AutoCloseLivePostTime,
+    AutoCloseNotLivePostTime,
     heartbeatRate,
+    antiCheatRate,
     delayMsgDeleteState,
     backupUserDatasTime,
     min2Stars,
+    groupPacksType,
     canPeopleAddOthers,
     canPeopleRemoveOthers,
     canPeopleLeech,
@@ -33,6 +38,8 @@ import {
     resetServerDataFrequently,
     resetServerDataTime,
     safeEligibleIDsFiltering,
+    forceSkipMin2Stars,
+    forceSkipMinPacks,
     text_verifiedLogo,
     text_likedLogo,
     text_waitingLogo,
@@ -48,6 +55,15 @@ import {
     leaderboardWorstVerifier1_CustomEmojiName,
     leaderboardWorstVerifier2_CustomEmojiName,
     leaderboardWorstVerifier3_CustomEmojiName,
+    GA_Mewtwo_CustomEmojiName,
+    GA_Charizard_CustomEmojiName,
+    GA_Pikachu_CustomEmojiName,
+    MI_Mew_CustomEmojiName,
+    STS_Dialga_CustomEmojiName,
+    STS_Palkia_CustomEmojiName,
+    TL_Arceus_CustomEmojiName,
+    SR_Lucario_CustomEmojiName,
+    outputUserDataOnGitGist,
 } from '../config.js';
 
 import {
@@ -55,7 +71,8 @@ import {
     formatNumbertoK,
     sumIntArray, 
     sumFloatArray, 
-    roundToOneDecimal, 
+    roundToOneDecimal,
+    roundToTwoDecimals,
     countDigits, 
     extractNumbers, 
     isNumbers,
@@ -64,16 +81,20 @@ import {
     splitMulti, 
     replaceLastOccurrence,
     replaceMissCount,
+    replaceMissNeeded,
     sendReceivedMessage, 
     sendChannelMessage,
     bulkDeleteMessages, 
     colorText, 
     addTextBar,
+    formatNumberWithSpaces,
     localize,
     getRandomStringFromArray,
     getOldestMessage,
     wait,
     replaceAnyLogoWith,
+    normalizeOCR,
+    getLastsAntiCheatMessages,
 } from './utils.js';
 
 import {
@@ -86,6 +107,8 @@ import {
     setAllUsersAttribValue,
     setUserSubsystemAttribValue,
     getUserSubsystemAttribValue,
+    getUserSubsystems,
+    getUserActiveSubsystems,
     getActiveUsers,
     getActiveIDs,
     getAllUsers,
@@ -102,10 +125,12 @@ import {
     cleanString,
     addServerGP,
     getServerDataGPs,
+    backupFile,
 } from './xmlManager.js';
 
 import {
-    attrib_PocketID, 
+    attrib_PocketID,
+    attrib_Prefix,
     attrib_UserState,
     attrib_ActiveState,
     attrib_AverageInstances, 
@@ -118,13 +143,13 @@ import {
     attrib_DiffPacksSinceLastHB,
     attrib_DiffTimeSinceLastHB,
     attrib_PacksPerMin,
-    attrib_GodPackFound,
-    attrib_GodPackLive,
+    attrib_GodPackFound, 
     attrib_LastActiveTime, 
     attrib_LastHeartbeatTime,
     attrib_TotalTime,
     attrib_TotalTimeFarm,
     attrib_TotalMiss,
+    attrib_AntiCheatUserCount,
     attrib_Subsystems,
     attrib_Subsystem,
     attrib_eligibleGPs,
@@ -135,6 +160,8 @@ import {
     attrib_ineligibleGP,
     pathUsersData,
     pathServerData,
+    attrib_GodPackLive,
+    attrib_SelectedPack,
 } from './xmlConfig.js';
 
 import {
@@ -179,7 +206,7 @@ async function getMemberByID(client, id){
     }
 }
 
-async function getUsersStats(users, members){
+async function getUsersStats(users, members, isAntiCheatOn){
 
     var usersStats = []
 
@@ -308,7 +335,38 @@ async function getUsersStats(users, members){
         const text_AvgGodPack = colorText(`${text_GPRatio}${avgGodPack}`, `blue`);
         const text_GPLive = showPerPersonLive ? colorText(`${gpLive}`, `blue`) : "";
 
-        userOutput += `    ${text_Packs}${text_TotalPack} ${text_GP}${text_TotalGodPack} ${text_Live}${text_GPLive} ${text_GPAvg}${text_AvgGodPack}`
+        userOutput += `    ${text_Packs}${text_TotalPack} ${text_GP}${text_TotalGodPack} ${text_Live}${text_GPLive} ${text_GPAvg}${text_AvgGodPack}\n`
+
+        if (isAntiCheatOn && userState == "active"){
+
+            const text_AntiCheatPPM = colorText(`PPM:`, "gray");
+            const text_AntiCheatCount = colorText(`Accounts:`, "gray");
+            const text_inMin = colorText(`in 30mn`, "gray");
+            const acUserCount = getAttribValueFromUser(user, attrib_AntiCheatUserCount, 0);
+            const acPPM = roundToOneDecimal((parseFloat(acUserCount)*groupPacksType)/30); // UserCount * 5 Pack / Pseudonym over 30 minutes sent every 5 minutes
+            const text_acPPM = colorText(acPPM, "gray");
+            const text_AC_Count = colorText(acUserCount, "gray");
+
+            const diffPPM = Math.abs(avgPackMn - acPPM); // Negatives values will mean that AntiCheat values are greater that HB ones so it's fine
+            var text_AntiCheat = "";  
+
+            if (sessionTime == 0) {
+                text_AntiCheat = colorText(`Anti-Cheat`, "gray");
+            } else if (diffPPM < 1) {
+                text_AntiCheat = colorText(`Anti-Cheat`, "green");
+            } else if (diffPPM < 2) {
+                text_AntiCheat = colorText(`Anti-Cheat`, "yellow");
+            } else {
+                text_AntiCheat = colorText(`Anti-Cheat`, "red");
+            }
+
+            if (acUserCount == "0"){
+                userOutput += `    ${text_AntiCheat} not set up`
+            }
+            else{
+                userOutput += `    ${text_AntiCheat} ${text_AntiCheatPPM}${text_acPPM} ${text_AntiCheatCount}${text_AC_Count} ${text_inMin}`
+            }
+        }
         userOutput += `\n\`\`\``;
 
         usersStats.push(userOutput);
@@ -325,20 +383,38 @@ async function sendStats(client){
 
     await bulkDeleteMessages(guild.channels.cache.get(channelID_UserStats), 50);
 
-    // await wait(2);
-
     // CACHE MEMBERS
     const m = await guild.members.fetch()
 
     var activeUsers = await getActiveUsers(true, true);
+    const allUsers = await getAllUsers();
     // Exit if 0 activeUsers
     if (activeUsers == "" || activeUsers.length == 0) {return};
 
-    var activeUsersInfos = await getUsersStats(activeUsers, m);
+    const recentAntiCheatMessages = await getLastsAntiCheatMessages(client);
+    var isAntiCheatOn = false;
+    var antiCheatVerifier = "";
+    if (recentAntiCheatMessages.messages.length === Math.floor(30/antiCheatRate)) {
+        
+        isAntiCheatOn = true;
+        const memberAntiCheatVerifier = await getMemberByID(client, recentAntiCheatMessages.prefix);
+        
+        // Skip if member do not exist
+        if (memberAntiCheatVerifier == "") {
+            antiCheatVerifier = "Unknown"
+            console.log(`❗️ AntiCheat Verifier ID ${userID} is no registered on this server`)
+        } else {
+            antiCheatVerifier = memberAntiCheatVerifier.displayName;
+        }
+    }
+
+    var activeUsersInfos = await getUsersStats(activeUsers, m, isAntiCheatOn);
 
     // Send users data message by message otherwise it gets over the 2k words limit
     const text_ServerStats = localize("Stats Serveur", "Server Stats");
     const text_UserStats = localize("Stats Rerollers Actifs", "Actives Rerollers Stats");
+
+    // ========================= SERVER STATS =========================
 
     // Re-update Users (due to somes attribute getting updated right before) 
     activeUsers = await getActiveUsers( true, false);
@@ -350,7 +426,6 @@ async function sendStats(client){
     const accumulatedPacksPerMin = sumFloatArray(globalPacksPerMin);
     const avgPacksPerMin = roundToOneDecimal(accumulatedPacksPerMin/activeUsers.length);
 
-    const allUsers = await getAllUsers();
     const totalServerPacks = sumIntArray(getAttribValueFromUsers(allUsers, attrib_TotalPacksOpened, [0]));
     const totalServerTime = sumIntArray(getAttribValueFromUsers(allUsers, attrib_TotalTime, [0]));
     
@@ -431,20 +506,45 @@ async function sendStats(client){
             { name: `✅ Total Live :           ‎`, value: `${liveGPCount}`, inline: true },
             { name: `🔴 Total Eligibles :      ‎`, value: `${eligibleGPCount}`, inline: true },
             { name: `🍀 Total Luck :`, value: `${ totalLuck + " %"}`, inline: true },
-            { name: `☑️ Potential Live         ‎`, value: `${potentialLiveGPCount}`, inline: true },
+            { name: `☑️ Potential Live :       ‎`, value: `${potentialLiveGPCount}`, inline: true },
             { name: `📊 Total GP :`, value: `${totalGPCount}`, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
     );
 
-    // Send UserStats
     guild.channels.cache.get(channelID_UserStats).send({content:`## ${text_ServerStats} :\n`})
     guild.channels.cache.get(channelID_UserStats).send({ embeds: [embedUserStats] });
+    await wait(1.5);
+
+    // ========================= SERVER RULES =========================
+    var serverState = `\`\`\`ansi\n`;
+
+    serverState += `🛡️ Anti-Cheat : ${isAntiCheatOn == true ? colorText("ON","green") + colorText(` Verified by ${antiCheatVerifier}`, "gray") : colorText("OFF","red")}\n`;
+    serverState += `💤 Auto Kick : ${AutoKick == true ? colorText("ON","green") : colorText("OFF","red")}\n`;
+    serverState += `🩸 Leeching : ${canPeopleLeech == true ? colorText("ON","green") : colorText("OFF","red")}\n`;
+
+    serverState += `\`\`\``;
+
+    guild.channels.cache.get(channelID_UserStats).send({content:serverState});
+    await wait(1.5);
+
+    // ========================= SELECTED PACKS =========================
+
+    var selectedPacksText = await getSelectedPacksEmbedText(client, activeUsers);
+
+    const embedSelectedPacks = new EmbedBuilder()
+        .setColor('#f02f7e') // Couleur en hexadécimal
+        .setTitle('Instances / Selected Packs')
+        .setDescription(selectedPacksText);
+
+    guild.channels.cache.get(channelID_UserStats).send({ embeds: [embedSelectedPacks] });
+    await wait(1.5);
+
+    // ========================= USER STATS =========================
+
     guild.channels.cache.get(channelID_UserStats).send({content:`## ${text_UserStats} :\n`})
-    
     for(var i = 0; i<activeUsersInfos.length; i++){
         const activeUsersInfo = activeUsersInfos[i];
         guild.channels.cache.get(channelID_UserStats).send({content:activeUsersInfo});
-        // Avoid user stats spawning by stacks of 4 but instead one by one
         await wait(1.5)
     }
 
@@ -555,7 +655,7 @@ ${emoji_WorstVerifier3} ${missCountArray[0].user} - ${missCountArray[0].value} m
         }
     }
     
-    console.log("☑️ Done updating Stats")
+    console.log("☑️📝 Done updating Stats")
 }
 
 async function sendIDs(client, updateServer = true){
@@ -565,7 +665,7 @@ async function sendIDs(client, updateServer = true){
     const text_contentOf = localize("Contenu de IDs.txt", "Content of IDs.txt");
     const text_activePocketIDs = `*${text_contentOf} :*\n\`\`\`\n${activePocketIDs}\n\`\`\``;
     // Send instances and IDs    
-    sendChannelMessage(client, channelID_IDs, text_activePocketIDs, delayMsgDeleteState);
+    sendChannelMessage(client, channelID_Commands, text_activePocketIDs, delayMsgDeleteState);
     
     if(updateServer){
         updateGist(await getActiveIDs());
@@ -575,7 +675,7 @@ async function sendIDs(client, updateServer = true){
 async function sendStatusHeader(client){
         
     const guild = await getGuild(client);
-    const channel_IDs = guild.channels.cache.get(channelID_IDs);
+    const channel_IDs = guild.channels.cache.get(channelID_Commands);
 
     const headerDescription = `
 \`\`\`ansi
@@ -688,12 +788,40 @@ async function inactivityCheck(client){
 
         // Then we can kick the user if continue didn't triggered
         await setUserAttribValue( getIDFromUser(user), getUsernameFromUser(user), attrib_UserState, "inactive");
-        guild.channels.cache.get(channelID_IDs).send({ content:`<@${getIDFromUser(user)}> ${text_haveBeenKicked}`});
+        guild.channels.cache.get(channelID_Commands).send({ content:`<@${getIDFromUser(user)}> ${text_haveBeenKicked}`});
     };
 
     if(inactiveCount >= 1){
         sendIDs(client);
     }
+}
+
+function extractGPInfo(message) {
+    const regexOwnerID = /<@(\d+)>/;
+    const regexAccountName = /^([^\d\s]+)/m;
+    const regexAccountID = /\((\d+)\)/;
+    const regexTwoStarRatio = /\[(\d)\/\d\]/;
+    const regexPackAmount = /\[(\d+)P\]/;
+
+    const ownerIDMatch = message.match(regexOwnerID);
+    const accountNameMatch = message.split('\n')[1].match(regexAccountName);
+    const accountIDMatch = message.match(regexAccountID);
+    const twoStarRatioMatch = message.match(regexTwoStarRatio);
+    const packAmountMatch = message.match(regexPackAmount);
+
+    const ownerID = ownerIDMatch ? ownerIDMatch[1] : "0000000000000000";
+    const accountName = accountNameMatch ? accountNameMatch[1] : "NoAccountName";
+    const accountID = accountIDMatch ? accountIDMatch[1] : "0000000000000000";
+    const twoStarRatio = twoStarRatioMatch ? twoStarRatioMatch[1] : 0;
+    const packAmount = packAmountMatch ? packAmountMatch[1] : 0;
+
+    return {
+        ownerID,
+        accountName,
+        accountID,
+        twoStarRatio,
+        packAmount
+    };
 }
 
 async function createForumPost(client, message, channelID, packName, titleName, ownerID, accountID, packAmount){
@@ -715,7 +843,7 @@ async function createForumPost(client, message, channelID, packName, titleName, 
             console.log(`❗️ Heartbeat from ID ${ownerID} is no registered on this server`)
             return;
         }
-        var ownerUsername = (member).user.username;
+        var ownerUsername = member.user.username;
         
         if(packName == "GodPack"){
             const godPackFound = await getUserAttribValue( client, ownerID, attrib_GodPackFound, 0 );
@@ -765,6 +893,11 @@ async function createForumPost(client, message, channelID, packName, titleName, 
                 await thread.setLocked(true);
 
                 guild.channels.cache.get(await forum.id).send({content:`${accountID} is the id of the account\n`})
+
+                if(accountID == "0000000000000000"){
+                    const text_incorrectID = localize("L'ID du compte est incorrect :\n- Injecter le compte pour retrouver l'ID\n- Reposter le GP dans le webhook avec l'ID entre parenthèse\n- Faites /removegpfound @LaPersonneQuiLaDrop\n- Supprimer ce post","The account ID is incorrect:\n- Inject the account to find the ID\n- Repost the GP in the webhook with the ID in parentheses\n- Do /removegpfound @UserThatDroppedIt\n- Delete this post");
+                    guild.channels.cache.get(await forum.id).send({content:`# ⚠️ ${text_incorrectID}`})
+                }
                 
                 await wait(1);
                 await updateEligibleIDs(client)
@@ -800,8 +933,8 @@ async function markAsDead(client, interaction, optionalText = ""){
 
 async function updateEligibleIDs(client){
 
-    const text_Start = `⌛ Updating Eligible IDs...`;
-    const text_Done = `☑️ Finished updating Eligible IDs`;
+    const text_Start = `📜 Updating Eligible IDs...`;
+    const text_Done = `☑️📜 Finished updating Eligible IDs`;
     console.log(text_Start)
 
     const forum = await client.channels.cache.get(channelID_GPVerificationForum);
@@ -842,17 +975,10 @@ async function updateEligibleIDs(client){
     await updateGist(idList, gitGistGPName);
 }
 
-// Define custom ThreadFlags enumeration
-const ThreadFlags = {PINNED: 1 << 0,};
-
-function isThreadPinned(thread) {
-    return (thread.flags & ThreadFlags.PINNED) === ThreadFlags.PINNED;
-}
-
 async function updateInactiveGPs(client){
 
-    const text_Start = `🔎 Checking Inactive GPs...`;
-    const text_Done = `☑️ Finished checking Inactive GPs`;
+    const text_Start = `🔍 Checking Inactive GPs...`;
+    const text_Done = `☑️🔍 Finished checking Inactive GPs`;
     console.log(text_Start)
 
     const forum = await client.channels.cache.get(channelID_GPVerificationForum);
@@ -865,8 +991,12 @@ async function updateInactiveGPs(client){
         // Calculate the age of the thread in hours
         const threadAgeHours = (Date.now() - thread.createdTimestamp) / (1000 * 60 * 60);
 
-        // Check if the thread is older than AutoPostCloseTime hours
-        if (threadAgeHours > AutoPostCloseTime || thread.name.includes(text_deadLogo)) {
+        // Check if the thread is older than AutoCloseLivePostTime or AutoCloseNotLivePostTime
+        if (
+            (threadAgeHours > AutoCloseLivePostTime && thread.name.includes(text_verifiedLogo)) || 
+            (threadAgeHours > AutoCloseNotLivePostTime && !thread.name.includes(text_verifiedLogo)) || 
+            thread.name.includes(text_deadLogo)
+        ) {
 
             if(!thread.name.includes(text_deadLogo) && !thread.name.includes(text_verifiedLogo)){
                 const newThreadName = replaceAnyLogoWith(thread.name,text_deadLogo);
@@ -1016,7 +1146,7 @@ async function updateServerData(client, startup = false){
 
         // If file modified less than X minutes ago, return
         if (fileModificationDate > dateLimit) {
-            const text_Skipping = `☑️  Skipping GP stats reset, already fresh`;
+            const text_Skipping = `⏭️ Skipping GP stats reset, already fresh`;
             console.log(text_Skipping);
             return;
         }
@@ -1024,8 +1154,8 @@ async function updateServerData(client, startup = false){
 
     if( !serverDataExist || resetServerDataFrequently ) {
         
-        const text_Start = `⌛ Analyze & Reset all GP stats to ServerData.xml...`;
-        const text_Done = `☑️ Finished Analyze & Reset all GP stats`;
+        const text_Start = `🔄 Analyze & Reset all GP stats to ServerData.xml...`;
+        const text_Done = `☑️🔄 Finished Analyze & Reset all GP stats`;
         console.log(text_Start);
 
         // Default XML Structure
@@ -1044,7 +1174,6 @@ async function updateServerData(client, startup = false){
           };
         
         // Get all forum threads and adds them to eligible & live
-        
         const forum_channel = await client.channels.cache.get(channelID_GPVerificationForum);
         
         const activeThreads = await forum_channel.threads.fetchActive();
@@ -1141,14 +1270,83 @@ async function updateServerData(client, startup = false){
 
         console.log(text_Done);
 
+        // Send Users Data on the GitGist
+        if(outputUserDataOnGitGist)
+        {
+            try {
+                const data = fs.readFileSync(pathUsersData, 'utf8');
+                await updateGist(data, "UsersData");
+            } catch (error) {
+                console.log(`❌ ERROR trying to read file at ${pathUsersData}`);
+            }            
+        }
+
         await updateUserDataGPLive(client);
+    }
+}
+
+async function updateAntiCheat(client){
+    
+    try {
+        const recentAntiCheatMessages = (await getLastsAntiCheatMessages(client)).messages;
+
+        if (recentAntiCheatMessages.length === Math.floor(30/antiCheatRate)) {
+            
+            const text_Start = `🛡️ AntiCheat Analyzing...`;
+            const text_Done = `☑️🛡️ Finished AntiCheat Analyzing`;
+            console.log(text_Start)
+
+            var arrayUsernames = recentAntiCheatMessages.map(msg => msg.content).join(' ').split(",");
+
+            const allUsers = await getActiveUsers();
+            for( var i = 0; i < allUsers.length; i++ ) {
+                
+                var user = allUsers[i];
+                var userID = getIDFromUser(user);
+                const member = await getMemberByID(client, userID);
+
+                // Skip if member do not exist
+                if (member == "") {
+                    console.log(`❗️ User ${userID} is no registered on this server`)
+                    continue;
+                }
+
+                var userUsername = member.user.username;
+                var userPrefix = await getUserAttribValue( client, userID, attrib_Prefix, "NoPrefixFound");
+                var antiCheat_UserCount = 0;
+                var antiCheat_UserNames = [];
+
+                arrayUsernames.forEach(username => {
+                    const normalizedUserPrefix = normalizeOCR(userPrefix).toUpperCase();
+                    const normalizedUsername = normalizeOCR(username).toUpperCase();
+
+                    if (normalizedUsername.startsWith(normalizedUserPrefix)) {
+                        antiCheat_UserCount++;
+                        antiCheat_UserNames.push(username);
+                    }
+                });
+
+                await setUserAttribValue(userID, userUsername, attrib_AntiCheatUserCount, antiCheat_UserCount);
+                // Debug Usernames
+                // if(antiCheat_UserNames.length > 0){
+                //     sendChannelMessage(client, "XXXXXXXXXXXXXXXXXXX", userUsername + "\n" + antiCheat_UserNames.join(', '));
+                // }
+            };
+
+            console.log(text_Done)
+        } 
+        else {
+            console.log(`🛡️🚫 AntiCheat is OFF`);
+        }
+    } catch (error) {
+        console.log('❌ ERROR - Trying to Analyse for AntiCheat:\n' + error);
     }
 }
 
 async function updateUserDataGPLive(client){
     
-    const text_Start = `⌛ Updating GPLive UserData...`;
-    const text_Done = `☑️  Finished updating GPLive UserData`;
+    const text_Start = `🟢 Updating GPLive UserData...`;
+    const text_Done = `☑️🟢  Finished updating GPLive UserData`;
     console.log(text_Start)
 
     setAllUsersAttribValue(attrib_GodPackLive, 0);
@@ -1193,6 +1391,100 @@ async function addUserDataGPLive(client, thread){
     await setUserAttribValue(ownerID, member.user.username, attrib_GodPackLive,GPLive+1);
 }
 
+function incrementSelectedPacks(packCounter, selectedPacks, instanceCount){
+
+    const differentPacksAmount = Math.max(selectedPacks.split(",").length - 1, 0);
+    const differentPacksUnit = instanceCount/differentPacksAmount;
+
+    if(selectedPacks.toUpperCase().includes("MEWTWO")){
+        packCounter["GA_Mewtwo"] += differentPacksUnit;
+    }
+    if(selectedPacks.toUpperCase().includes("CHARIZARD")){
+        packCounter["GA_Charizard"] += differentPacksUnit;
+    }
+    if(selectedPacks.toUpperCase().includes("PIKACHU")){
+        packCounter["GA_Pikachu"] += differentPacksUnit;
+    }
+    if(selectedPacks.toUpperCase().includes("MEW")){
+        packCounter["MI_Mew"] += differentPacksUnit;
+    }
+    if(selectedPacks.toUpperCase().includes("DIALGA")){
+        packCounter["STS_Dialga"] += differentPacksUnit;
+    }
+    if(selectedPacks.toUpperCase().includes("PALKIA")){
+        packCounter["STS_Palkia"] += differentPacksUnit;
+    }
+    if(selectedPacks.toUpperCase().includes("ARCEUS")){
+        packCounter["TL_Arceus"] += differentPacksUnit;
+    }
+    if(selectedPacks.toUpperCase().includes("LUCARIO")){
+        packCounter["SR_Lucario"] += differentPacksUnit;
+    }
+}
+
+async function getSelectedPacksEmbedText(client, activeUsers ){
+
+    var packCounter = {
+        GA_Mewtwo: 0,
+        GA_Charizard: 0,
+        GA_Pikachu: 0,
+        MI_Mew: 0,
+        STS_Dialga: 0,
+        STS_Palkia: 0,
+        TL_Arceus: 0,
+        SR_Lucario: 0
+      };
+
+    for( var i = 0; i < activeUsers.length; i++ ) {
+                        
+        var user = activeUsers[i];
+        var userID = getIDFromUser(user);
+        var userUsername = getUsernameFromUser(user);
+
+        const selectedPacks = getAttribValueFromUser(user, attrib_SelectedPack, "");
+        const hbInstances = getAttribValueFromUser(user, attrib_HBInstances, 0);
+        incrementSelectedPacks(packCounter, selectedPacks, hbInstances)
+
+        const userActiveSubsystems = await getUserActiveSubsystems(user);
+        if (userActiveSubsystems != ""){
+            for(let i = 0; i<userActiveSubsystems.length; i++){
+                const userActiveSubsystem = userActiveSubsystems[i];
+
+                const selectedPacksSubsystems = getAttribValueFromUser(userActiveSubsystem, attrib_SelectedPack, "");
+                const hbInstancesSubsystems = getAttribValueFromUser(userActiveSubsystem, attrib_HBInstances, 0);
+                incrementSelectedPacks(packCounter, selectedPacksSubsystems, hbInstancesSubsystems)
+            }
+        }
+    };
+
+    for (var key in packCounter) {
+        if (packCounter.hasOwnProperty(key)) {
+            packCounter[key] = roundToOneDecimal(packCounter[key]);
+        }
+    }
+
+    const emoji_GA_Mewtwo = findEmoji(client, GA_Mewtwo_CustomEmojiName, "🧠");
+    const emoji_GA_Charizard = findEmoji(client, GA_Charizard_CustomEmojiName, "🔥");
+    const emoji_GA_Pikachu = findEmoji(client, GA_Pikachu_CustomEmojiName, "⚡️");
+    const emoji_MI_Mew = findEmoji(client, MI_Mew_CustomEmojiName, "🏝️");
+    const emoji_STS_Dialga = findEmoji(client, STS_Dialga_CustomEmojiName, "🕒");
+    const emoji_STS_Palkia = findEmoji(client, STS_Palkia_CustomEmojiName, "🌌");
+    const emoji_TL_Arceus = findEmoji(client, TL_Arceus_CustomEmojiName, "💡");
+    const emoji_SR_Lucario = findEmoji(client, SR_Lucario_CustomEmojiName, "✨");
+    
+    const text_mewtwo = `${packCounter["GA_Mewtwo"] > 0 ?       `${emoji_GA_Mewtwo} ${formatNumberWithSpaces(packCounter["GA_Mewtwo"], 4)}` : "" }`
+    const text_charizard = `${packCounter["GA_Charizard"] > 0 ? `${emoji_GA_Charizard} ${formatNumberWithSpaces(packCounter["GA_Charizard"], 4)}` : "" }`
+    const text_pikachu = `${packCounter["GA_Pikachu"] > 0 ?     `${emoji_GA_Pikachu} ${formatNumberWithSpaces(packCounter["GA_Pikachu"], 4)}` : "" }`
+    const text_mew = `${packCounter["MI_Mew"] > 0 ?             `${emoji_MI_Mew} ${packCounter["MI_Mew"]}` : "" }`
+    const text_spaceSet1 = `${packCounter["GA_Mewtwo"] > 0 || packCounter["GA_Charizard"] > 0 || packCounter["GA_Pikachu"] > 0 || packCounter["MI_Mew"] > 0 ? `\n# ` : "" }`
+    const text_dialga = `${packCounter["STS_Dialga"] > 0 ?      `${emoji_STS_Dialga} ${formatNumberWithSpaces(packCounter["STS_Dialga"], 4)}` : "" }`
+    const text_palkia = `${packCounter["STS_Palkia"] > 0 ?      `${emoji_STS_Palkia} ${formatNumberWithSpaces(packCounter["STS_Palkia"], 4)}` : "" }`
+    const text_arceus = `${packCounter["TL_Arceus"] > 0 ?       `${emoji_TL_Arceus} ${formatNumberWithSpaces(packCounter["TL_Arceus"], 4)}` : "" }`
+    const text_lucario = `${packCounter["SR_Lucario"] > 0 ?     `${emoji_SR_Lucario} ${packCounter["SR_Lucario"]}` : "" }`
+    
+    return `# ${text_mewtwo+text_charizard+text_pikachu+text_mew}${text_spaceSet1}${text_dialga+text_palkia+text_arceus+text_lucario}`
+}
+
 export { 
     getGuild, 
     getMemberByID,
@@ -1201,12 +1493,14 @@ export {
     sendIDs,
     sendStatusHeader,
     inactivityCheck,
+    extractGPInfo,
     createForumPost,
     markAsDead, 
     updateEligibleIDs,
     updateInactiveGPs,
     setUserState,
     updateServerData,
+    updateAntiCheat,
     updateUserDataGPLive,
     addUserDataGPLive,
 }

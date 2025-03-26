@@ -18,17 +18,19 @@
 import {
     token,
     guildID,
-    channelID_IDs,
+    channelID_Commands,
     channelID_UserStats,
     channelID_GPVerificationForum,
     channelID_2StarVerificationForum,
     channelID_Webhook,
     channelID_Heartbeat,
+    channelID_AntiCheat,
     gitToken,
     gitGistID,
     gitGistGroupName,
     gitGistGPName,
     missBeforeDead,
+    missNotLikedMultiplier,
     showPerPersonLive,
     EnglishLanguage,
     AutoKick,
@@ -41,6 +43,7 @@ import {
     delayMsgDeleteState,
     backupUserDatasTime,
     min2Stars,
+    groupPacksType,
     canPeopleAddOthers,
     canPeopleRemoveOthers,
     canPeopleLeech,
@@ -49,21 +52,13 @@ import {
     resetServerDataFrequently,
     resetServerDataTime,
     safeEligibleIDsFiltering,
+    forceSkipMin2Stars,
+    forceSkipMinPacks,
     text_verifiedLogo,
     text_likedLogo,
     text_waitingLogo,
     text_notLikedLogo,
     text_deadLogo,
-    leaderboardBestFarm1_CustomEmojiName,
-    leaderboardBestFarm2_CustomEmojiName,
-    leaderboardBestFarm3_CustomEmojiName,
-    leaderboardBestFarmLength,
-    leaderboardBestVerifier1_CustomEmojiName,
-    leaderboardBestVerifier2_CustomEmojiName,
-    leaderboardBestVerifier3_CustomEmojiName,
-    leaderboardWorstVerifier1_CustomEmojiName,
-    leaderboardWorstVerifier2_CustomEmojiName,
-    leaderboardWorstVerifier3_CustomEmojiName,
 } from './config.js';
 
 import {
@@ -71,25 +66,32 @@ import {
     formatNumbertoK,
     sumIntArray, 
     sumFloatArray, 
-    roundToOneDecimal, 
+    roundToOneDecimal,
+    roundToTwoDecimals,
     countDigits, 
-    extractNumbers, 
+    extractNumbers,
+    extractTwoStarAmount,
     isNumbers,
     convertMnToMs,
     convertMsToMn,
     splitMulti, 
     replaceLastOccurrence,
     replaceMissCount,
+    replaceMissNeeded,
     sendReceivedMessage, 
     sendChannelMessage,
     bulkDeleteMessages, 
     colorText, 
     addTextBar,
+    formatNumberWithSpaces,
     localize,
     getRandomStringFromArray,
     getOldestMessage,
     wait,
     replaceAnyLogoWith,
+    normalizeOCR,
+    getLastsAntiCheatMessages,
+    updateAverage,
 } from './Dependencies/utils.js';
 
 import {
@@ -100,12 +102,14 @@ import {
     sendIDs,
     sendStatusHeader,
     inactivityCheck,
+    extractGPInfo,
     createForumPost,
     markAsDead, 
     updateEligibleIDs,
     updateInactiveGPs,
     setUserState,
     updateServerData,
+    updateAntiCheat,
     updateUserDataGPLive,
     addUserDataGPLive,
 } from './Dependencies/coreUtils.js';
@@ -140,7 +144,8 @@ import {
 } from './Dependencies/xmlManager.js';
 
 import {
-    attrib_PocketID, 
+    attrib_PocketID,
+    attrib_Prefix,
     attrib_UserState,
     attrib_ActiveState,
     attrib_AverageInstances, 
@@ -159,6 +164,8 @@ import {
     attrib_TotalTime,
     attrib_TotalTimeFarm,
     attrib_TotalMiss,
+    attrib_AntiCheatUserCount,
+    attrib_SelectedPack,
     attrib_Subsystems,
     attrib_Subsystem,
     attrib_eligibleGPs,
@@ -170,6 +177,9 @@ import {
     pathUsersData,
     pathServerData,
     attrib_GodPackLive,
+    attrib_TotalHBTick,
+    attrib_TotalAveragePPM,
+    attrib_TotalAverageInstances,
 } from './Dependencies/xmlConfig.js';
 
 import {
@@ -204,7 +214,6 @@ const client = new Client({
 
 var startIntervalTime = Date.now();    
 var evenTurnShortInterval = false;
-var evenTurnLongaInterval = false;
 
 function getNexIntervalRemainingTime() {
     const currentTime = Date.now();
@@ -270,6 +279,12 @@ client.once(Events.ClientReady, async c => {
         await backupFile(pathUsersData);
     }, convertMnToMs(backupUserDatasTime+1));
 
+    setInterval(async() =>{
+        await updateAntiCheat(client);
+    }, convertMnToMs(5));
+
+    await updateAntiCheat(client);
+
     // Backup UserData.xml file
     setInterval(async() =>{
         await updateInactiveGPs(client);
@@ -311,6 +326,18 @@ client.once(Events.ClientReady, async c => {
             option
                 .setName("amount")
                 .setDescription(`${instancesDescAmount}`)
+                .setRequired(true)
+        );
+
+    const prefixDesc = localize("Renseignez votre préfixe de votre liste de nom d'utilisateur", "Set your prefix from your username list");
+    const prefixDescPrefix = localize("Doit être composé de 4 lettres", "Needs to be 4 letters");
+    const prefixSCB = new SlashCommandBuilder()
+        .setName(`setprefix`)
+        .setDescription(`${prefixDesc}\n`)
+        .addStringOption(option =>
+            option
+                .setName("prefix")
+                .setDescription(`${prefixDescPrefix}`)
                 .setRequired(true)
         );
 
@@ -407,16 +434,16 @@ client.once(Events.ClientReady, async c => {
         .setName(`lastactivity`)
         .setDescription(`${lastactivityDesc}`);
 
-    const generateusernamesDesc = localize("Génère liste basé sur suffixe et, facultatif, des mots","Generate a list based on a suffix and, if wanted, keywords");   
-    const generateusernamesDescSuffix = localize("Les 3 ou 4 premières lettres premières lettres de votre pseudo","The 3 or 4 firsts letter of your pseudonym");   
+    const generateusernamesDesc = localize("Génère liste basé sur préfixe et, facultatif, des mots","Generate a list based on a prefix and, if wanted, keywords");   
+    const generateusernamesDescPrefix = localize("Les 4 premières lettres premières lettres de votre pseudo","The 4 firsts letter of your pseudonym");   
     const generateusernamesDescKeyword = localize("Des mots clés qui seront assemblés aléatoirement, espace/virgule = séparation","Some keywords that will be assembled randomly, space or comma are separations");   
     const generateusernamesSCB = new SlashCommandBuilder()
         .setName(`generateusernames`)
         .setDescription(`${generateusernamesDesc}`)
         .addStringOption(option =>
             option
-                .setName("suffix")
-                .setDescription(`${generateusernamesDescSuffix}`)
+                .setName("prefix")
+                .setDescription(`${generateusernamesDescPrefix}`)
                 .setRequired(true)
         ).addStringOption(option2 =>
             option2
@@ -454,6 +481,9 @@ client.once(Events.ClientReady, async c => {
 
     const instancesCommand = instancesSCB.toJSON();
     client.application.commands.create(instancesCommand, guildID);
+
+    const prefixCommand = prefixSCB.toJSON();
+    client.application.commands.create(prefixCommand, guildID);
 
     const activeCommand = activeSCB.toJSON();
     client.application.commands.create(activeCommand, guildID);
@@ -721,7 +751,7 @@ client.on(Events.InteractionCreate, async interaction => {
         if(interaction.commandName === `liked`){
                     
             await interaction.deferReply();
-            const text_markAsLiked = localize("Godpack marqué comme liké, beaucoup de chance d'être live","Godpack marked as liked, likely to be live");
+            const text_markAsLiked = localize(`Godpack marqué comme **liké** ${text_likedLogo} beaucoup de chance d'être live`,`Godpack marked as **liked** ${text_likedLogo} likely to be live`);
             const text_alreadyLiked = localize("C'est gentil de ta part mais il est déjà marqué comme liké","That's kind of you but this GP already is already marked as liked");
 
             const thread = client.channels.cache.get(interaction.channelId);
@@ -733,7 +763,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 const newPostName = replaceAnyLogoWith(thread.name, text_likedLogo);
                 await thread.edit({ name: `${newPostName}` });
 
-                await sendReceivedMessage(client, `${text_likedLogo} ${text_markAsLiked}`, interaction);
+                await sendReceivedMessage(client, `${text_markAsLiked}`, interaction);
             }
         }
 
@@ -741,7 +771,7 @@ client.on(Events.InteractionCreate, async interaction => {
         if(interaction.commandName === `notliked`){
             
             await interaction.deferReply();
-            const text_markAsNotLiked = localize("Godpack marqué comme non liké, peu de chance d'être live","Godpack marked as not liked, unlikely to be live");
+            const text_markAsNotLiked = localize(`Godpack marqué comme **non liké** ${text_notLikedLogo} Peu de chance d'être live\n**Nombre de miss total requis**`,`Godpack marked as **not liked** ${text_notLikedLogo} Unlikely to be live\n**Total amount of miss required**`);
             const text_alreadyNotLiked = localize("C'est gentil de ta part mais il est déjà marqué comme non liké","That's kind of you but this GP already is already marked as not liked");
 
             const thread = client.channels.cache.get(interaction.channelId);
@@ -750,10 +780,38 @@ client.on(Events.InteractionCreate, async interaction => {
                 await sendReceivedMessage(client, `${text_alreadyNotLiked}`, interaction);
             }
             else{
-                const newPostName = replaceAnyLogoWith(thread.name, text_notLikedLogo);
-                await thread.edit({ name: `${newPostName}` });
-    
-                await sendReceivedMessage(client, `${text_notLikedLogo} ${text_markAsNotLiked}`, interaction);
+                // Edit the initial message to divide multiplier miss required by missNotLikedMultiplier[numbersTwoStars]
+                const initialMessage = await getOldestMessage(thread);
+                const splitForumContent = splitMulti(initialMessage.content,['[',']']);
+
+                if (splitForumContent.length > 1){
+
+                    const numbersMiss = extractNumbers(splitForumContent[1]);
+                    const numbersTwoStars = extractTwoStarAmount(thread.name);
+            
+                    var missAmount = parseInt(numbersMiss[0]);
+                    var missNeeded = numbersMiss[1];
+                    var newMissNeeded = Math.round(parseInt(missNeeded)*missNotLikedMultiplier[numbersTwoStars]);
+
+                    const text_finalNotLiked = text_markAsNotLiked + ` **x${missNotLikedMultiplier[numbersTwoStars]}\n[ ${missAmount} miss / ${newMissNeeded} ]**`
+                    
+                    // Check if, once modified, the missAmount is greater or equal to the new newMissNeeded
+                    if (missAmount>=newMissNeeded){
+                        
+                        const text_failed = localize(`Po\n`,`Well rip,`) + ` **[ ${newMissAmount} miss / ${missNeeded} ]**\n`;
+                        await markAsDead(client, interaction, text_finalNotLiked + localize(`\n\nCependant comportant deja suffisement de Miss pour être considéré comme\n`,`\n\nThought enough misses to be considered as\n`));
+                    }
+                    else{ // Else, the missAmount is lower to the new newMissNeeded
+
+                        const newPostName = replaceAnyLogoWith(thread.name, text_notLikedLogo);
+                        await thread.edit({ name: `${newPostName}` });
+                        await initialMessage.edit(`${replaceMissNeeded(initialMessage.content, newMissNeeded)}`);
+                        await sendReceivedMessage(client, `${text_finalNotLiked}`, interaction);
+                    }
+                }
+                else{
+                    await sendReceivedMessage(client, text_notCompatible, interaction);
+                }
             }
         }
 
@@ -761,16 +819,15 @@ client.on(Events.InteractionCreate, async interaction => {
         if(interaction.commandName === `miss`){
 
             await interaction.deferReply();
-            const text_markasMiss = localize("Godpack marqué comme mort","Godpack marked as dud");
             const text_notCompatible = localize("Le GP est dans **l'ancien format**, /miss incompatible","The GP is using the **old format**, /miss incompatible");
             const text_scam = localize("Oh le petit malin il a essayé de scam un miss 🤡\nVenez voir tout le monde","Little sneaky boy tried to scam a miss 🤡\nCome see everyone");
 
-            const forumPost = client.channels.cache.get(interaction.channelId);
+            const thread = client.channels.cache.get(interaction.channelId);
 
             // Only add a miss for posts marked as notLiked, Waiting or Liked
-            if (forumPost.name.includes(text_notLikedLogo) || forumPost.name.includes(text_waitingLogo) || forumPost.name.includes(text_likedLogo)){
+            if (thread.name.includes(text_notLikedLogo) || thread.name.includes(text_waitingLogo) || thread.name.includes(text_likedLogo)){
 
-                const initialMessage = await getOldestMessage(forumPost);
+                const initialMessage = await getOldestMessage(thread);
                 const splitForumContent = splitMulti(initialMessage.content,['[',']']);
 
                 if (splitForumContent.length > 1){
@@ -789,7 +846,7 @@ client.on(Events.InteractionCreate, async interaction => {
                         await initialMessage.edit( `${replaceMissCount(initialMessage.content, newMissAmount)}`);
 
                         const text_failed = localize(`C'est finito\n`,`Well rip,`) + ` **[ ${newMissAmount} miss / ${missNeeded} ]**\n`;
-                        markAsDead(client, interaction, text_failed);
+                        await markAsDead(client, interaction, text_failed);
                     }
                     else{
                         await initialMessage.edit( `${replaceMissCount(initialMessage.content, newMissAmount)}`);
@@ -886,53 +943,65 @@ client.on(Events.InteractionCreate, async interaction => {
         if(interaction.commandName === `generateusernames`){
 
             await interaction.deferReply();
-            const text_incorrectParameters = localize("Paramètres incorrects, entre suffix ET keywords","Incorrect parameters, write suffix AND keyworks");
+            const text_incorrectPrefix = localize("Le préfixe doit être composé de 4 Lettres","The prefix needs to be 4 letters");
+            const text_incorrectParameters = localize("Paramètres incorrects, entre prefix ET keywords","Incorrect parameters, write prefix AND keyworks");
             const text_listGenerated = localize("Nouvelle liste d'usernames generé :","New usernames.txt list generated :");
 
-            const suffix = interaction.options.getString(`suffix`);
+            const prefix = interaction.options.getString(`prefix`).toUpperCase();
             var keyWords = interaction.options.getString(`keywords`);
 
-            if(suffix == null || keyWords == null)
+            if(prefix.length != 4)
+            {
+                return await sendReceivedMessage(client, text_incorrectPrefix, interaction);
+            }
+
+            if(prefix == null || keyWords == null)
             {
                 return await sendReceivedMessage(client, text_incorrectParameters, interaction);
             }
             
-            keyWords = keyWords.replaceAll(`,`,` `).split(' ');
+            keyWords = keyWords.replaceAll(`,`, ` `).split(' ');
             const wordsGenerated = 1000;
             const maxNameLength = 14;
-            const suffixLenth = suffix.length;
+            const prefixLength = prefix.length + 1; // Include the underscore in the length calculation
+
+            const forbiddenWords = ["ass","sht","nazi","anus","nig","rape","pede","dic","bitte","hymen","pimp","shto","ugly","bch","nun","tara","wth","bastard","baka","cono"];
 
             var content = "";
-            
-            for (let i = 0; i < wordsGenerated; i++){
+
+            for (let i = 0; i < wordsGenerated; i++) {
                 
                 var generatedWord = "";
 
-                for(let j = 0; j < 100; j++){
+                for (let attempts = 0; attempts < 50; attempts++) {
+
+                    // Break if maxNameLength-1 is hit
+                    if (prefixLength + generatedWord.length >= maxNameLength-1) {break;}
 
                     const randomIndex = Math.floor(Math.random() * keyWords.length);
                     var keyWord = keyWords[randomIndex];
-                    //Remove all special characters... my god i hate regex
+                    // Remove all special characters
                     keyWord = keyWord.replaceAll(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '');
 
-                    if( (generatedWord + keyWord).length + suffixLenth > maxNameLength ){
-                        break;
-                    }
-                    else{
+                    if (prefixLength + (generatedWord + keyWord).length > maxNameLength) {
+                        continue;
+                    } 
+                    else {
                         generatedWord = generatedWord + keyWord;
                     }
                 }
-                if(generatedWord.length > 0){
-                    content = content + generatedWord + suffix.toUpperCase() + " \n";
+
+                const fullName = prefix + "O" + generatedWord; // I = separator as it seems adbShell.StdIn.WriteLine can't input special characters 
+                if (!forbiddenWords.some(word => fullName.includes(word))) {
+                    content = content + fullName + " \n";
                 }
             }
-            
 
             await sendReceivedMessage(client, text_listGenerated, interaction);
             await interaction.channel.send({
                 files: [{
                     attachment: Buffer.from(content),
-                    name: 'usernames.txt'
+                    name: 'usernames_default.txt'
                 }]
             })
         }
@@ -944,7 +1013,7 @@ client.on(Events.InteractionCreate, async interaction => {
             const amount = interaction.options.getInteger(`amount`);
 
             const text_instancesSetTo = localize("Nombre d'instance moyenne défini à","Average amount of instances set to");
-            const text_incorrectAmount = localize("Pti con va, entre ton vrai nombre d'instances","You lil sneaky boy... input your real number of instances");
+            const text_incorrectAmount = localize("Petit clown va, entre ton vrai nombre d'instances","You little clown, enter your real number of instances");
             const text_for = localize("pour","for");
 
             if(amount < 1 || amount > 100){
@@ -1004,7 +1073,43 @@ client.on(Events.InteractionCreate, async interaction => {
             else{
                 await sendReceivedMessage(client, `${text_minimumGP} **<@${interactionUserID}>**`, interaction);
             }
-        }  
+        }
+
+        // SET PREFIX COMMAND
+        if(interaction.commandName === `setprefix`){
+
+            await interaction.deferReply();
+            const prefix = interaction.options.getString(`prefix`).toUpperCase();
+
+            const text_instancesSetTo = localize("Préfixe défini à","Prefix set to");
+            const text_incorrectLength = localize("Le Préfixe doit être composé d'exactement 4 lettres","The Prefix must consist of exactly 4 letters");
+            const text_otherPrefixe = localize("L'autre préfixe existant","The other existing prefix");
+            const text_tooSimilar = localize("s'apparente trop à","is too similar to");
+            const text_for = localize("pour","for");
+
+            if(prefix.length != 4){
+                await sendReceivedMessage(client, text_incorrectLength, interaction);
+            }
+            else{
+                const allUsers = await getAllUsers();
+                const othersPrefix = getAttribValueFromUsers(allUsers, attrib_Prefix, [0]);
+
+                for(let i = 0; i < othersPrefix.length; i++){
+
+                    const otherPrefix = othersPrefix[i];
+
+                    if(otherPrefix == undefined || otherPrefix == 0 ){continue;}
+
+                    if(normalizeOCR(otherPrefix).toUpperCase() == normalizeOCR(prefix)){
+                        await sendReceivedMessage(client, `${text_otherPrefixe} **\"${otherPrefix}\"** ${text_tooSimilar} **\"${prefix}\"**`, interaction);
+                        return;
+                    }
+                }
+
+                await setUserAttribValue( interactionUserID, interactionUserName, attrib_Prefix, prefix);
+                await sendReceivedMessage(client, text_instancesSetTo + ` \"**${prefix}**\" ` + text_for + ` **<@${interactionUserID}>**`, interaction);
+            }
+        }
     }
     catch(error){
         console.error('❌ ERROR - Crash Prevented\n', error);
@@ -1023,16 +1128,18 @@ client.on("messageCreate", async (message) => {
         //Execute when screen is posted
         if (message.attachments.first() != undefined && !message.content.toLowerCase().includes("invalid") && message.content.toLowerCase().includes("god pack found") ) {
 
-            var arrayGodpackMessage = splitMulti(message.content, ['<@','>','\n','(',')','[',']']);
-            
-            var ownerID = arrayGodpackMessage[1];
-            var accountName = arrayGodpackMessage[3];
-            var accountID = arrayGodpackMessage[4];
-            var twoStarsRatio = arrayGodpackMessage[7];
-            var packAmount = arrayGodpackMessage[9];
+            var GPInfo = extractGPInfo(message.content);
 
-            var titleName = `${accountName}[${packAmount}][${twoStarsRatio}]`;
+            var ownerID = GPInfo.ownerID;
+            var accountName = GPInfo.accountName;
+            var accountID = GPInfo.accountID;
+            var twoStarsRatio = GPInfo.twoStarRatio;
+            var packAmount = GPInfo.packAmount;
+
+            var titleName = `${accountName} [${packAmount}P][${twoStarsRatio}/5]`;
             
+            if(twoStarsRatio <= forceSkipMin2Stars && packAmount > forceSkipMinPacks){return;}
+
             await createForumPost(client, message, channelID_GPVerificationForum, "GodPack", titleName, ownerID, accountID, packAmount);
         }
 
@@ -1041,14 +1148,14 @@ client.on("messageCreate", async (message) => {
 
             if(channelID_2StarVerificationForum == ""){return;}
 
-            var arrayGodpackMessage = splitMulti(message.content, ['<@','>','\n','(',')','[',']',' by ']);
-            
-            var ownerID = arrayGodpackMessage[1];
-            var accountName = arrayGodpackMessage[3];
-            var accountID = arrayGodpackMessage[4];
-            var packAmount = extractNumbers(arrayGodpackMessage[6])+"P";
+            var GPInfo = extractGPInfo(message.content);
 
-            var titleName = `${accountName}[${packAmount}]`;
+            var ownerID = GPInfo.ownerID;
+            var accountName = GPInfo.accountName;
+            var accountID = GPInfo.accountID;
+            var packAmount = GPInfo.packAmount;
+
+            var titleName = `${accountName} [${packAmount}P]`;
 
             await createForumPost(client, message, channelID_2StarVerificationForum, "Double 2Star", titleName, ownerID, accountID, packAmount);
         }
@@ -1084,14 +1191,30 @@ client.on("messageCreate", async (message) => {
             return;
         }
 
-        var userUsername = (member).user.username;
+        var userUsername = member.user.username;
         
         if(firstLineSplit.length <= 1 ) { // If ID do not have underscore
 
             if(await doesUserProfileExists(userID, userUsername)){
 
-                const instances = extractNumbers(heartbeatDatas[1]).length;
-                const timeAndPacks = extractNumbers(heartbeatDatas[3]);
+                var instances = 0;
+                var timeAndPacks = 0;
+                var selectedPacks = "";
+
+                heartbeatDatas.forEach((heartbeatData) =>{
+                    if (heartbeatData.includes("Online:")){
+                        instances = extractNumbers(heartbeatData).length;
+                    }
+                    else if (heartbeatData.includes("Packs:")){
+                        timeAndPacks = extractNumbers(heartbeatData);
+                    }
+                    else if (heartbeatData.includes("Select:")){
+                        selectedPacks = heartbeatData.replace("Select: ","");
+                    }
+                });
+                
+                await setUserAttribValue( userID, userUsername, attrib_SelectedPack, selectedPacks);
+
                 const time = timeAndPacks[0];
                 var packs = parseInt(timeAndPacks[1]);
 
@@ -1099,7 +1222,7 @@ client.on("messageCreate", async (message) => {
                 var diffPacks = Math.max(packs-sessionPacks,0);
 
                 var userState = await getUserAttribValue( client, userID, attrib_UserState, 0 );
-                
+
                 if( time == "0" ){
                     var totalTime = await getUserAttribValue( client, userID, attrib_TotalTime, 0 );
                     var sessionTime = await getUserAttribValue( client, userID, attrib_SessionTime, 0 );
@@ -1117,6 +1240,17 @@ client.on("messageCreate", async (message) => {
                         await setUserAttribValue( userID, userUsername, attrib_TotalTimeFarm, parseFloat(totalTimeFarm) + diffTime);
                         await setUserAttribValue( userID, userUsername, attrib_TotalPacksFarm, parseFloat(totalPacksFarm) + diffPacks);
                     }
+
+                    var totalHBTick = parseInt( await getUserAttribValue( client, userID, attrib_TotalHBTick, 0 ) ) + 1;
+                    await setUserAttribValue( userID, userUsername, attrib_TotalHBTick, totalHBTick);
+
+                    var packPerMin = parseFloat( await getUserAttribValue( client, userID, attrib_PacksPerMin, 0 ) );
+                    var totalAvgPackPerMin = parseFloat( await getUserAttribValue( client, userID, attrib_TotalAveragePPM, 0 ) );
+                    await setUserAttribValue( userID, userUsername, attrib_TotalAveragePPM, updateAverage(totalAvgPackPerMin, totalHBTick, packPerMin));
+
+                    var realInstances = parseFloat( await getUserAttribValue( client, userID, attrib_RealInstances, 0 ) );
+                    var totalAvgInstances = parseFloat( await getUserAttribValue( client, userID, attrib_TotalAverageInstances, 0 ) );
+                    await setUserAttribValue( userID, userUsername, attrib_TotalAverageInstances, updateAverage(totalAvgInstances, totalHBTick, realInstances));
                 }
 
                 const lastHBTime = new Date(await getUserAttribValue( client, userID, attrib_LastHeartbeatTime, 0 ));
@@ -1128,19 +1262,19 @@ client.on("messageCreate", async (message) => {
                 await setUserAttribValue( userID, userUsername, attrib_SessionPacksOpened, packs);
                 await setUserAttribValue( userID, userUsername, attrib_HBInstances, instances);
                 await setUserAttribValue( userID, userUsername, attrib_LastHeartbeatTime, new Date().toString());
-                
-                console.log(`🔄 HB ${userUsername}`);
+
+                console.log(`💚 HB ${userUsername}`);
                 
                 const mainInactive = heartbeatDatas[2].toLowerCase().includes("main");
                 
                 if(AutoKick){
 
-                    if(mainInactive && inactiveIfMainOffline){
+                    if(mainInactive && inactiveIfMainOffline && !userState == "farm"){
                         await setUserAttribValue( userID, userUsername, attrib_UserState, "inactive");
                         sendIDs(client);
                         // And prevent him that he have been kicked
                         const text_haveBeenKicked = localize("a été kick des rerollers actifs car son Main est Offline"," have been kicked out of active rerollers due to Main being Offline");
-                        sendChannelMessage(client, channelID_IDs, `<@${userID}> ${text_haveBeenKicked}`)
+                        sendChannelMessage(client, channelID_Commands, `<@${userID}> ${text_haveBeenKicked}`)
                         console.log(`✖️ Kicked ${userUsername} - Main was Offline`);
                     }
                 }
@@ -1152,8 +1286,24 @@ client.on("messageCreate", async (message) => {
 
             if(await doesUserProfileExists(userID, userUsername)){
             
-                const instances = countDigits(heartbeatDatas[1]);
-                const timeAndPacks = extractNumbers(heartbeatDatas[3]);
+                var instances = 0;
+                var timeAndPacks = 0;
+                var selectedPacks = "";
+
+                heartbeatDatas.forEach((heartbeatData) =>{
+                    if (heartbeatData.includes("Online:")){
+                        instances = extractNumbers(heartbeatData).length;
+                    }
+                    else if (heartbeatData.includes("Packs:")){
+                        timeAndPacks = extractNumbers(heartbeatData);
+                    }
+                    else if (heartbeatData.includes("Select:")){
+                        selectedPacks = heartbeatData.replace("Select: ","");
+                    }
+                });
+                
+                await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_SelectedPack, selectedPacks);
+
                 const time = timeAndPacks[0];
                 var packs = parseInt(timeAndPacks[1]);
 
@@ -1167,8 +1317,10 @@ client.on("messageCreate", async (message) => {
                     await setUserAttribValue( userID, userUsername, attrib_TotalPacksOpened, parseInt(totalPacks) + parseInt(sessionSubsystemPacks));
                 }
                 else{
-                    var totalPacksFarm = await getUserAttribValue( client, userID, attrib_TotalPacksFarm, 0 );
-                    await setUserAttribValue( userID, userUsername, attrib_TotalPacksFarm, parseFloat(totalPacksFarm) + diffPacks);
+                    if(userState == "farm"){
+                        var totalPacksFarm = await getUserAttribValue( client, userID, attrib_TotalPacksFarm, 0 );
+                        await setUserAttribValue( userID, userUsername, attrib_TotalPacksFarm, parseFloat(totalPacksFarm) + diffPacks);
+                    }
                 }
                 
                 await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_DiffPacksSinceLastHB, diffPacks);
@@ -1177,18 +1329,18 @@ client.on("messageCreate", async (message) => {
                 await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_HBInstances, instances);
                 await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_LastHeartbeatTime, new Date().toString());
                 
-                console.log(`🔄 HB ${userUsername} subsystem ${subSystemName}`);
+                console.log(`🩵 HB ${userUsername} subsystem ${subSystemName}`);
 
                 const mainInactive = heartbeatDatas[2].toLowerCase().includes("main");
                 
                 if(AutoKick){
                     
-                    if(mainInactive && inactiveIfMainOffline){
+                    if(mainInactive && inactiveIfMainOffline && !userState == "farm"){
                         await setUserAttribValue( userID, userUsername, attrib_UserState, "inactive");
                         sendIDs(client);
                         // And prevent him that he have been kicked
                         const text_haveBeenKicked = localize("a été kick des rerollers actifs car son Main est Offline"," have been kicked out of active rerollers due to Main being Offline");
-                        sendChannelMessage(client, channelID_IDs, `<@${userID}> ${text_haveBeenKicked}`)
+                        sendChannelMessage(client, channelID_Commands, `<@${userID}> ${text_haveBeenKicked}`)
                         console.log(`✖️ Kicked ${userUsername} - Main was Offline`);
                     }
                 }

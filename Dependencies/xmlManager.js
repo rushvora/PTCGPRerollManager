@@ -9,7 +9,8 @@ const lockServerData = new AsyncLock();
 const debugConsole = false; 
 
 import {
-    attrib_PocketID, 
+    attrib_PocketID,
+    attrib_Prefix,
     attrib_UserState,
     attrib_ActiveState,
     attrib_AverageInstances, 
@@ -17,14 +18,23 @@ import {
     attrib_RealInstances, 
     attrib_SessionTime, 
     attrib_TotalPacksOpened, 
+    attrib_TotalPacksFarm,
+    attrib_TotalAverageInstances,
+    attrib_TotalAveragePPM,
+    attrib_TotalHBTick,
     attrib_SessionPacksOpened,
     attrib_DiffPacksSinceLastHB,
+    attrib_DiffTimeSinceLastHB,
     attrib_PacksPerMin,
-    attrib_GodPackFound, 
+    attrib_GodPackFound,
+    attrib_GodPackLive,
     attrib_LastActiveTime, 
     attrib_LastHeartbeatTime,
     attrib_TotalTime,
+    attrib_TotalTimeFarm,
     attrib_TotalMiss,
+    attrib_AntiCheatUserCount,
+    attrib_SelectedPack,
     attrib_Subsystems,
     attrib_Subsystem,
     attrib_eligibleGPs,
@@ -39,6 +49,7 @@ import {
 
 import {
     inactiveTime,
+    heartbeatRate,
 } from '../config.js';
 
 function cleanString( inputString ){
@@ -453,6 +464,63 @@ async function getUserSubsystemAttribValue( client, attribUserId, subSystemName,
     }
 }
 
+async function getUserSubsystems( user, fallbackValue = "" ) {
+
+    try{
+        var userSubsystems = [];
+
+        if (user[attrib_Subsystems]) {
+            if (user[attrib_Subsystems][0][attrib_Subsystem])
+            {
+                const subsystems = user[attrib_Subsystems][0][attrib_Subsystem][0];
+                if (Array.isArray(subsystems)) {
+                    userSubsystems.push(...subsystems);
+                } else {
+                    userSubsystems.push(subsystems);
+                }
+            }
+        }
+        return userSubsystems;
+        
+    }
+    catch {
+        console.log(`❌ ERROR trying to get subsystems of user ${getUsernameFromUser(user)}`);
+        return fallbackValue;
+    }
+}
+
+async function getUserActiveSubsystems( user, fallbackValue = "" ) {
+
+    try{
+        var activeSubsystems = [];
+
+        var userSubsystems = await getUserSubsystems(user, "");
+        if(userSubsystems == ""){return fallbackValue;}
+
+        for(let i = 0; i< userSubsystems.length; i++){
+            const userSubsystem = userSubsystems[i];
+
+            const lastHBTimeSubsystems = userSubsystem[attrib_LastHeartbeatTime];
+            const currentTime = Date.now();
+            const diffHBSubsystem = (currentTime - new Date(lastHBTimeSubsystems)) / 60000;
+            
+            if(diffHBSubsystem < parseFloat(heartbeatRate+1)){ // If last HB less than Xmn then count instances and session time
+                if (Array.isArray(userSubsystem)) {
+                    activeSubsystems.push(...userSubsystem);
+                } else {
+                    activeSubsystems.push(userSubsystem);
+                }
+            }
+        }
+
+        return activeSubsystems;
+    }
+    catch {
+        console.log(`❌ ERROR trying to get active subsystems of user ${getUsernameFromUser(user)}`);
+        return fallbackValue;
+    }
+}
+
 
 
 // =============================================== Server Datas ===============================================
@@ -729,19 +797,13 @@ async function refreshUserActiveState( user, fallbackValue = ["waiting",0] ){
 async function refreshUserRealInstances( user, activeState, fallbackValue = 1 ){
 
     try{
-        const currentTime = Date.now();
-        const instancesSubsystems = getAttribValueFromUserSubsystems(user, attrib_HBInstances, 0);
-        const lastHBTimeSubsystems = getAttribValueFromUserSubsystems(user, attrib_LastHeartbeatTime, 0);
         var totalInstancesSubsystems = 0;
-
-        if(lastHBTimeSubsystems.length > 0) {
-            for (let i = 0; i < lastHBTimeSubsystems.length; i++){
-
-                const diffHBSubsystem = (currentTime - new Date(lastHBTimeSubsystems[i])) / 60000;
-
-                if(diffHBSubsystem < parseFloat(inactiveTime)){ // If last HB less than Xmn then count instances and session time
-                    totalInstancesSubsystems += parseInt(instancesSubsystems[i]);
-                }
+        const userActiveSubsystems = await getUserActiveSubsystems(user);
+        if (userActiveSubsystems != ""){
+            for(let i = 0 ; i<userActiveSubsystems.length ; i++){
+                const userActiveSubsystem = userActiveSubsystems[i];
+                const hbInstancesSubsystems = getAttribValueFromUser(userActiveSubsystem, attrib_HBInstances, 0);
+                totalInstancesSubsystems += parseInt(hbInstancesSubsystems);
             }
         }
 
@@ -815,7 +877,7 @@ async function backupFile(filePath) {
         try {
             data = fs.readFileSync(pathUsersData, 'utf8');
         } catch (error) {
-            console.log('❌ ERROR trying to read fileAsync');
+            console.log(`❌ ERROR trying to read file at ${pathUsersData}`);
         }
 
         const fileName = path.basename(filePath);
@@ -852,6 +914,8 @@ export {
     setAllUsersAttribValue,
     setUserSubsystemAttribValue,
     getUserSubsystemAttribValue,
+    getUserSubsystems,
+    getUserActiveSubsystems,
     getActiveUsers,
     getActiveIDs,
     getAllUsers,
