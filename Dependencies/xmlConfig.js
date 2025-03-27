@@ -25,6 +25,7 @@ const attrib_TotalTimeFarm = "TotalTimeFarm";
 const attrib_TotalMiss = "TotalMiss";
 const attrib_AntiCheatUserCount = "AntiCheatUserCount";
 const attrib_SelectedPack = "SelectedPack";
+const attrib_RollingType = "RollingType";
 const attrib_Subsystems = "Subsystems";
 const attrib_Subsystem = "Subsystem";
 
@@ -67,7 +68,6 @@ export{
     attrib_TotalTimeFarm,
     attrib_TotalMiss,
     attrib_AntiCheatUserCount,
-    attrib_SelectedPack,
     attrib_Subsystems,
     attrib_Subsystem,
     attrib_eligibleGPs,
@@ -76,6 +76,8 @@ export{
     attrib_liveGP,
     attrib_ineligibleGPs,
     attrib_ineligibleGP,
+    attrib_SelectedPack,
+    attrib_RollingType,
     pathUsersData,
     pathServerData,
 }
