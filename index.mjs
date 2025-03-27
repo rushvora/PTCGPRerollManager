@@ -33,6 +33,7 @@ import {
     missNotLikedMultiplier,
     showPerPersonLive,
     EnglishLanguage,
+    AntiCheat,
     AutoKick,
     refreshInterval,
     inactiveTime,
@@ -261,11 +262,13 @@ client.once(Events.ClientReady, async c => {
         await backupFile(pathUsersData);
     }, convertMnToMs(backupUserDatasTime+1));
 
-    setInterval(async() =>{
+    if(AntiCheat){
+        setInterval(async() =>{
+            await updateAntiCheat(client);
+        }, convertMnToMs(5));
+    
         await updateAntiCheat(client);
-    }, convertMnToMs(5));
-
-    await updateAntiCheat(client);
+    }
 
     // Backup UserData.xml file
     setInterval(async() =>{
