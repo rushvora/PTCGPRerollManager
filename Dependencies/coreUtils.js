@@ -16,6 +16,7 @@ import {
     missNotLikedMultiplier,
     showPerPersonLive,
     EnglishLanguage,
+    AntiCheat,
     AutoKick,
     refreshInterval,
     inactiveTime,
@@ -62,7 +63,7 @@ import {
     STS_Dialga_CustomEmojiName,
     STS_Palkia_CustomEmojiName,
     TL_Arceus_CustomEmojiName,
-    SR_Lucario_CustomEmojiName,
+    SR_Giratina_CustomEmojiName,
     outputUserDataOnGitGist,
 } from '../config.js';
 
@@ -350,7 +351,6 @@ async function getUsersStats(users, members, isAntiCheatOn){
             var rollingType = getAttribValueFromUser(user, attrib_RollingType, groupPacksType.toString());
             if (rollingType == ""){rollingType = groupPacksType.toString()}
             const packsAmountPerRun = extractNumbers(rollingType)[0];
-            console.log(username + "|" + packsAmountPerRun + "|" + rollingType);
             const acUserCount = getAttribValueFromUser(user, attrib_AntiCheatUserCount, 0);
             const acPPM = roundToOneDecimal((parseFloat(acUserCount) * packsAmountPerRun)/30); // UserCount * 5 Pack / Pseudonym over 30 minutes sent every 5 minutes
             const diffPPM = Math.abs(avgPackMn - acPPM); // Negatives values will mean that AntiCheat values are greater that HB ones so it's fine
@@ -400,20 +400,24 @@ async function sendStats(client){
     // Exit if 0 activeUsers
     if (activeUsers == "" || activeUsers.length == 0) {return};
 
-    const recentAntiCheatMessages = await getLastsAntiCheatMessages(client);
     var isAntiCheatOn = false;
     var antiCheatVerifier = "";
-    if (recentAntiCheatMessages.messages.length === Math.floor(30/antiCheatRate)) {
-        
-        isAntiCheatOn = true;
-        const memberAntiCheatVerifier = await getMemberByID(client, recentAntiCheatMessages.prefix);
-        
-        // Skip if member do not exist
-        if (memberAntiCheatVerifier == "") {
-            antiCheatVerifier = "Unknown"
-            console.log(`❗️ AntiCheat Verifier ID ${userID} is no registered on this server`)
-        } else {
-            antiCheatVerifier = memberAntiCheatVerifier.displayName;
+
+    if (AntiCheat){
+        const recentAntiCheatMessages = await getLastsAntiCheatMessages(client);
+    
+        if (recentAntiCheatMessages.messages.length === Math.floor(30/antiCheatRate)) {
+            
+            isAntiCheatOn = true;
+            const memberAntiCheatVerifier = await getMemberByID(client, recentAntiCheatMessages.prefix);
+            
+            // Skip if member do not exist
+            if (memberAntiCheatVerifier == "") {
+                antiCheatVerifier = "Unknown"
+                console.log(`❗️ AntiCheat Verifier ID ${userID} is no registered on this server`)
+            } else {
+                antiCheatVerifier = memberAntiCheatVerifier.displayName;
+            }
         }
     }
 
@@ -527,7 +531,9 @@ async function sendStats(client){
     // ========================= SERVER RULES =========================
     var serverState = `\`\`\`ansi\n`;
 
-    serverState += `🛡️ Anti-Cheat : ${isAntiCheatOn == true ? colorText("ON","green") + colorText(` Verified by ${antiCheatVerifier}`, "gray") : colorText("OFF","red")}\n`;
+    if (AntiCheat){
+        serverState += `🛡️ Anti-Cheat : ${isAntiCheatOn == true ? colorText("ON","green") + colorText(` Verified by ${antiCheatVerifier}`, "gray") : colorText("OFF","red")}\n`;
+    }
     serverState += `💤 Auto Kick : ${AutoKick == true ? colorText("ON","green") : colorText("OFF","red")}\n`;
     serverState += `🩸 Leeching : ${canPeopleLeech == true ? colorText("ON","green") : colorText("OFF","red")}\n`;
 
@@ -1427,7 +1433,7 @@ function incrementSelectedPacks(packCounter, selectedPacks, instanceCount){
         packCounter["TL_Arceus"] += differentPacksUnit;
     }
     if(selectedPacks.toUpperCase().includes("SHINING")){
-        packCounter["SR_Lucario"] += differentPacksUnit;
+        packCounter["SR_Giratina"] += differentPacksUnit;
     }
 }
 
@@ -1441,7 +1447,7 @@ async function getSelectedPacksEmbedText(client, activeUsers ){
         STS_Dialga: 0,
         STS_Palkia: 0,
         TL_Arceus: 0,
-        SR_Lucario: 0
+        SR_Giratina: 0
       };
 
     for( var i = 0; i < activeUsers.length; i++ ) {
@@ -1479,7 +1485,7 @@ async function getSelectedPacksEmbedText(client, activeUsers ){
     const emoji_STS_Dialga = findEmoji(client, STS_Dialga_CustomEmojiName, "🕒");
     const emoji_STS_Palkia = findEmoji(client, STS_Palkia_CustomEmojiName, "🌌");
     const emoji_TL_Arceus = findEmoji(client, TL_Arceus_CustomEmojiName, "💡");
-    const emoji_SR_Lucario = findEmoji(client, SR_Lucario_CustomEmojiName, "✨");
+    const emoji_SR_Giratina = findEmoji(client, SR_Giratina_CustomEmojiName, "✨");
     
     const text_mewtwo = `${packCounter["GA_Mewtwo"] > 0 ?       `${emoji_GA_Mewtwo} ${formatNumberWithSpaces(packCounter["GA_Mewtwo"], 4)}` : "" }`
     const text_charizard = `${packCounter["GA_Charizard"] > 0 ? `${emoji_GA_Charizard} ${formatNumberWithSpaces(packCounter["GA_Charizard"], 4)}` : "" }`
@@ -1489,9 +1495,9 @@ async function getSelectedPacksEmbedText(client, activeUsers ){
     const text_dialga = `${packCounter["STS_Dialga"] > 0 ?      `${emoji_STS_Dialga} ${formatNumberWithSpaces(packCounter["STS_Dialga"], 4)}` : "" }`
     const text_palkia = `${packCounter["STS_Palkia"] > 0 ?      `${emoji_STS_Palkia} ${formatNumberWithSpaces(packCounter["STS_Palkia"], 4)}` : "" }`
     const text_arceus = `${packCounter["TL_Arceus"] > 0 ?       `${emoji_TL_Arceus} ${formatNumberWithSpaces(packCounter["TL_Arceus"], 4)}` : "" }`
-    const text_lucario = `${packCounter["SR_Lucario"] > 0 ?     `${emoji_SR_Lucario} ${packCounter["SR_Lucario"]}` : "" }`
+    const text_giratina = `${packCounter["SR_Giratina"] > 0 ?     `${emoji_SR_Giratina} ${packCounter["SR_Giratina"]}` : "" }`
     
-    return `# ${text_mewtwo+text_charizard+text_pikachu+text_mew}${text_spaceSet1}${text_dialga+text_palkia+text_arceus+text_lucario}`
+    return `# ${text_mewtwo+text_charizard+text_pikachu+text_mew}${text_spaceSet1}${text_dialga+text_palkia+text_arceus+text_giratina}`
 }
 
 export { 

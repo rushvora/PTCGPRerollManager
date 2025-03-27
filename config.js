@@ -17,7 +17,7 @@ const channelID_Webhook = "XXXXXXXXXXXXXXXXXXX";
 // THE ID OF THE DISCORD CHANNEL - Where the Heartbeat Webhooks is linked, better be a separate channel from packs webhook
 const channelID_Heartbeat = "XXXXXXXXXXXXXXXXXXX";
 // THE ID OF THE DISCORD CHANNEL - Where the AntiCheat pseudonyms are sent in order to analyse
-const channelID_AntiCheat = "XXXXXXXXXXXXXXXXXXX";
+const channelID_AntiCheat = "";
 
 // Create a new fine-grained token for your GitHub account, and make sure to only check to read/write your Gists : https://github.com/settings/tokens
 const gitToken = "github_pat_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
@@ -29,6 +29,8 @@ const gitGistGroupName = "PTCGPRerollGroupIDs";
 const gitGistGPName = "EligibleGPs";
 
 // =========================================== RULES ===========================================
+// Choose if you want the AntiCheat to be enabled or not, if yes then fill "channelID_AntiCheat" above
+const AntiCheat = true;
 // If you want your group to be able to add other ppl than themselves using /active @user 
 const canPeopleAddOthers = true;
 // If you want your group to be able to remove other ppl than themselves using /inactive @user 
@@ -157,6 +159,7 @@ export {
     missNotLikedMultiplier,
     showPerPersonLive,
     EnglishLanguage,
+    AntiCheat,
     AutoKick,
     refreshInterval,
     inactiveTime,
