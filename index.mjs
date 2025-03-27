@@ -153,19 +153,22 @@ import {
     attrib_RealInstances, 
     attrib_SessionTime, 
     attrib_TotalPacksOpened, 
-    attrib_TotalPacksFarm, 
+    attrib_TotalPacksFarm,
+    attrib_TotalAverageInstances,
+    attrib_TotalAveragePPM,
+    attrib_TotalHBTick,
     attrib_SessionPacksOpened,
     attrib_DiffPacksSinceLastHB,
     attrib_DiffTimeSinceLastHB,
     attrib_PacksPerMin,
-    attrib_GodPackFound, 
+    attrib_GodPackFound,
+    attrib_GodPackLive,
     attrib_LastActiveTime, 
     attrib_LastHeartbeatTime,
     attrib_TotalTime,
     attrib_TotalTimeFarm,
     attrib_TotalMiss,
     attrib_AntiCheatUserCount,
-    attrib_SelectedPack,
     attrib_Subsystems,
     attrib_Subsystem,
     attrib_eligibleGPs,
@@ -174,12 +177,10 @@ import {
     attrib_liveGP,
     attrib_ineligibleGPs,
     attrib_ineligibleGP,
+    attrib_SelectedPack,
+    attrib_RollingType,
     pathUsersData,
     pathServerData,
-    attrib_GodPackLive,
-    attrib_TotalHBTick,
-    attrib_TotalAveragePPM,
-    attrib_TotalAverageInstances,
 } from './Dependencies/xmlConfig.js';
 
 import {
@@ -221,25 +222,6 @@ function getNexIntervalRemainingTime() {
     const timeRemaining = (refreshInterval) - convertMsToMn(elapsedTime);
     return timeRemaining;
 }
-
-// var pouetTime = 0;
-// var pouetPacks = 0;
-// function spamHB(client){
-
-//     const randomNumber = Math.random();
-//     if (randomNumber < 0.1) {
-//         pouetTime = 0;
-//         pouetPacks = 0;
-//     }
-
-//     sendChannelMessage(client, channelID_Heartbeat, `181053462098870272
-// Online: Main, 1, 2, 3, 4, 5, 6.
-// Offline: none.
-// Time: ${pouetTime}m Packs: ${pouetPacks} Avg: 0 packs/min
-// Type: 5 Pack (Menu Delete)`)
-//     pouetTime+=30;
-//     pouetPacks+=60;
-// }
 
 // Events
 
@@ -291,10 +273,6 @@ client.once(Events.ClientReady, async c => {
     }, convertMnToMs(60));
     
     await updateInactiveGPs(client);
-    
-    // setInterval(async() =>{
-    //     spamHB(client);
-    // }, convertMnToMs(0.02));
 
     // Clear all guild commands (Warning : also clear channels restrictions set on discord)
     // guild.commands.set([]);
@@ -965,7 +943,7 @@ client.on(Events.InteractionCreate, async interaction => {
             const maxNameLength = 14;
             const prefixLength = prefix.length + 1; // Include the underscore in the length calculation
 
-            const forbiddenWords = ["ass","sht","nazi","anus","nig","rape","pede","dic","bitte","hymen","pimp","shto","ugly","bch","nun","tara","wth","bastard","baka","cono"];
+            const forbiddenWords = ["ass","sht","nazi","anus","nig","rape","pede","dic","bitte","hymen","pimp","shto","ugly","bch","nun","tara","wth","bastard","baka","cono","std"];
 
             var content = "";
 
@@ -1200,6 +1178,7 @@ client.on("messageCreate", async (message) => {
                 var instances = 0;
                 var timeAndPacks = 0;
                 var selectedPacks = "";
+                var rollingType = "";
 
                 heartbeatDatas.forEach((heartbeatData) =>{
                     if (heartbeatData.includes("Online:")){
@@ -1211,9 +1190,13 @@ client.on("messageCreate", async (message) => {
                     else if (heartbeatData.includes("Select:")){
                         selectedPacks = heartbeatData.replace("Select: ","");
                     }
+                    else if (heartbeatData.includes("Type:")){
+                        rollingType = heartbeatData.replace("Type: ","");
+                    }
                 });
                 
                 await setUserAttribValue( userID, userUsername, attrib_SelectedPack, selectedPacks);
+                await setUserAttribValue( userID, userUsername, attrib_RollingType, rollingType);
 
                 const time = timeAndPacks[0];
                 var packs = parseInt(timeAndPacks[1]);
@@ -1289,6 +1272,7 @@ client.on("messageCreate", async (message) => {
                 var instances = 0;
                 var timeAndPacks = 0;
                 var selectedPacks = "";
+                var rollingType = "";
 
                 heartbeatDatas.forEach((heartbeatData) =>{
                     if (heartbeatData.includes("Online:")){
@@ -1300,9 +1284,13 @@ client.on("messageCreate", async (message) => {
                     else if (heartbeatData.includes("Select:")){
                         selectedPacks = heartbeatData.replace("Select: ","");
                     }
+                    else if (heartbeatData.includes("Type:")){
+                        rollingType = heartbeatData.replace("Type: ","");
+                    }
                 });
                 
                 await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_SelectedPack, selectedPacks);
+                await setUserSubsystemAttribValue( userID, userUsername, subSystemName, attrib_RollingType, rollingType);
 
                 const time = timeAndPacks[0];
                 var packs = parseInt(timeAndPacks[1]);

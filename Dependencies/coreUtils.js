@@ -138,12 +138,16 @@ import {
     attrib_RealInstances, 
     attrib_SessionTime, 
     attrib_TotalPacksOpened, 
-    attrib_TotalPacksFarm, 
+    attrib_TotalPacksFarm,
+    attrib_TotalAverageInstances,
+    attrib_TotalAveragePPM,
+    attrib_TotalHBTick,
     attrib_SessionPacksOpened,
     attrib_DiffPacksSinceLastHB,
     attrib_DiffTimeSinceLastHB,
     attrib_PacksPerMin,
-    attrib_GodPackFound, 
+    attrib_GodPackFound,
+    attrib_GodPackLive,
     attrib_LastActiveTime, 
     attrib_LastHeartbeatTime,
     attrib_TotalTime,
@@ -158,10 +162,10 @@ import {
     attrib_liveGP,
     attrib_ineligibleGPs,
     attrib_ineligibleGP,
+    attrib_SelectedPack,
+    attrib_RollingType,
     pathUsersData,
     pathServerData,
-    attrib_GodPackLive,
-    attrib_SelectedPack,
 } from './xmlConfig.js';
 
 import {
@@ -342,14 +346,19 @@ async function getUsersStats(users, members, isAntiCheatOn){
             const text_AntiCheatPPM = colorText(`PPM:`, "gray");
             const text_AntiCheatCount = colorText(`Accounts:`, "gray");
             const text_inMin = colorText(`in 30mn`, "gray");
+            
+            var rollingType = getAttribValueFromUser(user, attrib_RollingType, groupPacksType.toString());
+            if (rollingType == ""){rollingType = groupPacksType.toString()}
+            const packsAmountPerRun = extractNumbers(rollingType)[0];
+            console.log(username + "|" + packsAmountPerRun + "|" + rollingType);
             const acUserCount = getAttribValueFromUser(user, attrib_AntiCheatUserCount, 0);
-            const acPPM = roundToOneDecimal((parseFloat(acUserCount)*groupPacksType)/30); // UserCount * 5 Pack / Pseudonym over 30 minutes sent every 5 minutes
+            const acPPM = roundToOneDecimal((parseFloat(acUserCount) * packsAmountPerRun)/30); // UserCount * 5 Pack / Pseudonym over 30 minutes sent every 5 minutes
+            const diffPPM = Math.abs(avgPackMn - acPPM); // Negatives values will mean that AntiCheat values are greater that HB ones so it's fine
+            
             const text_acPPM = colorText(acPPM, "gray");
             const text_AC_Count = colorText(acUserCount, "gray");
-
-            const diffPPM = Math.abs(avgPackMn - acPPM); // Negatives values will mean that AntiCheat values are greater that HB ones so it's fine
+            
             var text_AntiCheat = "";  
-
             if (sessionTime == 0) {
                 text_AntiCheat = colorText(`Anti-Cheat`, "gray");
             } else if (diffPPM < 1) {
@@ -1417,7 +1426,7 @@ function incrementSelectedPacks(packCounter, selectedPacks, instanceCount){
     if(selectedPacks.toUpperCase().includes("ARCEUS")){
         packCounter["TL_Arceus"] += differentPacksUnit;
     }
-    if(selectedPacks.toUpperCase().includes("LUCARIO")){
+    if(selectedPacks.toUpperCase().includes("SHINING")){
         packCounter["SR_Lucario"] += differentPacksUnit;
     }
 }
