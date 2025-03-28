@@ -139,7 +139,7 @@ const MI_Mew_CustomEmojiName = "mew"; // 🏝️ if not found, alternative : �
 const STS_Dialga_CustomEmojiName = "dialga"; // 🕒 if not found, alternative : 🟦
 const STS_Palkia_CustomEmojiName = "palkia"; // 🌌 if not found, alternative : 🟪
 const TL_Arceus_CustomEmojiName = "arceus"; // 💡 if not found, alternative : 🟨
-const SR_Lucario_CustomEmojiName = "lucario_shiny"; // ✨ if not found
+const SR_Giratina_CustomEmojiName = "lucario_shiny"; // ✨ if not found
 
 export {
     token,
@@ -206,6 +206,6 @@ export {
     STS_Dialga_CustomEmojiName,
     STS_Palkia_CustomEmojiName,
     TL_Arceus_CustomEmojiName,
-    SR_Lucario_CustomEmojiName,
+    SR_Giratina_CustomEmojiName,
     outputUserDataOnGitGist,
 };
