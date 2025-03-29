@@ -78,15 +78,15 @@ const safeEligibleIDsFiltering = true; // true = all flagged as 5/5
 // Allows you to bypass GP based on Packs Amount, Exemple : forceSkipMin2Stars 2 & forceSkipMinPacks 2 will 
 // - not send in verif forum all GP [3P][2/5] [4P][2/5] [5P][2/5] and below 
 // - send in verif forum all GP [1P][2/5] [2P][2/5] and abobe
-const forceSkipMin2Stars = 2;
-const forceSkipMinPacks = 2;
+const forceSkipMin2Stars = parseInt(process.env.FORCE_SKIP_MIN_2STARS, 10);
+const forceSkipMinPacks = parseInt(process.env.FORCE_SKIP_MIN_PACKS, 10);
 
 // =========================================== OTHER TIME SETTINGS ===========================================
 
 // Decide after how much time you want the verification posts to automatically closed, it'll be the time from the post creation, not the last activity
 // Age of post be before closing the post ⚠️ Closed Posts will be removed from the Eligible GPs / VIP IDs list
 const AutoCloseLivePostTime = 96;//hours
-const AutoCloseNotLivePostTime = 36;//hours
+const AutoCloseNotLivePostTime = 72;//hours
 // No need to modify it except if you specifically changed it in the script
 const heartbeatRate = 30;//minutes
 // No need to modify it except if you specifically changed it in the script
