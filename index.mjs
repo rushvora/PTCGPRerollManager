@@ -104,6 +104,7 @@ import {
     sendStatusHeader,
     inactivityCheck,
     extractGPInfo,
+    extractDoubleStarInfo,
     createForumPost,
     markAsDead, 
     updateEligibleIDs,
@@ -1129,7 +1130,7 @@ client.on("messageCreate", async (message) => {
 
             if(channelID_2StarVerificationForum == ""){return;}
 
-            var GPInfo = extractGPInfo(message.content);
+            var GPInfo = extractDoubleStarInfo(message.content);
 
             var ownerID = GPInfo.ownerID;
             var accountName = GPInfo.accountName;
