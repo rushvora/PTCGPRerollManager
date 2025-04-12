@@ -39,6 +39,7 @@ import {
     resetServerDataFrequently,
     resetServerDataTime,
     safeEligibleIDsFiltering,
+    addDoubleStarToVipIdsTxt,
     forceSkipMin2Stars,
     forceSkipMinPacks,
     text_verifiedLogo,
@@ -1015,34 +1016,37 @@ async function updateEligibleIDs(client){
         }
     }
 
-    const doubleStarForum = await client.channels.cache.get(channelID_2StarVerificationForum);
-    const doubleStarThreads = await doubleStarForum.threads.fetchActive();
-
-    for (let thread of doubleStarThreads.threads) {
-        const nestedThread = thread[1];
-
-        // Check if post contains any logo other skip
-        if (nestedThread.name.includes(text_notLikedLogo) || nestedThread.name.includes(text_waitingLogo) || nestedThread.name.includes(text_likedLogo) || nestedThread.name.includes(text_verifiedLogo)) {
-
-            const initialMessage = await getOldestMessage(nestedThread);
-            const contentSplit = initialMessage.content.split('\n');
-
-            const cleanDoubleStarThreadName = replaceAnyLogoWith(nestedThread.name, "");
-            const doubleStarPocketName = cleanDoubleStarThreadName.split(" ")[1];
-            const doubleStarCount = "5/5";
-
-            if(!safeEligibleIDsFiltering){ // except if safe filtering is off
-                var gpTwoStarCountArray = cleanDoubleStarThreadName.match(/\[(\d+\/\d+)\]/);
-                doubleStarCount = gpTwoStarCountArray.length > 1 ? gpTwoStarCountArray[1] : 2;
-            }
-
-            const doubleStarPocketID = contentSplit.find(line => line.includes('ID:'));
-            
-            if(doubleStarPocketID != undefined){
-                idList += `${doubleStarPocketID.replace("ID:","")} | ${doubleStarPocketName} | ${doubleStarCount}\n`;
+    if (addDoubleStarToVipIdsTxt) {
+        const doubleStarForum = await client.channels.cache.get(channelID_2StarVerificationForum);
+        const doubleStarThreads = await doubleStarForum.threads.fetchActive();
+    
+        for (let thread of doubleStarThreads.threads) {
+            const nestedThread = thread[1];
+    
+            // Check if post contains any logo other skip
+            if (nestedThread.name.includes(text_notLikedLogo) || nestedThread.name.includes(text_waitingLogo) || nestedThread.name.includes(text_likedLogo) || nestedThread.name.includes(text_verifiedLogo)) {
+    
+                const initialMessage = await getOldestMessage(nestedThread);
+                const contentSplit = initialMessage.content.split('\n');
+    
+                const cleanDoubleStarThreadName = replaceAnyLogoWith(nestedThread.name, "");
+                const doubleStarPocketName = cleanDoubleStarThreadName.split(" ")[1];
+                const doubleStarCount = "5/5";
+    
+                if(!safeEligibleIDsFiltering){ // except if safe filtering is off
+                    var gpTwoStarCountArray = cleanDoubleStarThreadName.match(/\[(\d+\/\d+)\]/);
+                    doubleStarCount = gpTwoStarCountArray.length > 1 ? gpTwoStarCountArray[1] : 2;
+                }
+    
+                const doubleStarPocketID = contentSplit.find(line => line.includes('ID:'));
+                
+                if(doubleStarPocketID != undefined){
+                    idList += `${doubleStarPocketID.replace("ID:","")} | ${doubleStarPocketName} | ${doubleStarCount}\n`;
+                }
             }
         }
     }
+
     console.log(text_Done)
 
     await updateGist(idList, gitGistGPName);

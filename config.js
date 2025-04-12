@@ -73,6 +73,7 @@ const outputUserDataOnGitGist = true;
 // =========================================== ELIGIBLES IDs ===========================================
 // If some ppl in your group are running Min2Stars : 2 and some others 3, that flags all the GPs as 5/5 in the list to avoid to auto remove bot from kicking 2/5 for those who are at Min2Stars : 3
 const safeEligibleIDsFiltering = true; // true = all flagged as 5/5
+const addDoubleStarToVipIdsTxt = false; // true = add double star pack account usernames to vip ids txt for GP Test Mode
 
 // =========================================== FORCE SKIP ===========================================
 // Allows you to bypass GP based on Packs Amount, Exemple : forceSkipMin2Stars 2 & forceSkipMinPacks 2 will 
@@ -185,6 +186,7 @@ export {
     resetServerDataFrequently,
     resetServerDataTime,
     safeEligibleIDsFiltering,
+    addDoubleStarToVipIdsTxt,
     forceSkipMin2Stars,
     forceSkipMinPacks,
     text_verifiedLogo,
