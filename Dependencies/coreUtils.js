@@ -39,6 +39,7 @@ import {
     resetServerDataFrequently,
     resetServerDataTime,
     safeEligibleIDsFiltering,
+    addDoubleStarToVipIdsTxt,
     forceSkipMin2Stars,
     forceSkipMinPacks,
     text_verifiedLogo,
@@ -839,6 +840,36 @@ function extractGPInfo(message) {
     };
 }
 
+function extractDoubleStarInfo(message) {
+    try {
+        const regexOwnerID = /<@(\d+)>/;
+        const regexAccountName = /found by (\S+)/;
+        const regexAccountID = /\((\d+)\)/;
+        const regexPackAmount = /\((\d+) packs/;
+    
+        const ownerIDMatch = message.match(regexOwnerID);
+        const accountNameMatch = message.match(regexAccountName);
+        const accountIDMatch = message.match(regexAccountID);
+        const packAmountMatch = message.match(regexPackAmount);
+    
+        const ownerID = ownerIDMatch ? ownerIDMatch[1] : "0000000000000000";
+        const accountName = accountNameMatch ? accountNameMatch[1] : "NoAccountName";
+        const accountID = accountIDMatch ? accountIDMatch[1] : "0000000000000000";
+        const packAmount = packAmountMatch ? packAmountMatch[1] : 0;
+    
+        console.log(`Extracted info - OwnerID: ${ownerID}, AccountName: ${accountName}, AccountID: ${accountID}, PackAmount: ${packAmount}`);
+    
+        return {
+            ownerID,
+            accountName,
+            accountID,
+            packAmount
+        };        
+    } catch (error) {
+        console.log(`❌ ERROR - Failed to extract double star info for message: ${message}` + error)
+    }
+}
+
 async function createForumPost(client, message, channelID, packName, titleName, ownerID, accountID, packAmount){
 
     try{
@@ -981,6 +1012,37 @@ async function updateEligibleIDs(client){
             if(gpPocketID != undefined){
                 
                 idList += `${gpPocketID.replace("ID:","")} | ${gpPocketName} | ${gpTwoStarCount}\n`;
+            }
+        }
+    }
+
+    if (addDoubleStarToVipIdsTxt) {
+        const doubleStarForum = await client.channels.cache.get(channelID_2StarVerificationForum);
+        const doubleStarThreads = await doubleStarForum.threads.fetchActive();
+    
+        for (let thread of doubleStarThreads.threads) {
+            const nestedThread = thread[1];
+    
+            // Check if post contains any logo other skip
+            if (nestedThread.name.includes(text_notLikedLogo) || nestedThread.name.includes(text_waitingLogo) || nestedThread.name.includes(text_likedLogo) || nestedThread.name.includes(text_verifiedLogo)) {
+    
+                const initialMessage = await getOldestMessage(nestedThread);
+                const contentSplit = initialMessage.content.split('\n');
+    
+                const cleanDoubleStarThreadName = replaceAnyLogoWith(nestedThread.name, "");
+                const doubleStarPocketName = cleanDoubleStarThreadName.split(" ")[1];
+                const doubleStarCount = "5/5";
+    
+                if(!safeEligibleIDsFiltering){ // except if safe filtering is off
+                    var gpTwoStarCountArray = cleanDoubleStarThreadName.match(/\[(\d+\/\d+)\]/);
+                    doubleStarCount = gpTwoStarCountArray.length > 1 ? gpTwoStarCountArray[1] : 2;
+                }
+    
+                const doubleStarPocketID = contentSplit.find(line => line.includes('ID:'));
+                
+                if(doubleStarPocketID != undefined){
+                    idList += `${doubleStarPocketID.replace("ID:","")} | ${doubleStarPocketName} | ${doubleStarCount}\n`;
+                }
             }
         }
     }
@@ -1509,6 +1571,7 @@ export {
     sendStatusHeader,
     inactivityCheck,
     extractGPInfo,
+    extractDoubleStarInfo,
     createForumPost,
     markAsDead, 
     updateEligibleIDs,
