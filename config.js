@@ -31,6 +31,12 @@ const gitGistGroupName = process.env.GIT_GIST_GROUPNAME;
 // And the GitGist Name based on the name you gave it
 const gitGistGPName = process.env.GIT_GIST_GPNAME;
 
+// In order to migrate gists from one account to another
+// Create a new fine-grained token for your GitHub account, and make sure to only check to read/write your Gists : https://github.com/settings/tokens
+const gitToken2 = process.env.NEW_GIT_GIST_TOKEN;
+// Then, create a GitGist : https://gist.github.com/ and get its ID (the numbers in the URL).
+const gitGistID2 = process.env.NEW_GIT_GIST_ID;
+
 // =========================================== RULES ===========================================
 // Choose if you want the AntiCheat to be enabled or not, if yes then fill "channelID_AntiCheat" above
 const AntiCheat = process.env.ENABLE_ANTICHEAT === 'true' ? true : false;
@@ -159,6 +165,8 @@ export {
     gitGistID,
     gitGistGroupName,
     gitGistGPName,
+    gitToken2,
+    gitGistID2,
     missBeforeDead,
     missNotLikedMultiplier,
     showPerPersonLive,
