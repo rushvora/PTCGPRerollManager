@@ -26,6 +26,7 @@ const attrib_TotalMiss = "TotalMiss";
 const attrib_AntiCheatUserCount = "AntiCheatUserCount";
 const attrib_SelectedPack = "SelectedPack";
 const attrib_RollingType = "RollingType";
+const attrib_DisplayName = "DisplayName";
 const attrib_Subsystems = "Subsystems";
 const attrib_Subsystem = "Subsystem";
 
@@ -78,6 +79,7 @@ export{
     attrib_ineligibleGP,
     attrib_SelectedPack,
     attrib_RollingType,
+    attrib_DisplayName,
     pathUsersData,
     pathServerData,
 }

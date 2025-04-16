@@ -50,6 +50,7 @@ import {
 import {
     inactiveTime,
     heartbeatRate,
+    canPeopleRemoveOthers,
 } from '../config.js';
 
 function cleanString( inputString ){
@@ -644,12 +645,23 @@ async function getActiveUsers( includeFarmers = false, includeLeechers = false, 
     }
 }
 
-async function getActiveIDs( joined = true ){
+async function getActiveIDs(){
     const activeUsers = await getActiveUsers(false, true);
-    const gitContent = getAttribValueFromUsers(activeUsers, attrib_PocketID, "");
+    const pocketIDs = getAttribValueFromUsers(activeUsers, attrib_PocketID, "");
     
-    if(joined) {return gitContent.join('\n');}
-    return gitContent;
+    if(canPeopleRemoveOthers){
+        var usersSelectedPacks = getAttribValueFromUsers(activeUsers, attrib_SelectedPack, "");
+
+        var pocketIDsWithPacks = "";
+        for (let i = 0 ; i<pocketIDs.length ; i++){
+            const pocketID = pocketIDs[i];
+            const selectedPacks = usersSelectedPacks[i];
+            pocketIDsWithPacks += `${pocketID} | ${selectedPacks} |\n`
+        }
+        return pocketIDsWithPacks
+    }
+    
+    return pocketIDs.join('\n');
 }
 
 async function getAllUsers() {
@@ -905,6 +917,9 @@ async function backupFile(filePath) {
 }
 
 export {
+    lockUsersData,
+    lockServerData,
+    readFileAsync,
     checkFileExists,
     checkFileExistsOrCreate,
     writeFile,

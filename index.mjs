@@ -181,6 +181,7 @@ import {
     attrib_ineligibleGP,
     attrib_SelectedPack,
     attrib_RollingType,
+    attrib_DisplayName,
     pathUsersData,
     pathServerData,
 } from './Dependencies/xmlConfig.js';
@@ -588,7 +589,7 @@ client.on(Events.InteractionCreate, async interaction => {
         if(interaction.commandName === `active`){
 
             await interaction.deferReply();
-            const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit other user");
+            const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission to edit other user");
             
             var user = interaction.user;
             const userArg = interaction.options.getUser(`user`);
@@ -610,7 +611,7 @@ client.on(Events.InteractionCreate, async interaction => {
         if(interaction.commandName === `inactive`){
 
             await interaction.deferReply();
-            const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit the other user");
+            const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission to edit the other user");
             
             var user = interaction.user;
             const userArg = interaction.options.getUser(`user`);
@@ -632,7 +633,7 @@ client.on(Events.InteractionCreate, async interaction => {
         if(interaction.commandName === `farm`){
 
             await interaction.deferReply();
-            const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit the other user");
+            const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission to edit the other user");
             
             var user = interaction.user;
             const userArg = interaction.options.getUser(`user`);
@@ -654,7 +655,7 @@ client.on(Events.InteractionCreate, async interaction => {
         if(interaction.commandName === `leech`){
 
             await interaction.deferReply();
-            const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission de edit the other user");
+            const text_missingPerm = localize("n\'a pas les permissions nécessaires pour changer l\'état de","do not have the permission to edit the other user");
             
             var user = interaction.user;
             const userArg = interaction.options.getUser(`user`);
@@ -947,7 +948,7 @@ client.on(Events.InteractionCreate, async interaction => {
             const maxNameLength = 14;
             const prefixLength = prefix.length + 1; // Include the underscore in the length calculation
 
-            const forbiddenWords = ["ass","sht","nazi","anus","nig","rape","pede","dic","bitte","hymen","pimp","shto","ugly","bch","nun","tara","wth","bastard","baka","cono","std"];
+            const forbiddenWords = ["ass","sht","nazi","anus","nig","rape","pede","dic","bitte","hymen","pimp","shto","ugly","bch","nun","tara","wth","bastard","baka","cono","std","cox","chope"];
 
             var content = "";
 
@@ -983,7 +984,7 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.channel.send({
                 files: [{
                     attachment: Buffer.from(content),
-                    name: 'usernames_default.txt'
+                    name: 'usernames.txt'
                 }]
             })
         }
@@ -1117,10 +1118,13 @@ client.on("messageCreate", async (message) => {
             var accountID = GPInfo.accountID;
             var twoStarsRatio = GPInfo.twoStarRatio;
             var packAmount = GPInfo.packAmount;
+            var packBoosterType = GPInfo.packBoosterType;
 
             var titleName = `${accountName} [${packAmount}P][${twoStarsRatio}/5]`;
             
-            if(twoStarsRatio <= forceSkipMin2Stars && packAmount > forceSkipMinPacks){return;}
+            if(!packBoosterType.includes("Shining")){
+                if(twoStarsRatio <= forceSkipMin2Stars && packAmount > forceSkipMinPacks){return;}
+            }
 
             await createForumPost(client, message, channelID_GPVerificationForum, "GodPack", titleName, ownerID, accountID, packAmount);
         }
@@ -1191,8 +1195,12 @@ client.on("messageCreate", async (message) => {
                     else if (heartbeatData.includes("Packs:")){
                         timeAndPacks = extractNumbers(heartbeatData);
                     }
-                    else if (heartbeatData.includes("Select:")){
-                        selectedPacks = heartbeatData.replace("Select: ","");
+                    else if (heartbeatData.includes("Select:") || heartbeatData.includes("Opening:")){
+                        selectedPacks = heartbeatData.replace("Select: ","").replace("Opening: ","");
+
+                        if (selectedPacks.endsWith(',')) {
+                            selectedPacks = selectedPacks.slice(0, -1);
+                        }
                     }
                     else if (heartbeatData.includes("Type:")){
                         rollingType = heartbeatData.replace("Type: ","");

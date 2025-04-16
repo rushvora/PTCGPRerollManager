@@ -241,7 +241,7 @@ function formatNumberWithSpaces(number, totalLength) {
 
     const numberStr = number.toString();
     const currentLength = numberStr.replace('.', '').length;
-    const spacesNeeded = totalLength - currentLength;
+    const spacesNeeded = Math.max(totalLength - currentLength,0);
     const formattedStr = numberStr + '⠀'.repeat(spacesNeeded);
     return formattedStr;
 }
