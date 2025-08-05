@@ -100,6 +100,9 @@ import {
 } from './utils.js';
 
 import {
+    lockUsersData,
+    lockServerData,
+    readFileAsync,
     checkFileExists,
     checkFileExistsOrCreate,
     writeFile,
@@ -818,25 +821,29 @@ function extractGPInfo(message) {
     const regexAccountID = /\((\d+)\)/;
     const regexTwoStarRatio = /\[(\d)\/\d\]/;
     const regexPackAmount = /\[(\d+)P\]/;
+    const regexPackBoosterType = /\[\d+P\]\s*([^\]]+)\s*\]/;
 
     const ownerIDMatch = message.match(regexOwnerID);
     const accountNameMatch = message.split('\n')[1].match(regexAccountName);
     const accountIDMatch = message.match(regexAccountID);
     const twoStarRatioMatch = message.match(regexTwoStarRatio);
     const packAmountMatch = message.match(regexPackAmount);
+    const packBoosterTypeMatch = message.match(regexPackBoosterType);
 
     const ownerID = ownerIDMatch ? ownerIDMatch[1] : "0000000000000000";
     const accountName = accountNameMatch ? accountNameMatch[1] : "NoAccountName";
     const accountID = accountIDMatch ? accountIDMatch[1] : "0000000000000000";
     const twoStarRatio = twoStarRatioMatch ? twoStarRatioMatch[1] : 0;
     const packAmount = packAmountMatch ? packAmountMatch[1] : 0;
+    const packBoosterType = packBoosterTypeMatch ? packBoosterTypeMatch[1] : "NoPackBoosterType";
 
     return {
         ownerID,
         accountName,
         accountID,
         twoStarRatio,
-        packAmount
+        packAmount,
+        packBoosterType,
     };
 }
 
@@ -1470,7 +1477,7 @@ async function addUserDataGPLive(client, thread){
 
 function incrementSelectedPacks(packCounter, selectedPacks, instanceCount){
 
-    const differentPacksAmount = Math.max(selectedPacks.split(",").length - 1, 0);
+    const differentPacksAmount = selectedPacks.includes(",") ? Math.max(selectedPacks.split(",").length - 1, 0) : 1;
     const differentPacksUnit = instanceCount/differentPacksAmount;
 
     if(selectedPacks.toUpperCase().includes("MEWTWO")){
@@ -1513,7 +1520,7 @@ async function getSelectedPacksEmbedText(client, activeUsers ){
       };
 
     for( var i = 0; i < activeUsers.length; i++ ) {
-                        
+
         var user = activeUsers[i];
         var userID = getIDFromUser(user);
         var userUsername = getUsernameFromUser(user);

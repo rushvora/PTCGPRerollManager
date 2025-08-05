@@ -44,6 +44,8 @@ const AntiCheat = process.env.ENABLE_ANTICHEAT === 'true' ? true : false;
 const canPeopleAddOthers = true;
 // If you want your group to be able to remove other ppl than themselves using /inactive @user 
 const canPeopleRemoveOthers = true;
+// If you want to output selected Packs in ids.txt, see Hoytdj patch note : https://github.com/hoytdj/PTCGPB/releases/tag/v1.5.4
+const enableRoleBasedFilters = true;
 
 // =========================================== AUTO KICK ===========================================
 // Setting this to true will enable auto kick and kick players based on the others factors below
@@ -73,8 +75,9 @@ const leechPermPackCount = 50000;
 const resetServerDataFrequently = true;
 // Decide how frequently you want to Reset GP Stats, default to 4 hours (240mn)
 const resetServerDataTime = 240;
-// Upload UserData.xml to GitGist, resetServerDataFrequently also needs to be true
-const outputUserDataOnGitGist = true;
+// 🔴 I highly recommend you to let the the next one disabled, it can cause random crashes if running on low-end servers
+// Upload UserData.xml to GitGist, "resetServerDataFrequently" also needs to be true for it to work
+const outputUserDataOnGitGist = false;
 
 // =========================================== ELIGIBLES IDs ===========================================
 // If some ppl in your group are running Min2Stars : 2 and some others 3, that flags all the GPs as 5/5 in the list to avoid to auto remove bot from kicking 2/5 for those who are at Min2Stars : 3
@@ -188,6 +191,7 @@ export {
     groupPacksType,
     canPeopleAddOthers,
     canPeopleRemoveOthers,
+    enableRoleBasedFilters,
     canPeopleLeech,
     leechPermGPCount,
     leechPermPackCount,
