@@ -12,6 +12,7 @@ import {
     gitGistID,
     gitGistGroupName,
     gitGistGPName,
+    createThreadForWebhook,
     missBeforeDead,
     missNotLikedMultiplier,
     showPerPersonLive,
@@ -948,51 +949,52 @@ async function createForumPost(client, message, channelID, packName, titleName, 
                 tagActiveUsernames += `<@${id}>`
         });
 
-        // Create thread in Webhook channel
-        const thread = await message.startThread({
-            name: text_verificationRedirect,
-        }).then( async thread =>{
-            // First line
-            const text_foundbyLine = `${text_godpackFoundBy} **<@${ownerID}>**\n`;
+        // First line
+        const text_foundbyLine = `${text_godpackFoundBy} **<@${ownerID}>**\n`;
+        
+        // Second line
+        packAmount = extractNumbers(packAmount);
+        packAmount = Math.max(Math.min(packAmount,5),1); // Ensure that it is only 1 to 5
+        const text_miss = `## [ 0 miss / ${missBeforeDead[packAmount-1]} ]`
+        const text_missLine = `${text_miss}\n\n`;
+        
+        // Third line
+        const text_eligibleLine = `${text_eligible} ${tagActiveUsernames}\n\n`;
+        
+        // Fourth line
+        const text_metadataLine = `Source: ${message.url}\nID:${accountID}\n${imageUrl}\n\n`;
+
+        // Create forum post for verification
+        const forum = client.channels.cache.get(channelID);
+        const forumPost = await forum.threads.create({
+        name: `${text_waitingLogo} ${titleName}`,
+        message: {
+            content: text_foundbyLine + text_missLine + text_eligibleLine + text_metadataLine + text_commandTooltip,
+        },
+        });
+
+        // Conditionally create thread for webhook if enabled
+        if (createThreadForWebhook) {
+            const thread = await message.startThread({
+                name: text_verificationRedirect,
+            });
             
-            // Second line
-            packAmount = extractNumbers(packAmount);
-            packAmount = Math.max(Math.min(packAmount,5),1); // Ensure that it is only 1 to 5
-            const text_miss = `## [ 0 miss / ${missBeforeDead[packAmount-1]} ]`
-            const text_missLine = `${text_miss}\n\n`;
-            
-            // Third line
-            const text_eligibleLine = `${text_eligible} ${tagActiveUsernames}\n\n`;
-            
-            // Fourth line
-            const text_metadataLine = `Source: ${message.url}\nID:${accountID}\n${imageUrl}\n\n`;
+            // Post forum link in webhook thread
+            await thread.send(text_verificationRedirect + ` ${forumPost}`);
+            // Lock thread
+            await thread.setLocked(true);
+        }
 
-            // Create forum post for verification
-            const forum = client.channels.cache.get(channelID);
-            const forumPost = forum.threads.create({
-            name: `${text_waitingLogo} ${titleName}`,
-            message: {
-                content: text_foundbyLine + text_missLine + text_eligibleLine + text_metadataLine + text_commandTooltip,
-            },
-            }).then ( async forum =>{
+        await guild.channels.cache.get(await forumPost.id).send({content:`${accountID} is the id of the account\n-# You can copy paste this message in PocketTCG to look for this account`})
 
-                // Post forum link in webhook thread
-                await thread.send(text_verificationRedirect + ` ${forum}`);
-                // Lock thread
-                await thread.setLocked(true);
-
-                guild.channels.cache.get(await forum.id).send({content:`${accountID} is the id of the account\n-# You can copy paste this message in PocketTCG to look for this account`})
-
-                if(accountID == "0000000000000000"){
-                    const text_incorrectID = localize("L'ID du compte est incorrect :\n- Injecter le compte pour retrouver l'ID\n- Reposter le GP dans le webhook avec l'ID entre parenthèse\n- Faites /removegpfound @LaPersonneQuiLaDrop\n- Supprimer ce post","The account ID is incorrect:\n- Inject the account to find the ID\n- Repost the GP in the webhook with the ID in parentheses\n- Do /removegpfound @UserThatDroppedIt\n- Delete this post");
-                    guild.channels.cache.get(await forum.id).send({content:`# ⚠️ ${text_incorrectID}`})
-                }
-                
-                await wait(1);
-                await updateEligibleIDs(client, packName)
-                await addServerGP(attrib_eligibleGP, forum);
-            })
-        });   
+        if(accountID == "0000000000000000"){
+            const text_incorrectID = localize("L'ID du compte est incorrect :\n- Injecter le compte pour retrouver l'ID\n- Reposter le GP dans le webhook avec l'ID entre parenthèse\n- Faites /removegpfound @LaPersonneQuiLaDrop\n- Supprimer ce post","The account ID is incorrect:\n- Inject the account to find the ID\n- Repost the GP in the webhook with the ID in parentheses\n- Do /removegpfound @UserThatDroppedIt\n- Delete this post");
+            await guild.channels.cache.get(await forumPost.id).send({content:`# ⚠️ ${text_incorrectID}`})
+        }
+        
+        await wait(1);
+        await updateEligibleIDs(client, packName)
+        await addServerGP(attrib_eligibleGP, forumPost);
     }
     catch (error) {
         console.log(`❌ ERROR - Failed to create GP Forum Thread GPLive for Account ${accountID} owned by <@${ownerID}>\n` + error)

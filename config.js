@@ -113,6 +113,8 @@ const showPerPersonLive = true;
 
 // =========================================== OTHER SETTINGS ===========================================
 
+// Whether to create thread for webhook messages when creating forum posts (default: false)
+const createThreadForWebhook = process.env.CREATE_THREAD_FOR_WEBHOOK === 'true' ? true : false;
 // Number of /miss needed before a post is marked as dead, here it means 1pack=4miss, 2packs=6miss, 3packs=8miss, etc..
 const missBeforeDead = [4, 6, 8, 10, 12];
 // Multiply the Miss required when a post is flagged as NotLiked (ex : with a value of 0.5 a post with 8 miss required will switch to 4 miss)
@@ -174,6 +176,7 @@ export {
     gitGistID,
     gitGistGroupName,
     gitGistGPName,
+    createThreadForWebhook,
     missBeforeDead,
     missNotLikedMultiplier,
     showPerPersonLive,
