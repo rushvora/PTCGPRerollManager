@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     env_file: .env
     volumes: 
-      - "/home/rvpi5/code/PTCGPRerollManager/data:/app/data"
+      - "/home/rushvora/Code/PTCGPRerollManager/data:/app/data"
     logging:
       driver: "local"
       options:
