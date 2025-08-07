@@ -6,3 +6,4 @@ data/*
 .env
 .DS_Store
 data-bak
+.id_list_cache.json
