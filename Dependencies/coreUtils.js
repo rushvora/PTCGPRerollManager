@@ -883,6 +883,36 @@ function extractDoubleStarInfo(message) {
     }
 }
 
+function extractSingle2StarInfo(message) {
+    try {
+        const regexOwnerID = /<@(\d+)>/;
+        const regexAccountName = /found by (\S+)/;
+        const regexAccountID = /\((\d+)\)/;
+        const regexPackAmount = /\((\d+) packs/;
+    
+        const ownerIDMatch = message.match(regexOwnerID);
+        const accountNameMatch = message.match(regexAccountName);
+        const accountIDMatch = message.match(regexAccountID);
+        const packAmountMatch = message.match(regexPackAmount);
+    
+        const ownerID = ownerIDMatch ? ownerIDMatch[1] : "0000000000000000";
+        const accountName = accountNameMatch ? accountNameMatch[1] : "NoAccountName";
+        const accountID = accountIDMatch ? accountIDMatch[1] : "0000000000000000";
+        const packAmount = packAmountMatch ? packAmountMatch[1] : 0;
+    
+        console.log(`Extracted Single 2Star info - OwnerID: ${ownerID}, AccountName: ${accountName}, AccountID: ${accountID}, PackAmount: ${packAmount}`);
+    
+        return {
+            ownerID,
+            accountName,
+            accountID,
+            packAmount
+        };        
+    } catch (error) {
+        console.log(`❌ ERROR - Failed to extract single 2star info for message: ${message}` + error)
+    }
+}
+
 async function createForumPost(client, message, channelID, packName, titleName, ownerID, accountID, packAmount){
 
     try{
@@ -959,7 +989,7 @@ async function createForumPost(client, message, channelID, packName, titleName, 
                 }
                 
                 await wait(1);
-                await updateEligibleIDs(client)
+                await updateEligibleIDs(client, packName)
                 await addServerGP(attrib_eligibleGP, forum);
             })
         });   
@@ -990,7 +1020,7 @@ async function markAsDead(client, interaction, optionalText = ""){
     }
 }
 
-async function updateEligibleIDs(client){
+async function updateEligibleIDs(client, packName){
 
     const text_Start = `📜 Updating Eligible IDs...`;
     const text_Done = `☑️📜 Finished updating Eligible IDs`;
@@ -1016,8 +1046,12 @@ async function updateEligibleIDs(client){
             
             var gpTwoStarCount = "5/5"; // Consider as a 5/5 in case it's not found to avoid filtering it 
             if(!safeEligibleIDsFiltering){ // except if safe filtering is off
-                var gpTwoStarCountArray = cleanThreadName.match(/\[(\d+\/\d+)\]/);
-                gpTwoStarCount = gpTwoStarCountArray.length > 1 ? gpTwoStarCountArray[1] : 5;
+                if (packName === 'Single 2Star') {
+                    gpTwoStarCount = "1/5";
+                } else {
+                    var gpTwoStarCountArray = cleanThreadName.match(/\[(\d+\/\d+)\]/);
+                    gpTwoStarCount = gpTwoStarCountArray?.length > 1 ? gpTwoStarCountArray[1] : 5;
+                }
             }
             
             const gpPocketID = contentSplit.find(line => line.includes('ID:'));
@@ -1044,11 +1078,15 @@ async function updateEligibleIDs(client){
     
                 const cleanDoubleStarThreadName = replaceAnyLogoWith(nestedThread.name, "");
                 const doubleStarPocketName = cleanDoubleStarThreadName.split(" ")[1];
-                const doubleStarCount = "5/5";
+                let doubleStarCount = "5/5";
     
                 if(!safeEligibleIDsFiltering){ // except if safe filtering is off
-                    var gpTwoStarCountArray = cleanDoubleStarThreadName.match(/\[(\d+\/\d+)\]/);
-                    doubleStarCount = gpTwoStarCountArray.length > 1 ? gpTwoStarCountArray[1] : 2;
+                    if (packName === 'Single 2Star') {
+                        doubleStarCount = "1/5";
+                    } else {
+                        var gpTwoStarCountArray = cleanDoubleStarThreadName.match(/\[(\d+\/\d+)\]/);
+                        doubleStarCount = gpTwoStarCountArray?.length > 1 ? gpTwoStarCountArray[1] : 2;
+                    }
                 }
     
                 const doubleStarPocketID = contentSplit.find(line => line.includes('ID:'));
@@ -1623,6 +1661,7 @@ export {
     inactivityCheck,
     extractGPInfo,
     extractDoubleStarInfo,
+    extractSingle2StarInfo,
     createForumPost,
     markAsDead, 
     updateEligibleIDs,

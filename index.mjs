@@ -22,6 +22,7 @@ import {
     channelID_UserStats,
     channelID_GPVerificationForum,
     channelID_2StarVerificationForum,
+    channelID_Single2StarVerificationForum,
     channelID_Webhook,
     channelID_Heartbeat,
     channelID_AntiCheat,
@@ -105,6 +106,7 @@ import {
     inactivityCheck,
     extractGPInfo,
     extractDoubleStarInfo,
+    extractSingle2StarInfo,
     createForumPost,
     markAsDead, 
     updateEligibleIDs,
@@ -1144,6 +1146,26 @@ client.on("messageCreate", async (message) => {
             var titleName = `${accountName} [${packAmount}P]`;
 
             await createForumPost(client, message, channelID_2StarVerificationForum, "Double 2Star", titleName, ownerID, accountID, packAmount);
+        }
+
+        //Execute when single two star pack is posted
+        else if (message.attachments.first() != undefined && !message.content.toLowerCase().includes("invalid") && 
+                (message.content.toLowerCase().includes("full art found by") || 
+                 message.content.toLowerCase().includes("trainer found by") || 
+                 message.content.toLowerCase().includes("rainbow found by"))) {
+
+            if(channelID_Single2StarVerificationForum == ""){return;}
+
+            var GPInfo = extractSingle2StarInfo(message.content);
+
+            var ownerID = GPInfo.ownerID;
+            var accountName = GPInfo.accountName;
+            var accountID = GPInfo.accountID;
+            var packAmount = GPInfo.packAmount;
+
+            var titleName = `${accountName} [${packAmount}P]`;
+
+            await createForumPost(client, message, channelID_Single2StarVerificationForum, "Single 2Star", titleName, ownerID, accountID, packAmount);
         }
 
         else if (message.author.bot && message.content.toLowerCase().includes("invalid")) {

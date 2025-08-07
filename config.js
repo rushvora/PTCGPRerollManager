@@ -15,6 +15,8 @@ const channelID_UserStats = process.env.CHANNELID_USER_STATS; // #Users-Stats
 const channelID_GPVerificationForum = process.env.CHANNELID_GP_VERIFICATION_FORUM; // #verify-gp
 // THE ID OF THE DISCORD CHANNEL - Where Double 2 Star validation threads will be created /////!\\\\\ IT HAVE TO BE A FORUM CHANNEL, look for discord community server for more info
 const channelID_2StarVerificationForum = process.env.CHANNELID_2STAR_VERIFICATION_FORUM; // #2starforum 
+// THE ID OF THE DISCORD CHANNEL - Where Single 2 Star validation threads will be created /////!\\\\\ IT HAVE TO BE A FORUM CHANNEL, look for discord community server for more info
+const channelID_Single2StarVerificationForum = process.env.CHANNELID_SINGLE_2STAR_VERIFICATION_FORUM; // #single-2star-forum
 // THE ID OF THE DISCORD CHANNEL - Where the Packs Webhooks is linked, better be a separate channel from heartbeat webhook
 const channelID_Webhook = process.env.CHANNELID_WEBHOOK; // # GP-Webhook
 // THE ID OF THE DISCORD CHANNEL - Where the Heartbeat Webhooks is linked, better be a separate channel from packs webhook
@@ -38,11 +40,11 @@ const idListFetchURL = process.env.ID_LIST_FETCH_URL;
 // Choose if you want the AntiCheat to be enabled or not, if yes then fill "channelID_AntiCheat" above
 const AntiCheat = process.env.ENABLE_ANTICHEAT === 'true' ? true : false;
 // If you want your group to be able to add other ppl than themselves using /active @user 
-const canPeopleAddOthers = true;
+const canPeopleAddOthers = false;
 // If you want your group to be able to remove other ppl than themselves using /inactive @user 
-const canPeopleRemoveOthers = true;
+const canPeopleRemoveOthers = false;
 // If you want to output selected Packs in ids.txt, see Hoytdj patch note : https://github.com/hoytdj/PTCGPB/releases/tag/v1.5.4
-const enableRoleBasedFilters = true;
+const enableRoleBasedFilters = false;
 
 // =========================================== AUTO KICK ===========================================
 // Setting this to true will enable auto kick and kick players based on the others factors below
@@ -61,11 +63,11 @@ var inactiveIfMainOffline = false;
 
 // =========================================== LEECHING ===========================================
 // Decide wether or not ppl can leech
-const canPeopleLeech = false;
+const canPeopleLeech = true;
 // Decide after how many GP found ppl can be able to leech
-const leechPermGPCount = 20;
+const leechPermGPCount = 0;
 // Decide after how many packs opened ppl can be able to leech
-const leechPermPackCount = 50000;
+const leechPermPackCount = 1;
 
 // =========================================== GP STATS ===========================================
 // Decide if you want your Servers Stats (GP stats) to be reset every 4hours which could prevent some duplicated stuff in ServerData.xml 
@@ -78,8 +80,8 @@ const outputUserDataOnGitGist = false;
 
 // =========================================== ELIGIBLES IDs ===========================================
 // If some ppl in your group are running Min2Stars : 2 and some others 3, that flags all the GPs as 5/5 in the list to avoid to auto remove bot from kicking 2/5 for those who are at Min2Stars : 3
-const safeEligibleIDsFiltering = true; // true = all flagged as 5/5
-const addDoubleStarToVipIdsTxt = false; // true = add double star pack account usernames to vip ids txt for GP Test Mode
+const safeEligibleIDsFiltering = false; // true = all flagged as 5/5
+const addDoubleStarToVipIdsTxt = true; // true = add double star pack account usernames to vip ids txt for GP Test Mode
 
 // =========================================== FORCE SKIP ===========================================
 // Allows you to bypass GP based on Packs Amount, Exemple : forceSkipMin2Stars 2 & forceSkipMinPacks 2 will 
@@ -92,8 +94,8 @@ const forceSkipMinPacks = parseInt(process.env.FORCE_SKIP_MIN_PACKS, 10);
 
 // Decide after how much time you want the verification posts to automatically closed, it'll be the time from the post creation, not the last activity
 // Age of post be before closing the post ⚠️ Closed Posts will be removed from the Eligible GPs / VIP IDs list
-const AutoCloseLivePostTime = 96;//hours
-const AutoCloseNotLivePostTime = 72;//hours
+const AutoCloseLivePostTime = 120;//hours
+const AutoCloseNotLivePostTime = 24;//hours
 // No need to modify it except if you specifically changed it in the script
 const heartbeatRate = 30;//minutes
 // No need to modify it except if you specifically changed it in the script
@@ -119,7 +121,7 @@ const missNotLikedMultiplier = [0.5, 0.5, 0.5, 0.75, 0.85, 1]; // Based on two s
 // The average Min2Stars of the group on Arturo's bot, used to calculate the Potential Lives GP
 const min2Stars = 0;//can be a floating number ex:2.5
 //What does your group runs, it is used for AntiCheat
-const groupPacksType = 5;// 5 for 5 packs, 3 for 3packs
+const groupPacksType = 3;// 5 for 5 packs, 3 for 3packs
 
 // =========================================== AESTHETICS ===========================================
 // Icons of GP Validation
@@ -164,6 +166,7 @@ export {
     channelID_UserStats,
     channelID_GPVerificationForum,
     channelID_2StarVerificationForum,
+    channelID_Single2StarVerificationForum,
     channelID_Webhook,
     channelID_Heartbeat,
     channelID_AntiCheat,
