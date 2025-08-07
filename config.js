@@ -150,6 +150,12 @@ const STS_Dialga_CustomEmojiName = "dialga"; // 🕒 if not found, alternative :
 const STS_Palkia_CustomEmojiName = "palkia"; // 🌌 if not found, alternative : 🟪
 const TL_Arceus_CustomEmojiName = "arceus"; // 💡 if not found, alternative : 🟨
 const SR_Giratina_CustomEmojiName = "lucario_shiny"; // ✨ if not found
+const CG_Lunala_CustomEmojiName = "lunala"; // 🌙 if not found, alternative : 🟣
+const CG_Solgaleo_CustomEmojiName = "solgaleo"; // 🌞
+const EDC_Buzzwole_CustomEmojiName = "buzzwole"; // 🐜 if not found, alternative : 🟠
+const EG_Eevee_CustomEmojiName = "eevee"; // 🐾 if not
+const WSS_HoOh_CustomEmojiName = "hooh"; // 🦚 if not found, alternative : 🟡
+const WSS_Lugia_CustomEmojiName = "lugia"; // 🐳 if not
 
 export {
     token,
@@ -219,6 +225,12 @@ export {
     STS_Palkia_CustomEmojiName,
     TL_Arceus_CustomEmojiName,
     SR_Giratina_CustomEmojiName,
+    CG_Lunala_CustomEmojiName,
+    CG_Solgaleo_CustomEmojiName,
+    EDC_Buzzwole_CustomEmojiName,
+    EG_Eevee_CustomEmojiName,
+    WSS_HoOh_CustomEmojiName,
+    WSS_Lugia_CustomEmojiName,
     outputUserDataOnGitGist,
     idListFetchURL,
 };

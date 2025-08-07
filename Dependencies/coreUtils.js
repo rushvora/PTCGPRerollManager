@@ -65,6 +65,12 @@ import {
     STS_Palkia_CustomEmojiName,
     TL_Arceus_CustomEmojiName,
     SR_Giratina_CustomEmojiName,
+    CG_Lunala_CustomEmojiName,
+    CG_Solgaleo_CustomEmojiName,
+    EDC_Buzzwole_CustomEmojiName,
+    EG_Eevee_CustomEmojiName,
+    WSS_HoOh_CustomEmojiName,
+    WSS_Lugia_CustomEmojiName,
     outputUserDataOnGitGist,
 } from '../config.js';
 
@@ -1504,6 +1510,24 @@ function incrementSelectedPacks(packCounter, selectedPacks, instanceCount){
     if(selectedPacks.toUpperCase().includes("SHINING")){
         packCounter["SR_Giratina"] += differentPacksUnit;
     }
+    if(selectedPacks.toUpperCase().includes("LUNALA")){
+        packCounter["CG_Lunala"] += differentPacksUnit;
+    }
+    if(selectedPacks.toUpperCase().includes("SOLGALEO")){
+        packCounter["CG_Solgaleo"] += differentPacksUnit;
+    }
+    if(selectedPacks.toUpperCase().includes("BUZZWOLE")){
+        packCounter["EDC_Buzzwole"] += differentPacksUnit;
+    }
+    if(selectedPacks.toUpperCase().includes("EEVEE")){
+        packCounter["EG_Eevee"] += differentPacksUnit;
+    }
+    if(selectedPacks.toUpperCase().includes("HOOH")){
+        packCounter["WSS_HoOh"] += differentPacksUnit;
+    }
+    if(selectedPacks.toUpperCase().includes("LUGIA")){
+        packCounter["WSS_Lugia"] += differentPacksUnit;
+    }
 }
 
 async function getSelectedPacksEmbedText(client, activeUsers ){
@@ -1516,7 +1540,13 @@ async function getSelectedPacksEmbedText(client, activeUsers ){
         STS_Dialga: 0,
         STS_Palkia: 0,
         TL_Arceus: 0,
-        SR_Giratina: 0
+        SR_Giratina: 0,
+        CG_Lunala: 0,
+        CG_Solgaleo: 0,
+        EDC_Buzzwole: 0,
+        EG_Eevee: 0,
+        WSS_HoOh: 0,
+        WSS_Lugia: 0,
       };
 
     for( var i = 0; i < activeUsers.length; i++ ) {
@@ -1555,6 +1585,12 @@ async function getSelectedPacksEmbedText(client, activeUsers ){
     const emoji_STS_Palkia = findEmoji(client, STS_Palkia_CustomEmojiName, "🌌");
     const emoji_TL_Arceus = findEmoji(client, TL_Arceus_CustomEmojiName, "💡");
     const emoji_SR_Giratina = findEmoji(client, SR_Giratina_CustomEmojiName, "✨");
+    const emoji_CG_Lunala = findEmoji(client, CG_Lunala_CustomEmojiName, "🌙")
+    const emoji_CG_Solgaleo = findEmoji(client, CG_Solgaleo_CustomEmojiName, "🌞");
+    const emoji_EDC_Buzzwole = findEmoji(client, EDC_Buzzwole_CustomEmojiName, "💪");
+    const emoji_EG_Eevee = findEmoji(client, EG_Eevee_CustomEmojiName, "🐾");
+    const emoji_WSS_HoOh = findEmoji(client, WSS_HoOh_CustomEmojiName, "🔥");
+    const emoji_WSS_Lugia = findEmoji(client, WSS_Lugia_CustomEmojiName, "🌊");
     
     const text_mewtwo = `${packCounter["GA_Mewtwo"] > 0 ?       `${emoji_GA_Mewtwo} ${formatNumberWithSpaces(packCounter["GA_Mewtwo"], 4)}` : "" }`
     const text_charizard = `${packCounter["GA_Charizard"] > 0 ? `${emoji_GA_Charizard} ${formatNumberWithSpaces(packCounter["GA_Charizard"], 4)}` : "" }`
@@ -1565,8 +1601,16 @@ async function getSelectedPacksEmbedText(client, activeUsers ){
     const text_palkia = `${packCounter["STS_Palkia"] > 0 ?      `${emoji_STS_Palkia} ${formatNumberWithSpaces(packCounter["STS_Palkia"], 4)}` : "" }`
     const text_arceus = `${packCounter["TL_Arceus"] > 0 ?       `${emoji_TL_Arceus} ${formatNumberWithSpaces(packCounter["TL_Arceus"], 4)}` : "" }`
     const text_giratina = `${packCounter["SR_Giratina"] > 0 ?     `${emoji_SR_Giratina} ${packCounter["SR_Giratina"]}` : "" }`
+    const text_spaceSet2 = `${packCounter["STS_Dialga"] > 0 || packCounter["STS_Palkia"] > 0 || packCounter["TL_Arceus"] > 0 || packCounter["SR_Giratina"] > 0 ? `\n# ` : "" }`
+    const text_lunala = `${packCounter["CG_Lunala"] > 0 ?       `${emoji_CG_Lunala} ${packCounter["CG_Lunala"]}` : "" }`
+    const text_solgaleo = `${packCounter["CG_Solgaleo"] > 0 ?     `${emoji_CG_Solgaleo} ${packCounter["CG_Solgaleo"]}` : "" }`
+    const text_buzzwole = `${packCounter["EDC_Buzzwole"] > 0 ?     `${emoji_EDC_Buzzwole} ${packCounter["EDC_Buzzwole"]}` : "" }`
+    const text_eevee = `${packCounter["EG_Eevee"] > 0 ?       `${emoji_EG_Eevee} ${packCounter["EG_Eevee"]}` : "" }`
+    const text_spaceSet3 = `${packCounter["CG_Lunala"] > 0 || packCounter["CG_Solgaleo"] > 0 || packCounter["EDC_Buzzwole"] > 0 || packCounter["EG_Eevee"] > 0 ? `\n# ` : "" }` 
+    const text_hooh = `${packCounter["WSS_HoOh"] > 0 ?       `${emoji_WSS_HoOh} ${packCounter["WSS_HoOh"]}` : "" }`
+    const text_lugia = `${packCounter["WSS_Lugia"] > 0 ?       `${emoji_WSS_Lugia} ${packCounter["WSS_Lugia"]}` : "" }`
     
-    return `# ${text_mewtwo+text_charizard+text_pikachu+text_mew}${text_spaceSet1}${text_dialga+text_palkia+text_arceus+text_giratina}`
+    return `# ${text_mewtwo+text_charizard+text_pikachu+text_mew}${text_spaceSet1}${text_dialga+text_palkia+text_arceus+text_giratina}${text_spaceSet2}${text_lunala+text_solgaleo}${text_buzzwole+text_eevee}${text_spaceSet3}${text_hooh+text_lugia}`;
 }
 
 export { 
